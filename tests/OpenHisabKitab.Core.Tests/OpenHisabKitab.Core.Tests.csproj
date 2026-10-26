@@ -17,6 +17,7 @@
     <Using Include="OpenHisabKitab.Core.Amounts" />
     <Using Include="OpenHisabKitab.Core.Formatting" />
     <Using Include="OpenHisabKitab.Core.Time" />
+    <Using Include="OpenHisabKitab.Core.Commands" />
   </ItemGroup>
 
   <ItemGroup>

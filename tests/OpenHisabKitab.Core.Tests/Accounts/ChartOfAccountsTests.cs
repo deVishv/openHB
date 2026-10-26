@@ -49,6 +49,13 @@ public class ChartOfAccountsTests
     public void Rejects_duplicate_or_blank_ledger_names(string name) =>
         Assert.Throws<ChartException>(() => c.AddLedger(name, c.Group(GroupKind.CashInHand)));
 
+    [Theory]
+    [InlineData("Output  CGST")]
+    [InlineData("output\tcgst")]
+    [InlineData("Output\u00A0CGST")]
+    public void Rejects_names_that_differ_only_in_spacing(string name) =>
+        Assert.Throws<ChartException>(() => c.AddLedger(name, c.Group(GroupKind.DutiesAndTaxes)));
+
     [Fact]
     public void Rejects_duplicate_group_name() =>
         Assert.Throws<ChartException>(() => c.AddGroup("bank accounts", c.Group(GroupKind.CashInHand)));

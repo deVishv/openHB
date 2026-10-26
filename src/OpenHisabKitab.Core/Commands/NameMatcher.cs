@@ -15,7 +15,7 @@ public static class NameMatcher
         var normal = names.Select(Text.Normalise).ToList();
 
         var exact = Pick(names, normal, n => n == q);
-        if (exact.Count > 0) return new NameMatch(MatchKind.Exact, exact.Take(1).ToList());
+        if (exact.Count > 0) return Result(MatchKind.Exact, exact);
 
         var prefix = Pick(names, normal, n => n.StartsWith(q, StringComparison.Ordinal));
         if (prefix.Count > 0) return Result(MatchKind.Prefix, prefix);

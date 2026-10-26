@@ -54,13 +54,28 @@ public class VoucherValidatorTests
 
     [Fact]
     public void Each_error_is_reported_once() =>
-        Assert.Equal(new[] { VoucherError.ZeroLine },
+        Assert.Equal(new[] { VoucherError.TooFewLines, VoucherError.ZeroLine },
             VoucherValidator.Validate(V(VoucherType.Journal, (Cash, 0), (Capital, 0), (Sales, 0)), c));
 
     [Fact]
     public void Huge_lines_report_unbalanced_instead_of_crashing() =>
         Assert.Contains(VoucherError.Unbalanced,
             VoucherValidator.Validate(V(VoucherType.Journal, (Cash, long.MaxValue), (Capital, long.MaxValue)), c));
+
+    [Fact]
+    public void Lines_that_cancel_out_leave_too_few_lines() =>
+        Assert.Contains(VoucherError.TooFewLines,
+            VoucherValidator.Validate(V(VoucherType.Journal, (Cash, 100), (Cash, -100)), c));
+
+    [Fact]
+    public void Receipt_cash_debit_that_cancels_out_is_rejected() =>
+        Assert.Contains(VoucherError.ReceiptWithoutCashDebit,
+            VoucherValidator.Validate(V(VoucherType.Receipt, (Cash, 100), (Cash, -100), (Capital, 50), (Sales, -50)), c));
+
+    [Fact]
+    public void Same_ledger_lines_that_overflow_report_unbalanced_instead_of_crashing() =>
+        Assert.Contains(VoucherError.Unbalanced,
+            VoucherValidator.Validate(V(VoucherType.Journal, (Cash, long.MaxValue), (Cash, long.MaxValue), (Capital, -1)), c));
 
     [Fact]
     public void Consolidate_merges_and_drops_zero()

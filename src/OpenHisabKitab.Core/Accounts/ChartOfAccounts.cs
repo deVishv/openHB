@@ -1,3 +1,5 @@
+using OpenHisabKitab.Core.Commands;
+
 namespace OpenHisabKitab.Core.Accounts;
 
 public sealed record AccountGroup(GroupId Id, string Name, GroupId? Parent, AccountNature Nature, GroupKind Kind);
@@ -84,11 +86,14 @@ public sealed class ChartOfAccounts
         return (new ChartOfAccounts(Groups, [.. Ledgers, new LedgerAccount(id, clean, group, required)]), id);
     }
 
+    // Uniqueness uses the same normalisation as NameMatcher, so two names can never match the same typed text exactly.
     static string CheckName(string name, IEnumerable<string> existing, string what)
     {
-        var clean = name.Trim();
+        var clean = string.Join(' ', Text.Words(name));
         if (clean.Length == 0) throw new ChartException($"A {what} name cannot be blank.");
-        if (existing.Any(e => e.Equals(clean, StringComparison.OrdinalIgnoreCase)))
+        if (clean.Any(char.IsControl)) throw new ChartException($"A {what} name cannot contain control characters.");
+        var key = Text.Normalise(clean);
+        if (existing.Any(e => Text.Normalise(e) == key))
             throw new ChartException($"A {what} named {clean} already exists.");
         return clean;
     }

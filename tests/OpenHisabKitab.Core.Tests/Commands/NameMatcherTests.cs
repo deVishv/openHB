@@ -21,6 +21,14 @@ public class NameMatcherTests
         Assert.Equal(new[] { "HDFC  Bank " }, NameMatcher.Match("hdfc bank", new[] { "HDFC  Bank " }).Candidates);
 
     [Fact]
+    public void Two_exact_matches_are_ambiguous()
+    {
+        var m = NameMatcher.Match("hdfc bank", new[] { "HDFC Bank", "hdfc  bank" });
+        Assert.Equal(MatchKind.Ambiguous, m.Kind);
+        Assert.Equal(2, m.Candidates.Count);
+    }
+
+    [Fact]
     public void Ambiguous_prefix()
     {
         var m = NameMatcher.Match("hdfc", Names);

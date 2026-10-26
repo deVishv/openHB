@@ -19,6 +19,7 @@
     <Using Include="OpenHisabKitab.Core.Time" />
     <Using Include="OpenHisabKitab.Core.Commands" />
     <Using Include="OpenHisabKitab.Core.Accounts" />
+    <Using Include="OpenHisabKitab.Core.Vouchers" />
   </ItemGroup>
 
   <ItemGroup>

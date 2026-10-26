@@ -1,3 +1,8 @@
 CLAUDE.md
 .superpowers/
 .remember/
+bin/
+obj/
+.vs/
+*.user
+TestResults/

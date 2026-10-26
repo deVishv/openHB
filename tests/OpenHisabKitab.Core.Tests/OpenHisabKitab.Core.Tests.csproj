@@ -20,6 +20,7 @@
     <Using Include="OpenHisabKitab.Core.Commands" />
     <Using Include="OpenHisabKitab.Core.Accounts" />
     <Using Include="OpenHisabKitab.Core.Vouchers" />
+    <Using Include="OpenHisabKitab.Core.Gst" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <EmbeddedResource Include="Gst\gst-data.json" LogicalName="OpenHisabKitab.Core.Gst.gst-data.json" />
+  </ItemGroup>
+
 </Project>

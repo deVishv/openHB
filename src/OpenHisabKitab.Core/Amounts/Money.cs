@@ -48,15 +48,8 @@ public readonly record struct Money(long Paise) : IComparable<Money>
         if (point >= 0 && (fraction.Length is < 1 or > 2 || !fraction.All(char.IsAsciiDigit))) return false;
         if (whole.Length == 0) return false;
 
-        var digits = new System.Text.StringBuilder(whole.Length);
-        for (var i = 0; i < whole.Length; i++)
-        {
-            var c = whole[i];
-            if (char.IsAsciiDigit(c)) { digits.Append(c); continue; }
-            var betweenDigits = c == ',' && i > 0 && i < whole.Length - 1
-                && char.IsAsciiDigit(whole[i - 1]) && char.IsAsciiDigit(whole[i + 1]);
-            if (!betweenDigits) return false;
-        }
+        if (!ValidGrouping(whole)) return false;
+        var digits = whole.Replace(",", "", StringComparison.Ordinal);
 
         var paiseText = digits + fraction.PadRight(2, '0');
         if (!decimal.TryParse(paiseText, NumberStyles.None, CultureInfo.InvariantCulture, out var paise)) return false;
@@ -64,6 +57,22 @@ public readonly record struct Money(long Paise) : IComparable<Money>
         if (paise < long.MinValue || paise > long.MaxValue) return false;
         money = new Money((long)paise);
         return true;
+    }
+
+    /// <summary>
+    /// Digits with no commas, or commas in Indian grouping (12,34,567) or Western grouping (1,234,567).
+    /// Anything else, such as 12,50 typed with a decimal comma, is rejected rather than read as a larger amount.
+    /// </summary>
+    static bool ValidGrouping(string whole)
+    {
+        var groups = whole.Split(',');
+        if (groups.Any(g => g.Length == 0 || !g.All(char.IsAsciiDigit))) return false;
+        if (groups.Length == 1) return true;
+        if (groups[^1].Length != 3) return false;
+        var middle = groups[1..^1];
+        var indian = groups[0].Length <= 2 && middle.All(g => g.Length == 2);
+        var western = groups[0].Length <= 3 && middle.All(g => g.Length == 3);
+        return indian || western;
     }
 
     public override string ToString()

@@ -10,6 +10,11 @@ public class MoneyTests
     [InlineData("1,23,456.78", 12345678)]
     [InlineData("-35,000", -3500000)]
     [InlineData(" 7.10 ", 710)]
+    [InlineData("1,000", 100000)]
+    [InlineData("12,345.6", 1234560)]
+    [InlineData("1,234,567.89", 123456789)]
+    [InlineData("12,34,567.89", 123456789)]
+    [InlineData("1,00,00,000", 1000000000)]
     public void Parse_accepts_valid_input(string text, long paise) =>
         Assert.Equal(new Money(paise), Money.Parse(text));
 
@@ -24,6 +29,11 @@ public class MoneyTests
     [InlineData("1,")]
     [InlineData(",1")]
     [InlineData("92233720368547758.08")]
+    [InlineData("12,50")]
+    [InlineData("1,2,3")]
+    [InlineData("1,23,45")]
+    [InlineData("1234,567")]
+    [InlineData("12,34,5678")]
     public void TryParse_rejects_invalid_input(string text) =>
         Assert.False(Money.TryParse(text, out _));
 

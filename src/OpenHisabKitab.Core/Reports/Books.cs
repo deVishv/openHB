@@ -64,6 +64,46 @@ public sealed class Books
         return new TrialBalance(period, rows, OpeningDifference, debit, credit);
     }
 
+    public ProfitAndLoss ProfitAndLoss(DateRange period)
+    {
+        RequireSingleYear(period);
+        var income = new List<ReportRow>();
+        var expenses = new List<ReportRow>();
+        foreach (var ledger in incomeAndExpense)
+        {
+            var row = Activity(ledger, period);
+            var movement = row.Debits - row.Credits;
+            if (movement == Money.Zero) continue;
+            if (chart.NatureOf(ledger) == AccountNature.Income) income.Add(new ReportRow(ledger, -movement));
+            else expenses.Add(new ReportRow(ledger, movement));
+        }
+
+        var totalIncome = Money.Sum(income.Select(r => r.Amount));
+        var totalExpenses = Money.Sum(expenses.Select(r => r.Amount));
+        return new ProfitAndLoss(period, income, expenses, totalIncome, totalExpenses, totalIncome - totalExpenses);
+    }
+
+    public BalanceSheet BalanceSheet(DateOnly asAt)
+    {
+        var period = new DateRange(FinancialYear.Containing(asAt).Start, asAt);
+        var assets = new List<ReportRow>();
+        var liabilities = new List<ReportRow>();
+        foreach (var ledger in chart.Ledgers)
+        {
+            var nature = chart.NatureOf(ledger.Id);
+            if (nature is AccountNature.Income or AccountNature.Expense) continue;
+            var closing = Activity(ledger.Id, period).Closing;
+            if (closing == Money.Zero) continue;
+            if (nature == AccountNature.Asset) assets.Add(new ReportRow(ledger.Id, closing));
+            else liabilities.Add(new ReportRow(ledger.Id, -closing));
+        }
+
+        var currentProfit = ProfitAndLoss(period).NetProfit;
+        var totalAssets = Money.Sum(assets.Select(r => r.Amount));
+        var totalLiabilities = Money.Sum(liabilities.Select(r => r.Amount)) + currentProfit + OpeningDifference;
+        return new BalanceSheet(asAt, assets, liabilities, currentProfit, OpeningDifference, totalAssets, totalLiabilities);
+    }
+
     public LedgerStatement Statement(LedgerId ledger, DateRange period)
     {
         RequireSingleYear(period);
@@ -108,8 +148,6 @@ public sealed class Books
         }
         return new TrialBalanceRow(ledger, opening, debits, credits, opening + debits - credits);
     }
-
-    internal ChartOfAccounts Chart => chart;
 
     internal static void RequireSingleYear(DateRange period)
     {

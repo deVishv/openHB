@@ -15,6 +15,7 @@
     <Using Include="Xunit" />
     <Using Include="System.Globalization" />
     <Using Include="OpenHisabKitab.Core.Amounts" />
+    <Using Include="OpenHisabKitab.Core.Formatting" />
   </ItemGroup>
 
   <ItemGroup>

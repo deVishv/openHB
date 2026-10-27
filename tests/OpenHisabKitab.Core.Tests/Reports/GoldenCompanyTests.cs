@@ -57,6 +57,8 @@ public class GoldenCompanyTests
         Assert.Equal(Dr(53800), b.TotalLiabilities);
     }
 
+    static Money P(long paise) => new(paise);
+
     [Fact]
     public void Trial_balance_fy_2026()
     {
@@ -64,18 +66,42 @@ public class GoldenCompanyTests
         Assert.Equal(Cr(2000), tb.Rows.Single(r => r.Ledger == l["ProfitAndLoss"]).Opening);
         Assert.Equal(Dr(53720), Closing(tb, l["Cash"]));
         Assert.Equal(Cr(1000), Closing(tb, l["Interest"]));
-        Assert.DoesNotContain(tb.Rows, r => r.Ledger == l["Purchases"] || r.Ledger == l["Sales"] || r.Ledger == l["Rent"]);
-        Assert.Equal(Dr(54800), tb.TotalDebit);
-        Assert.Equal(Dr(54800), tb.TotalCredit);
+        Assert.Equal(Dr(695), Closing(tb, l["Gupta"]));
+        Assert.Equal(Cr(2000), Closing(tb, l["Mehta"]));
+        Assert.Equal(P(-60004), Closing(tb, l["Sales"]));
+        Assert.Equal(Dr(2000), Closing(tb, l["Purchases"]));
+        Assert.Equal(P(4), Closing(tb, l["RoundOff"]));
+        Assert.Equal(P(-85750), Closing(tb, l["OutputCgst"]));
+        Assert.Equal(Cr(855), Closing(tb, l["OutputSgst"]));
+        Assert.Equal(P(-250), Closing(tb, l["OutputUtgst"]));
+        Assert.Equal(Cr(180), Closing(tb, l["OutputIgst"]));
+        Assert.Equal(Cr(360), Closing(tb, l["RcmIgst"]));
+        Assert.Equal(Dr(360), Closing(tb, l["InputIgst"]));
+        Assert.Equal(Dr(540), Closing(tb, l["InputCgst"]));
+        Assert.DoesNotContain(tb.Rows, r => r.Ledger == l["Rent"]);
+        Assert.Equal(P(5785504), tb.TotalDebit);
+        Assert.Equal(P(5785504), tb.TotalCredit);
+    }
+
+    [Fact]
+    public void Profit_and_loss_fy_2026_is_a_loss()
+    {
+        var p = books.ProfitAndLoss(new FinancialYear(2026).Range);
+        Assert.Equal(P(160004), p.TotalIncome);
+        Assert.Equal(P(200004), p.TotalExpenses);
+        Assert.Equal(Cr(400), p.NetProfit);
     }
 
     [Fact]
     public void Balance_sheet_31_march_2027()
     {
         var b = books.BalanceSheet(new(2027, 3, 31));
-        Assert.Equal(Dr(1000), b.CurrentProfit);
-        Assert.Equal(Dr(54800), b.TotalAssets);
-        Assert.Equal(Dr(54800), b.TotalLiabilities);
+        Assert.Equal(new[] { l["Cash"], l["InputCgst"], l["InputSgst"], l["InputIgst"], l["Gupta"] }, b.Assets.Select(r => r.Ledger));
+        Assert.Equal(new[] { l["Capital"], l["ProfitAndLoss"], l["OutputCgst"], l["OutputSgst"], l["OutputUtgst"], l["OutputIgst"], l["RcmIgst"], l["Mehta"] },
+            b.Liabilities.Select(r => r.Ledger));
+        Assert.Equal(Cr(400), b.CurrentProfit);
+        Assert.Equal(Dr(55855), b.TotalAssets);
+        Assert.Equal(Dr(55855), b.TotalLiabilities);
     }
 
     [Fact]

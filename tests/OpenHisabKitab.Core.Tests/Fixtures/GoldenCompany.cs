@@ -24,6 +24,9 @@ public static class GoldenCompany
             ["OutputCgst"] = chart.Required(RequiredLedger.OutputCgst), ["OutputSgst"] = chart.Required(RequiredLedger.OutputSgst),
             ["InputCgst"] = chart.Required(RequiredLedger.InputCgst), ["InputSgst"] = chart.Required(RequiredLedger.InputSgst),
             ["ProfitAndLoss"] = chart.Required(RequiredLedger.ProfitAndLoss),
+            ["RoundOff"] = chart.Required(RequiredLedger.RoundOff),
+            ["OutputUtgst"] = chart.Required(RequiredLedger.OutputUtgst), ["OutputIgst"] = chart.Required(RequiredLedger.OutputIgst),
+            ["InputIgst"] = chart.Required(RequiredLedger.InputIgst), ["RcmIgst"] = chart.Required(RequiredLedger.RcmPayableIgst),
         };
 
         var postings = new List<PostingRecord>();
@@ -43,6 +46,24 @@ public static class GoldenCompany
         Add(4, new(2025, 4, 25), Pair(rent, cash, 2000));
         Add(5, new(2025, 4, 30), Pair(mehta, cash, 7080));
         Add(6, new(2026, 5, 5), Pair(cash, interest, 1000));
+
+        static InvoiceResult Priced(long paise, int rate, TaxSplit split, bool reverseCharge = false) => InvoiceCalculator.Calculate(
+            [new InvoiceLineInput(new Quantity(1000), new Money(paise), Money.Zero, new GstRate(rate), new GstRate(0))],
+            split, roundOff: true, reverseCharge);
+        var toGupta = GstPostingAccounts.FromChart(chart, gupta);
+
+        // V7: inter state sale 999.99 at 18% IGST; tax 180.00, total 1179.99 rounds to 1180.00.
+        Add(7, new(2026, 6, 10), GstPosting.Post(Priced(99999, 1800, TaxSplit.Igst), [ledgers["Sales"]],
+            TradeDirection.Outward, GstDocumentKind.Invoice, false, toGupta));
+        // V8: credit note 500.00 at 18%; CGST 45.00 and SGST 45.00 reversed.
+        Add(8, new(2026, 6, 15), GstPosting.Post(Priced(50000, 1800, TaxSplit.CgstSgst), [ledgers["Sales"]],
+            TradeDirection.Outward, GstDocumentKind.CreditNote, false, toGupta));
+        // V9: reverse charge purchase 2,000.00 at 18% IGST; Mehta is owed 2,000.00 and 360.00 is RCM payable.
+        Add(9, new(2026, 6, 20), GstPosting.Post(Priced(200000, 1800, TaxSplit.Igst, reverseCharge: true), [ledgers["Purchases"]],
+            TradeDirection.Inward, GstDocumentKind.Invoice, true, GstPostingAccounts.FromChart(chart, mehta)));
+        // V10: UTGST sale 100.05 at 5%; CGST 2.50 and UTGST 2.50, total 105.05 rounds to 105.00.
+        Add(10, new(2026, 6, 25), GstPosting.Post(Priced(10005, 500, TaxSplit.CgstUtgst), [ledgers["Sales"]],
+            TradeDirection.Outward, GstDocumentKind.Invoice, false, toGupta));
 
         var openings = new Dictionary<LedgerId, Money> { [cash] = Money.FromRupees(50000), [capital] = -Money.FromRupees(50000) };
         return (new Books(chart, new(2025, 4, 1), openings, postings), chart, ledgers);

@@ -31,7 +31,9 @@ public static class RandomBooks
         var openings = new Dictionary<LedgerId, Money>();
         foreach (var l in new[] { cash, bank }.Concat(receivables)) openings[l] = new Money(rng.NextInt64(0, 100_000_001));
         foreach (var l in payables) openings[l] = -new Money(rng.NextInt64(0, 100_000_001));
-        openings[chart.Required(RequiredLedger.Capital)] = -Money.Sum(openings.Values);
+        // Every fourth seed leaves an opening difference so reports are tested with unbalanced openings too.
+        var difference = seed % 4 == 0 ? new Money(rng.NextInt64(-1_000_000, 1_000_001)) : Money.Zero;
+        openings[chart.Required(RequiredLedger.Capital)] = difference - Money.Sum(openings.Values);
 
         var allLedgers = chart.Ledgers.Select(l => l.Id).ToArray();
         var days = new FinancialYear(2026).End.DayNumber - BooksStart.DayNumber + 1;

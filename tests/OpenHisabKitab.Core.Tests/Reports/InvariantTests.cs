@@ -32,6 +32,10 @@ public class InvariantTests
         foreach (var v in vouchers) Same(seed, $"voucher {v.Id} sum", Money.Zero, Money.Sum(v.Lines.Select(l => l.Amount)));
     }
 
+    [Fact]
+    public void Some_seeds_have_an_opening_difference() =>
+        Assert.Contains(Enumerable.Range(1, 100), s => RandomBooks.Generate(s).Books.OpeningDifference != Money.Zero);
+
     [Theory]
     [MemberData(nameof(Seeds))]
     public void Invariant_2_trial_balance_agrees(int seed)

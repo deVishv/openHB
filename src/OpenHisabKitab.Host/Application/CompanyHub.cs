@@ -15,6 +15,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
 {
     readonly ConcurrentDictionary<int, SemaphoreSlim> writeLocks = new();
     readonly ConcurrentDictionary<int, bool> migrated = new();
+    readonly ConcurrentDictionary<int, object> migrateLocks = new();
 
     public MaintenanceGate Gate { get; } = new();
 
@@ -23,7 +24,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
 
     public SqliteConnection Open(int companyId)
     {
-        Gate.Check();
+        Gate.Check(companyId);
         return OpenFile(companyId);
     }
 
@@ -34,11 +35,18 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         if (!File.Exists(path)) throw new ServiceException(ServiceError.NotFound, "No such company.");
         if (!migrated.ContainsKey(companyId))
         {
-            try { Migrator.CheckNotTooNew(path, Schema.Company); }
-            catch (DatabaseTooNewException e) { throw new ServiceException(ServiceError.TooNew, e.Message); }
-            using var first = SqliteDatabase.Open(path);
-            Migrator.Migrate(first, Schema.Company, _ => new BackupManager(time).Backup(path, data.BackupFolder));
-            migrated[companyId] = true;
+            // Two first opens at once must not both run the same migration.
+            lock (migrateLocks.GetOrAdd(companyId, _ => new object()))
+            {
+                if (!migrated.ContainsKey(companyId))
+                {
+                    try { Migrator.CheckNotTooNew(path, Schema.Company); }
+                    catch (DatabaseTooNewException e) { throw new ServiceException(ServiceError.TooNew, e.Message); }
+                    using var first = SqliteDatabase.Open(path);
+                    Migrator.Migrate(first, Schema.Company, _ => new BackupManager(time).Backup(path, data.BackupFolder));
+                    migrated[companyId] = true;
+                }
+            }
         }
         return SqliteDatabase.Open(path);
     }
@@ -87,10 +95,10 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
     {
         var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync().ConfigureAwait(false);
-        Gate.Close();
+        Gate.Close(companyId);
         return new Release(() =>
         {
-            Gate.Open();
+            Gate.Open(companyId);
             gate.Release();
         });
     }

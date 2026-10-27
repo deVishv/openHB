@@ -66,7 +66,8 @@ public sealed class AuthService(HostData data, SessionStore sessions, LoginThrot
         {
             var u = UserRepository.Get(tx.Connection!, ctx.UserId) ?? throw ServiceException.Denied();
             if (!PasswordHasher.Verify(current, u.PasswordHash))
-                throw new ServiceException(ServiceError.NotAuthenticated, "Current password is wrong.");
+                // Invalid, not NotAuthenticated: the session is still good, only the typed password is wrong.
+                throw new ServiceException(ServiceError.Invalid, "Current password is wrong.");
             UserRepository.SetPassword(tx, u.Id, hash);
             AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "change-password", "user", Key(u.Id), null, null));
             return 0;

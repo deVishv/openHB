@@ -43,6 +43,10 @@ public sealed class BackupScheduler(AdminService admin, HostData data, TimeProvi
             {
                 admin.Backup(company, SystemEntry("backup", source, null), keep);
             }
+            catch (ServiceException e) when (e.Error == ServiceError.Unavailable)
+            {
+                // That company is being restored; the next check backs it up.
+            }
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 log.LogError(e, "Backup of {Source} failed.", source);

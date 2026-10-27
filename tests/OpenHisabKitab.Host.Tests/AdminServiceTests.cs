@@ -135,7 +135,8 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(ServiceError.Invalid, ex.Error);
         Assert.Equal("Backup file is damaged. Nothing was restored.", ex.Message);
         Assert.Equal(b.Id, host.Vouchers.Get(owner, company, b.Id).Id);
-        Assert.False(host.Hub.Gate.IsClosed);
+        Assert.False(host.Hub.Gate.IsClosed(company));
+        Assert.NotNull(host.Sessions.Resolve(host.Owner.Token));
     }
 
     [Fact]
@@ -154,10 +155,17 @@ public sealed class AdminServiceTests : IDisposable
     [Fact]
     public void Closed_gate_refuses_company_work()
     {
-        host.Hub.Gate.Close();
+        var other = host.NewCompany(TestHost.Profile("B Traders"));
+        host.Hub.Gate.Close(company);
         var ex = Fails(ServiceError.Unavailable, () => host.Masters.Chart(owner, company));
         Assert.Equal("A restore is running. Try again in a minute.", ex.Message);
-        host.Hub.Gate.Open();
+        Fails(ServiceError.Unavailable, () => host.Admin.BackupNow(owner, company));
+        Assert.NotEmpty(host.Masters.Chart(owner, other).Ledgers);
+        host.Admin.BackupNow(owner, other);
+        host.Scheduler.RunOnce();
+        using (var c = host.Data.OpenHost())
+            Assert.DoesNotContain(AuditLog.Read(c, new AuditFilter()), r => r.Entry.Action == "backup-failed" && r.Entry.EntityKey == "company-" + other);
+        host.Hub.Gate.Open(company);
         Assert.NotEmpty(host.Masters.Chart(owner, company).Ledgers);
     }
 
@@ -185,5 +193,36 @@ public sealed class AdminServiceTests : IDisposable
         for (var i = 0; i < 3; i++) { host.Time.Advance(TimeSpan.FromDays(1)); host.Scheduler.RunOnce(); }
         Assert.True(File.Exists(kept[0]));
         Assert.Single(host.Admin.Backups(owner, company));
+    }
+
+    [Fact]
+    public async Task Failed_copy_before_restore_restores_nothing()
+    {
+        var a = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
+        var backup = host.Admin.BackupNow(owner, company);
+        var b = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(200));
+        var folder = new DirectoryInfo(host.Data.BackupFolder);
+        var me = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
+        var deny = new System.Security.AccessControl.FileSystemAccessRule(me,
+            System.Security.AccessControl.FileSystemRights.WriteData | System.Security.AccessControl.FileSystemRights.CreateFiles,
+            System.Security.AccessControl.AccessControlType.Deny);
+        var acl = folder.GetAccessControl();
+        acl.AddAccessRule(deny);
+        folder.SetAccessControl(acl);
+        try
+        {
+            var ex = await Assert.ThrowsAsync<ServiceException>(() => host.Admin.RestoreAsync(owner, company, backup.Path));
+            Assert.Equal(ServiceError.Invalid, ex.Error);
+            Assert.Equal("Could not copy the current file first. Nothing was restored.", ex.Message);
+        }
+        finally
+        {
+            acl = folder.GetAccessControl();
+            acl.RemoveAccessRule(deny);
+            folder.SetAccessControl(acl);
+        }
+        Assert.Equal(b.Id, host.Vouchers.Get(owner, company, b.Id).Id);
+        Assert.Equal(a.Id, host.Vouchers.Get(owner, company, a.Id).Id);
+        Assert.NotNull(host.Sessions.Resolve(host.Owner.Token));
     }
 }

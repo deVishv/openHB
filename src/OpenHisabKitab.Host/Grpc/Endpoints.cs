@@ -266,13 +266,15 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
     }
 }
 
-internal sealed class ChangesEndpoint(ChangeFeed feed) : Changes.ChangesBase
+internal sealed class ChangesEndpoint(ChangeFeed feed, SessionStore sessions) : Changes.ChangesBase
 {
     public override async Task Watch(V1Empty request, IServerStreamWriter<ChangeEventMsg> responseStream, ServerCallContext context)
     {
-        var ctx = context.Caller();
+        var token = context.Token();
         await foreach (var e in feed.Subscribe(context.CancellationToken))
         {
+            // The session is checked at every event, so logout, expiry, and lost company access end or filter the stream.
+            var ctx = sessions.Peek(token) ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Log in again."));
             if (!ctx.AllCompanies && !ctx.Companies.Contains(e.CompanyId)) continue;
             await responseStream.WriteAsync(new ChangeEventMsg { Company = e.CompanyId, Kind = e.Kind.ToString(), EntityId = e.EntityId ?? 0 });
         }

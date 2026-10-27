@@ -43,6 +43,13 @@ public sealed class SessionStore(TimeProvider time)
         }
     }
 
+    /// <summary>The caller for a token without counting as use, so a long running stream does not keep a session alive.</summary>
+    public CallContext? Peek(string token)
+    {
+        if (!sessions.TryGetValue(token, out var e)) return null;
+        lock (e) return time.GetUtcNow() < e.ExpiresAt ? e.Context : null;
+    }
+
     /// <summary>Changes the context of every session of a user, such as after they gain access to a new company.</summary>
     public void Update(int userId, Func<CallContext, CallContext> change)
     {

@@ -55,8 +55,8 @@ public sealed class BackupSchedulerTests : IDisposable
     {
         var second = host.NewCompany(TestHost.Profile("B Traders"));
         host.Data.WriteHost(tx => { HostSettingsRepository.Set(tx, "backup.folder", System.Text.Json.JsonSerializer.Serialize(Path.Combine(host.Folder, "Backups"))); return 0; });
-        File.Move(host.Data.CompanyPath(company), host.Data.CompanyPath(company) + ".gone");
         SqliteConnection.ClearAllPools();
+        File.Move(host.Data.CompanyPath(company), host.Data.CompanyPath(company) + ".gone");
         host.Scheduler.RunOnce();
         Assert.Single(host.Admin.Backups(host.Owner.Context, second));
         using var c = host.Data.OpenHost();

@@ -49,8 +49,9 @@ Each line says what was decided and what it costs if wrong.
 1. **Audit trail tampering.** The hash chain shows an edited or removed row, except the newest rows: deleting the last few rows leaves a valid chain. Someone who can write the database file can also rebuild the whole chain. Closing this needs a key kept outside the file, or a copy of the chain head kept elsewhere. Owner to decide whether version 1 needs it.
 2. **Newer files.** A database written by a newer version of the software is refused, not opened read only.
 3. **REST and MCP storage.** The `api_tokens` table exists but is unused until Plan 3.
-4. **Found in the final review, left for later plans** (none changes a figure): a wrong current password looks like an expired session to the client; an unknown item id, a failed pre restore backup, and similar cases show "Something went wrong" instead of a clear message; cess rates are not checked against GST data; host.db migrations take no backup first (only one exists so far); change streams continue after logout until the client disconnects; the login throttle keeps every user name tried.
-5. **Report speed.** A full year trial balance over 1,000,000 posting lines, rebuilt after a save, took 360 ms on the build PC (target under 1 s).
+4. **Cess rates are not checked.** The GST data file has no cess rates, so any cess rate an item or invoice line gives is accepted. Adding checked cess rates is GST data work for Plan 7, and the rates need your confirmation.
+5. **Company saves wait on a server thread.** Masters, company, and lock changes wait for the company's write lock without freeing the thread. Harmless at office scale (a wait of milliseconds per save); worth changing if many users ever save at once.
+6. **Report speed.** A full year trial balance over 1,000,000 posting lines, rebuilt after a save, took 360 ms on the build PC (target under 1 s).
 
 ## Plan 1: Foundation and accounting core
 

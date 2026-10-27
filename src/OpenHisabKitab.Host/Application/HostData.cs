@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using OpenHisabKitab.Data;
+using OpenHisabKitab.Data.Backup;
 using OpenHisabKitab.Data.HostDb;
 using OpenHisabKitab.Data.Migrations;
 
@@ -47,13 +48,20 @@ public sealed class HostData(string dataDirectory)
                     DataFolderSecurity.Restrict(DataDirectory);
                     Migrator.CheckNotTooNew(HostDbPath, Schema.Host);
                     using var first = SqliteDatabase.Open(HostDbPath);
-                    Migrator.Migrate(first, Schema.Host);
+                    Migrator.Migrate(first, Schema.Host,
+                        _ => new BackupManager(TimeProvider.System).Backup(HostDbPath, FolderFrom(first)));
                     migrated = true;
                 }
             }
         }
         return SqliteDatabase.Open(HostDbPath);
     }
+
+    // The backup folder read through an already open connection, for use while host.db is being opened.
+    string FolderFrom(SqliteConnection c) =>
+        HostSettingsRepository.Get(c, "backup.folder") is { } json && JsonSerializer.Deserialize<string>(json) is { Length: > 0 } folder
+            ? folder
+            : Path.Combine(DataDirectory, "Backups");
 
     public T WriteHost<T>(Func<SqliteTransaction, T> work)
     {

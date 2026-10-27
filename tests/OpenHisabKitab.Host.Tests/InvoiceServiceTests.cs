@@ -249,4 +249,12 @@ public sealed class InvoiceServiceTests : IDisposable
         var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, company, input));
         Assert.Equal("Choose Regular for a document received from a supplier.", ex.Message);
     }
+
+    [Fact]
+    public async Task Unknown_item_is_named()
+    {
+        var line = Line(sales, "10.00") with { ItemId = 999 };
+        var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, company, Sale(localCustomer, "27", line)));
+        Assert.Equal("Line 1: unknown item.", ex.Message);
+    }
 }

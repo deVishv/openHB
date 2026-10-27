@@ -83,10 +83,21 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
 
         using (await hub.MaintenanceAsync(company))
         {
+            // Both checks come before anyone is logged out, so a failure leaves everything as it was.
+            try { BackupManager.CheckIntegrity(full); }
+            catch (BackupFailedException) { throw new ServiceException(ServiceError.Invalid, "Backup file is damaged. Nothing was restored."); }
+            BackupFile before;
+            try
+            {
+                // Kept out of pruning: it holds any audit records written after the chosen backup.
+                before = backups.Backup(data.CompanyPath(company), data.BackupFolder, "prerestore");
+            }
+            catch (Exception e) when (e is BackupFailedException or IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+            {
+                throw new ServiceException(ServiceError.Invalid, "Could not copy the current file first. Nothing was restored.");
+            }
             sessions.RemoveAll();
             feed.Publish(new ChangeEvent(company, ChangeKind.Restore, null));
-            // Kept out of pruning: it holds any audit records written after the chosen backup.
-            var before = backups.Backup(data.CompanyPath(company), data.BackupFolder, "prerestore");
             using var live = hub.OpenFile(company);
             try { backups.RestoreInto(full, live); }
             catch (BackupFailedException) { throw new ServiceException(ServiceError.Invalid, "Backup file is damaged. Nothing was restored."); }
@@ -107,6 +118,7 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     /// </summary>
     internal BackupFile Backup(int? company, AuditEntry audit, int? keep)
     {
+        if (company is { } gated) hub.Gate.Check(gated);
         var path = company is { } id ? data.CompanyPath(id) : data.HostDbPath;
         if (!File.Exists(path)) throw new ServiceException(ServiceError.NotFound, "No such company.");
         var folder = data.BackupFolder;

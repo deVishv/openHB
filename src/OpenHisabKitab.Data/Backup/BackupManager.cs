@@ -88,7 +88,8 @@ public sealed class BackupManager(TimeProvider time)
         return new DateTimeOffset(local, time.LocalTimeZone.GetUtcOffset(local));
     }
 
-    static void CheckIntegrity(string path)
+    /// <summary>Throws <see cref="BackupFailedException"/> unless the file is a whole SQLite database.</summary>
+    public static void CheckIntegrity(string path)
     {
         string result;
         try

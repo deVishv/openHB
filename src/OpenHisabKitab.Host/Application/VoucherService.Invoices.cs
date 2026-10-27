@@ -50,6 +50,8 @@ public sealed partial class VoucherService
         for (var i = 0; i < input.Lines.Count; i++)
         {
             var line = input.Lines[i];
+            if (line.ItemId is { } item && ItemRepository.Get(c, item) is null)
+                throw new ServiceException(ServiceError.Invalid, $"Line {i + 1}: unknown item.");
             if (!IsLineLedger(c, chart, line.Ledger, input.Direction))
                 throw new ServiceException(ServiceError.Invalid, $"Line {i + 1}: choose a sales or purchase ledger.");
             if (!Gst.IsValidRate(line.Rate, input.Date))

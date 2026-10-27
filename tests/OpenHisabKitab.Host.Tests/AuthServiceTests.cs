@@ -134,7 +134,7 @@ public sealed class AuthServiceTests : IDisposable
     public void Change_password_with_wrong_current_is_refused()
     {
         var s = host.Owner;
-        var ex = Fails(ServiceError.NotAuthenticated, () => host.Auth.ChangePassword(s.Context, s.Token, "wrong-password", "new-password-1"));
+        var ex = Fails(ServiceError.Invalid, () => host.Auth.ChangePassword(s.Context, s.Token, "wrong-password", "new-password-1"));
         Assert.Equal("Current password is wrong.", ex.Message);
     }
 
@@ -233,4 +233,14 @@ public sealed class AuthServiceTests : IDisposable
     [InlineData("::ffff:192.168.1.20", false)]
     public void Loopback_includes_ipv4_mapped_addresses(string address, bool expected) =>
         Assert.Equal(expected, OpenHisabKitab.Host.Grpc.Loopback.Is(System.Net.IPAddress.Parse(address)));
+
+    [Fact]
+    public void Throttle_forgets_old_names_but_keeps_locked_ones()
+    {
+        var throttle = new LoginThrottle(host.Time);
+        for (var i = 0; i < 5; i++) throttle.Failed("owner");
+        for (var i = 0; i < 3 * LoginThrottle.Capacity; i++) throttle.Failed("guess" + i.ToString(CultureInfo.InvariantCulture));
+        Assert.True(throttle.Count <= LoginThrottle.Capacity, $"{throttle.Count} names held.");
+        Assert.Throws<ServiceException>(() => throttle.Check("owner"));
+    }
 }

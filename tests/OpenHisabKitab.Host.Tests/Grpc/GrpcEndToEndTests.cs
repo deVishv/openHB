@@ -186,4 +186,21 @@ public sealed class GrpcEndToEndTests : IDisposable
         Assert.Equal(StatusCode.PermissionDenied, ex.StatusCode);
         Assert.Equal("Set up the Owner on the host PC.", ex.Status.Detail);
     }
+
+    [Fact]
+    public async Task Watch_ends_after_logout()
+    {
+        var token = Owner();
+        var company = Company(token);
+        var (cash, sales) = Ledgers(token, company);
+        var other = session.Login(new Credentials { Name = "owner", Password = Password }, Headers()).Token;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        using var watch = new Changes.ChangesClient(factory.Channel()).Watch(new V1Empty(), Headers(token), cancellationToken: cts.Token);
+        await Task.Delay(300);
+        session.Logout(new V1Empty(), Headers(token));
+        vouchers.SaveJournal(new JournalRequest { Company = company, Journal = Receipt(cash, sales, 100) }, Headers(other));
+        var ex = await Assert.ThrowsAsync<RpcException>(() => watch.ResponseStream.MoveNext(cts.Token));
+        Assert.Equal(StatusCode.Unauthenticated, ex.StatusCode);
+    }
 }

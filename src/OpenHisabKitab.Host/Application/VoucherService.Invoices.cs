@@ -34,6 +34,9 @@ public sealed partial class VoucherService
             _ => input.Direction,
         };
         if (input.Direction != expected) throw new ServiceException(ServiceError.Invalid, "Sale must be outward and purchase inward.");
+        // Export, SEZ, and deemed export kinds describe this business's own supplies.
+        if (input.Direction == TradeDirection.Inward && input.Kind != InvoiceKind.Regular)
+            throw new ServiceException(ServiceError.Invalid, "Choose Regular for a document received from a supplier.");
         if (input.ReverseCharge && input.Direction == TradeDirection.Outward)
             throw new ServiceException(ServiceError.Invalid, "Reverse charge applies only to purchases.");
     }

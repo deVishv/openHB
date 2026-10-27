@@ -189,4 +189,14 @@ public sealed class MasterServiceTests : IDisposable
         Fails(ServiceError.PermissionDenied, () => host.Masters.AddLedger(viewer.Context, company, "X", Chart.Group(GroupKind.CashInHand)));
         Assert.NotEmpty(host.Masters.Chart(viewer.Context, company).Ledgers);
     }
+
+    [Fact]
+    public void Income_and_expense_ledgers_take_no_opening_balance()
+    {
+        var ex = Fails(ServiceError.Invalid, () =>
+            host.Masters.SetOpening(owner, company, Chart.Required(RequiredLedger.Sales), Money.FromRupees(10)));
+        Assert.Equal("Income and expense ledgers have no opening balance.", ex.Message);
+        host.Masters.SetOpening(owner, company, Chart.Required(RequiredLedger.Sales), Money.Zero);
+        Assert.NotNull(host.Books.Get(company));
+    }
 }

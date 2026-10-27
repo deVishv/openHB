@@ -1,3 +1,6 @@
+using System.Security.AccessControl;
+using System.Security.Principal;
+
 namespace OpenHisabKitab.Host.Tests;
 
 public sealed class AuthServiceTests : IDisposable
@@ -205,4 +208,29 @@ public sealed class AuthServiceTests : IDisposable
         Assert.DoesNotContain(rows, r => (r.Entry.After ?? "").Contains("pbkdf2"));
         Assert.True(AuditLog.Verify(c).Ok);
     }
+
+    [Fact]
+    public void Data_folder_is_closed_to_ordinary_users()
+    {
+        _ = host.Owner;
+        var acl = new DirectoryInfo(host.Data.DataDirectory).GetAccessControl();
+        Assert.True(acl.AreAccessRulesProtected);
+        static SecurityIdentifier Sid(WellKnownSidType t) => new(t, null);
+        var rules = acl.GetAccessRules(true, true, typeof(SecurityIdentifier))
+            .Cast<FileSystemAccessRule>().Select(r => r.IdentityReference).ToList();
+        Assert.DoesNotContain(Sid(WellKnownSidType.BuiltinUsersSid), rules);
+        Assert.DoesNotContain(Sid(WellKnownSidType.WorldSid), rules);
+        Assert.DoesNotContain(Sid(WellKnownSidType.AuthenticatedUserSid), rules);
+        Assert.Contains(Sid(WellKnownSidType.LocalSystemSid), rules);
+        Assert.Contains(Sid(WellKnownSidType.BuiltinAdministratorsSid), rules);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1", true)]
+    [InlineData("::1", true)]
+    [InlineData("::ffff:127.0.0.1", true)]
+    [InlineData("192.168.1.20", false)]
+    [InlineData("::ffff:192.168.1.20", false)]
+    public void Loopback_includes_ipv4_mapped_addresses(string address, bool expected) =>
+        Assert.Equal(expected, OpenHisabKitab.Host.Grpc.Loopback.Is(System.Net.IPAddress.Parse(address)));
 }

@@ -30,12 +30,12 @@ public sealed class CertificateStore(string dataDirectory, TimeProvider time, IL
             }
             catch (CryptographicException e)
             {
-                logger.LogWarning(e, "The host certificate could not be read. A new one is made; clients must accept it again.");
+                logger.LogCritical(e, "The host certificate could not be read. A new one is made; clients must accept it again.");
             }
         }
         else if (File.Exists(PfxPath))
         {
-            logger.LogWarning("The host certificate key file is missing. A new certificate is made; clients must accept it again.");
+            logger.LogCritical("The host certificate key file is missing. A new certificate is made; clients must accept it again.");
         }
         return Create();
     }

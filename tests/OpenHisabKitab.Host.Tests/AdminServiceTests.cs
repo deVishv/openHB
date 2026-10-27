@@ -113,7 +113,11 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(Money.FromRupees(100), cashAfter);
         Assert.True(host.Admin.VerifyAudit(owner, company).Ok);
         Assert.Contains(host.Admin.Audit(owner, company, new AuditFilter()), r => r.Entry.Action == "restore");
-        Assert.Equal(2, host.Admin.Backups(owner, company).Count);
+        Assert.Single(host.Admin.Backups(owner, company));
+        using var hostDb = host.Data.OpenHost();
+        var restore = AuditLog.Read(hostDb, new AuditFilter()).Single(r => r.Entry.Action == "restore");
+        Assert.Contains(Path.GetFileName(backup.Path), restore.Entry.After);
+        Assert.Contains("prerestore", restore.Entry.After);
     }
 
     [Fact]
@@ -167,5 +171,19 @@ public sealed class AdminServiceTests : IDisposable
         Fails(ServiceError.PermissionDenied, () => host.Admin.Backups(meena, null));
         Assert.True(host.Admin.VerifyAudit(meena, company).Ok);
         host.Admin.BackupNow(meena, company);
+    }
+
+    [Fact]
+    public async Task Copy_taken_before_a_restore_is_never_pruned()
+    {
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
+        var backup = host.Admin.BackupNow(owner, company);
+        await host.Admin.RestoreAsync(owner, company, backup.Path);
+        var kept = Directory.GetFiles(host.Data.BackupFolder, "*prerestore*.db");
+        Assert.Single(kept);
+        host.Data.WriteHost(tx => { HostSettingsRepository.Set(tx, "backup.keep", "1"); return 0; });
+        for (var i = 0; i < 3; i++) { host.Time.Advance(TimeSpan.FromDays(1)); host.Scheduler.RunOnce(); }
+        Assert.True(File.Exists(kept[0]));
+        Assert.Single(host.Admin.Backups(owner, company));
     }
 }

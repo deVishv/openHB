@@ -21,8 +21,7 @@ internal sealed class SessionEndpoint(AuthService auth, IRemoteAddressAccessor r
 
     public override Task<LoginReply> SetupOwner(Credentials request, ServerCallContext context)
     {
-        var address = remote.RemoteAddress(context.GetHttpContext());
-        var isLoopback = address is not null && System.Net.IPAddress.IsLoopback(address);
+        var isLoopback = Loopback.Is(remote.RemoteAddress(context.GetHttpContext()));
         return Task.FromResult(Reply(auth.SetupOwner(request.Name, request.Password, context.Machine(), isLoopback)));
     }
 

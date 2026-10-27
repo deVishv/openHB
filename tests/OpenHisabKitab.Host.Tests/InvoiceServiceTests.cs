@@ -235,4 +235,18 @@ public sealed class InvoiceServiceTests : IDisposable
             Sale(localCustomer, "27", Line(sales, "1.00")) with { Type = VoucherType.Receipt }));
         Assert.Equal("Use the journal entry for Receipt.", ex.Message);
     }
+
+    [Theory]
+    [InlineData(InvoiceKind.ExportUnderLut)]
+    [InlineData(InvoiceKind.SezWithoutTax)]
+    [InlineData(InvoiceKind.SezWithTax)]
+    [InlineData(InvoiceKind.ExportWithTax)]
+    [InlineData(InvoiceKind.DeemedExport)]
+    public async Task Received_documents_must_be_regular(InvoiceKind kind)
+    {
+        var input = new InvoiceInput(VoucherType.Purchase, June1, "", localSupplier, TradeDirection.Inward, kind,
+            new StateCode("27"), false, null, null, null, null, [Line(purchases, "1000.00")]);
+        var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, company, input));
+        Assert.Equal("Choose Regular for a document received from a supplier.", ex.Message);
+    }
 }

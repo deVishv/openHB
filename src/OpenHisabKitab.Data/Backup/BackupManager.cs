@@ -16,13 +16,17 @@ public sealed class BackupManager(TimeProvider time)
 {
     const string Stamp = "yyyyMMdd-HHmmss";
 
-    public BackupFile Backup(string sourcePath, string folder)
+    /// <summary>
+    /// Copies a database into the folder. A label (such as "prerestore") gives a name that List and Prune never match,
+    /// so that copy is kept until someone deletes it.
+    /// </summary>
+    public BackupFile Backup(string sourcePath, string folder, string? label = null)
     {
         Directory.CreateDirectory(folder);
         var source = Path.GetFileNameWithoutExtension(sourcePath);
         var takenAt = time.GetUtcNow();
         var local = TimeZoneInfo.ConvertTime(takenAt, time.LocalTimeZone);
-        var baseName = $"{source}-{local.ToString(Stamp, CultureInfo.InvariantCulture)}";
+        var baseName = $"{source}-{(label is null ? "" : label + "-")}{local.ToString(Stamp, CultureInfo.InvariantCulture)}";
         var path = Path.Combine(folder, baseName + ".db");
         for (var n = 2; File.Exists(path); n++)
             path = Path.Combine(folder, string.Create(CultureInfo.InvariantCulture, $"{baseName}-{n}.db"));

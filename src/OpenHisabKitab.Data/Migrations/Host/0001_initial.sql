@@ -34,8 +34,9 @@ CREATE TABLE users(
     row_version INTEGER NOT NULL DEFAULT 1
 );
 
+-- AUTOINCREMENT: an id is never reused, so a new company never lands on an old company's file.
 CREATE TABLE companies(
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     file_name TEXT NOT NULL UNIQUE
 );

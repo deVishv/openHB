@@ -21,6 +21,19 @@ public static class Migrator
 
     public static int Latest(Schema s) => Scripts[s].Count;
 
+    /// <summary>
+    /// Refuses a file written by a newer version without changing it: the version is read on a read only connection,
+    /// before the journal mode pragma could rewrite the file header. A missing file passes.
+    /// </summary>
+    public static void CheckNotTooNew(string path, Schema s)
+    {
+        if (!File.Exists(path)) return;
+        var builder = new SqliteConnectionStringBuilder { DataSource = path, Mode = SqliteOpenMode.ReadOnly, Pooling = false };
+        using var c = new SqliteConnection(builder.ToString());
+        c.Open();
+        if (UserVersion(c) > Scripts[s].Count) throw new DatabaseTooNewException();
+    }
+
     public static MigrationResult Migrate(SqliteConnection c, Schema s, Action<int>? beforeMigrating = null)
     {
         var scripts = Scripts[s];

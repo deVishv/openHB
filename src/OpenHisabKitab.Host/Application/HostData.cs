@@ -44,6 +44,8 @@ public sealed class HostData(string dataDirectory)
                 if (!migrated)
                 {
                     Directory.CreateDirectory(DataDirectory);
+                    DataFolderSecurity.Restrict(DataDirectory);
+                    Migrator.CheckNotTooNew(HostDbPath, Schema.Host);
                     using var first = SqliteDatabase.Open(HostDbPath);
                     Migrator.Migrate(first, Schema.Host);
                     migrated = true;

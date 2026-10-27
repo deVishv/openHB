@@ -1,6 +1,6 @@
 namespace OpenHisabKitab.Host.Application;
 
-public enum ServiceError { NotAuthenticated, PermissionDenied, NotFound, Conflict, Locked, Invalid, OpeningDifference, SetupRequired, Unavailable }
+public enum ServiceError { NotAuthenticated, PermissionDenied, NotFound, Conflict, Locked, Invalid, OpeningDifference, SetupRequired, Unavailable, TooNew }
 
 /// <summary>
 /// A refusal the user can act on. The message is shown as is, so it follows the writing rules of spec 6.7.

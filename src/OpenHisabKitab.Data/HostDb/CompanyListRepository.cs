@@ -18,6 +18,9 @@ public static class CompanyListRepository
         return id;
     }
 
+    public static void Delete(SqliteTransaction tx, int id) =>
+        Sql.Execute(tx, "DELETE FROM companies WHERE id = $id", ("$id", id));
+
     public static IReadOnlyList<CompanyListEntry> List(SqliteConnection c) =>
         Sql.Query(c, "SELECT id, name, file_name FROM companies ORDER BY name", Map);
 

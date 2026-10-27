@@ -68,16 +68,27 @@ public class MigratorTests
     public void Newer_file_is_refused_and_left_unchanged()
     {
         using var db = new TempDb();
-        using (var c = db.Open()) Exec(c, "PRAGMA user_version = 999; CREATE TABLE t(x INTEGER);");
-        SqliteConnection.ClearAllPools();
-        var before = File.ReadAllBytes(db.Path);
-        using (var c = db.Open())
+        // A plain rollback journal file, as a newer version might leave it: opening it with our pragmas would change its header.
+        using (var raw = new SqliteConnection($"Data Source={db.Path};Pooling=False"))
         {
-            var ex = Assert.Throws<DatabaseTooNewException>(() => Migrator.Migrate(c, Schema.Company));
-            Assert.Equal("This file needs a newer Open Hisab Kitab.", ex.Message);
+            raw.Open();
+            Exec(raw, "PRAGMA user_version = 999; CREATE TABLE t(x INTEGER);");
         }
-        SqliteConnection.ClearAllPools();
+        var before = File.ReadAllBytes(db.Path);
+        var ex = Assert.Throws<DatabaseTooNewException>(() => Migrator.CheckNotTooNew(db.Path, Schema.Company));
+        Assert.Equal("This file needs a newer Open Hisab Kitab.", ex.Message);
         Assert.Equal(before, File.ReadAllBytes(db.Path));
+        Assert.False(File.Exists(db.Path + "-wal"));
+    }
+
+    [Fact]
+    public void Current_or_missing_file_passes_the_check()
+    {
+        using var db = new TempDb();
+        Migrator.CheckNotTooNew(db.Path, Schema.Company);
+        Assert.False(File.Exists(db.Path));
+        using (var c = db.Open()) Migrator.Migrate(c, Schema.Company);
+        Migrator.CheckNotTooNew(db.Path, Schema.Company);
     }
 
     [Theory]

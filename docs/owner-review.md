@@ -31,16 +31,26 @@ Each line says what was decided and what it costs if wrong.
 12. **The gRPC port** is 47250.
 13. **Backups** run when the newest backup is 24 hours old, checked every minute, so a PC that was off at night still backs up when it starts. A failed scheduled backup is recorded in the host audit trail.
 14. **The host audit trail and host.db backups** are for the Owner only, because host.db lists every user and company. Accountants see their companies' audit trails.
-15. **Restore** accepts only a backup from that company's backup list, logs everyone out, and backs up the current file first.
+15. **Restore** accepts only a backup from that company's backup list, logs everyone out, and backs up the current file first. That copy is named `prerestore` and is never deleted by backup pruning, because it holds any audit records made after the chosen backup. The restore is recorded in host.db too.
+18. **The data folder** is open only to the system, administrators, and the account the host runs as. It holds the books, password hashes, and the TLS key.
+19. **Income and expense ledgers** take no opening balance (spec 5.2, invariant 6).
+20. **Documents received from suppliers** must be of kind Regular. Export and SEZ kinds apply only to this business's own sales.
 16. **The host runs only on Windows** (`net10.0-windows`), because it protects its certificate key with Windows DPAPI.
 17. **Moved to later plans.** Bill by bill allocation and party opening bills move to Plan 5. Custom roles and host.db restore move to Plan 8. Plan 2 restore covers company files.
+
+### Questions from the final review
+
+1. **Composition companies and reverse charge.** A composition company cannot enter tax on a purchase, so reverse charge tax it owes cannot be recorded through a purchase invoice. It needs a journal entry. Should purchases under reverse charge be allowed for composition companies?
+2. **Data entry and masters.** Data entry users can set opening balances, rename required ledgers, and delete unused ledgers, because spec 8 gives them "masters". Should opening balances and required ledgers be limited to Accountant and Owner?
+3. **Accountants and companies.** Accountants can create companies. Spec 8 does not say. Confirm.
 
 ### Known limits carried to later plans
 
 1. **Audit trail tampering.** The hash chain shows an edited or removed row, except the newest rows: deleting the last few rows leaves a valid chain. Someone who can write the database file can also rebuild the whole chain. Closing this needs a key kept outside the file, or a copy of the chain head kept elsewhere. Owner to decide whether version 1 needs it.
 2. **Newer files.** A database written by a newer version of the software is refused, not opened read only.
 3. **REST and MCP storage.** The `api_tokens` table exists but is unused until Plan 3.
-4. **Report speed.** A full year trial balance over 1,000,000 posting lines, rebuilt after a save, took 360 ms on the build PC (target under 1 s).
+4. **Found in the final review, left for later plans** (none changes a figure): a wrong current password looks like an expired session to the client; an unknown item id, a failed pre restore backup, and similar cases show "Something went wrong" instead of a clear message; cess rates are not checked against GST data; host.db migrations take no backup first (only one exists so far); change streams continue after logout until the client disconnects; the login throttle keeps every user name tried.
+5. **Report speed.** A full year trial balance over 1,000,000 posting lines, rebuilt after a save, took 360 ms on the build PC (target under 1 s).
 
 ## Plan 1: Foundation and accounting core
 

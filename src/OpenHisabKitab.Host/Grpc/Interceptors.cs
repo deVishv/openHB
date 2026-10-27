@@ -54,7 +54,7 @@ internal sealed class ErrorInterceptor(ILogger<ErrorInterceptor> log) : Intercep
         ServiceError.PermissionDenied => StatusCode.PermissionDenied,
         ServiceError.NotFound => StatusCode.NotFound,
         ServiceError.Conflict => StatusCode.Aborted,
-        ServiceError.Locked or ServiceError.OpeningDifference or ServiceError.SetupRequired => StatusCode.FailedPrecondition,
+        ServiceError.Locked or ServiceError.OpeningDifference or ServiceError.SetupRequired or ServiceError.TooNew => StatusCode.FailedPrecondition,
         ServiceError.Invalid => StatusCode.InvalidArgument,
         ServiceError.Unavailable => StatusCode.Unavailable,
         _ => StatusCode.Unknown,

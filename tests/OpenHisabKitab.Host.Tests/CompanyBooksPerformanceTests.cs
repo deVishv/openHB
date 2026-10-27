@@ -51,4 +51,36 @@ public sealed class CompanyBooksPerformanceTests(ITestOutputHelper output) : IDi
         output.WriteLine($"Best of 3: {best.TotalMilliseconds:F0} ms");
         Assert.True(best < TimeSpan.FromSeconds(1), $"Best of 3 was {best.TotalMilliseconds:F0} ms.");
     }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public async Task A_save_does_not_wait_for_a_report_build()
+    {
+        var chart = DefaultChart.Create();
+        var cash = chart.Required(RequiredLedger.Cash);
+        var sales = chart.Required(RequiredLedger.Sales);
+        var fy = new FinancialYear(2026);
+        var postings = new List<PostingRecord>(1_000_000);
+        for (long v = 1; v <= 500_000; v++)
+        {
+            postings.Add(new PostingRecord(v, fy.Start, cash, new Money(100)));
+            postings.Add(new PostingRecord(v, fy.Start, sales, new Money(-100)));
+        }
+        host.Books.Seed(1, chart, fy.Start, new Dictionary<LedgerId, Money>(), postings);
+        using var building = new ManualResetEventSlim();
+        host.Books.BuildStarted = () => building.Set();
+
+        var report = Task.Run(() => host.Books.Get(1));
+        Assert.True(building.Wait(TimeSpan.FromSeconds(10)));
+        var watch = Stopwatch.StartNew();
+        host.Books.VoucherSaved(1, 500_001,
+            [new PostingRecord(500_001, fy.Start, cash, new Money(7)), new PostingRecord(500_001, fy.Start, sales, new Money(-7))]);
+        watch.Stop();
+        await report;
+        host.Books.BuildStarted = null;
+
+        Assert.True(watch.Elapsed < TimeSpan.FromMilliseconds(100), $"Save waited {watch.Elapsed.TotalMilliseconds:F0} ms.");
+        var tb = host.Books.Get(1).TrialBalance(fy.Range);
+        Assert.Equal(new Money(50_000_007), tb.Rows.Single(r => r.Ledger == cash).Debits);
+    }
 }

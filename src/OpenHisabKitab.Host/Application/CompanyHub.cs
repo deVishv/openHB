@@ -34,6 +34,8 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         if (!File.Exists(path)) throw new ServiceException(ServiceError.NotFound, "No such company.");
         if (!migrated.ContainsKey(companyId))
         {
+            try { Migrator.CheckNotTooNew(path, Schema.Company); }
+            catch (DatabaseTooNewException e) { throw new ServiceException(ServiceError.TooNew, e.Message); }
             using var first = SqliteDatabase.Open(path);
             Migrator.Migrate(first, Schema.Company, _ => new BackupManager(time).Backup(path, data.BackupFolder));
             migrated[companyId] = true;

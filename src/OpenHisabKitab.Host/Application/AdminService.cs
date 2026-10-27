@@ -85,16 +85,19 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         {
             sessions.RemoveAll();
             feed.Publish(new ChangeEvent(company, ChangeKind.Restore, null));
-            backups.Backup(data.CompanyPath(company), data.BackupFolder);
+            // Kept out of pruning: it holds any audit records written after the chosen backup.
+            var before = backups.Backup(data.CompanyPath(company), data.BackupFolder, "prerestore");
             using var live = hub.OpenFile(company);
             try { backups.RestoreInto(full, live); }
             catch (BackupFailedException) { throw new ServiceException(ServiceError.Invalid, "Backup file is damaged. Nothing was restored."); }
             Migrator.Migrate(live, Schema.Company);
             books.Invalidate(company);
             using var tx = SqliteDatabase.BeginWrite(live);
-            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "restore", "database", Source(company), null,
-                JsonSerializer.Serialize(new { File = Path.GetFileName(full) })));
+            var after = JsonSerializer.Serialize(new { File = Path.GetFileName(full), PreRestoreCopy = Path.GetFileName(before.Path) });
+            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "restore", "database", Source(company), null, after));
             tx.Commit();
+            // Also in host.db, which a company restore never replaces.
+            data.WriteHost(hostTx => AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after)));
         }
     }
 

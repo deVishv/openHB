@@ -20,11 +20,17 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         var id = data.WriteHost(tx =>
         {
             var id = CompanyListRepository.Insert(tx, profile.Name);
+            // A file can outlive its host.db row (a hand restored host.db, or a failure between the two commits). Never reuse it.
+            while (File.Exists(data.CompanyPath(id)))
+            {
+                CompanyListRepository.Delete(tx, id);
+                id = CompanyListRepository.Insert(tx, profile.Name);
+            }
             UserRepository.SetCompanies(tx, ctx.UserId, [.. UserRepository.Companies(tx.Connection!, ctx.UserId), id]);
             var after = JsonSerializer.Serialize(profile);
+            var c = hub.CreateFile(id);
             try
             {
-                using var c = hub.CreateFile(id);
                 using var companyTx = SqliteDatabase.BeginWrite(c);
                 CompanyRepository.Create(companyTx, profile, DefaultChart.Create());
                 hub.Audit(companyTx, ctx.Audit(time.GetUtcNow(), "create", "company", Text.Key(id), null, after));
@@ -32,9 +38,11 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             }
             catch
             {
+                c.Dispose();
                 hub.DeleteFile(id);
                 throw;
             }
+            c.Dispose();
             AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "create", "company", Text.Key(id), null, after));
             return id;
         });
@@ -81,8 +89,15 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
     {
         ctx.Require(Permission.ManageCompanies);
         ctx.RequireCompany(id);
-        try { using var _ = JsonDocument.Parse(json); }
+        JsonValueKind kind;
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            kind = doc.RootElement.ValueKind;
+        }
         catch (JsonException) { throw new ServiceException(ServiceError.Invalid, $"Setting {key} needs a JSON value."); }
+        if (BooleanSettings.Contains(key) && kind is not (JsonValueKind.True or JsonValueKind.False))
+            throw new ServiceException(ServiceError.Invalid, $"Setting {key} must be true or false.");
         hub.Write(id, tx =>
         {
             var before = CompanyRepository.GetSetting(tx.Connection!, key);
@@ -91,6 +106,9 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             return 0;
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
+
+    // Company settings the host reads, with their types. The full settings list arrives with SETG in Plan 4.
+    static readonly HashSet<string> BooleanSettings = ["invoice.roundOff"];
 
     static CompanyProfile Checked(CompanyProfile p)
     {

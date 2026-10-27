@@ -141,4 +141,42 @@ public sealed class CompanyServiceTests : IDisposable
         using var c = host.Hub.Open(id);
         Assert.Null(CompanyRepository.GetSetting(c, "y"));
     }
+
+    [Fact]
+    public void Creation_skips_an_id_whose_file_already_exists_and_never_deletes_it()
+    {
+        Directory.CreateDirectory(host.Data.CompanyFolder);
+        var existing = host.Data.CompanyPath(1);
+        File.WriteAllText(existing, "real books");
+        var id = host.NewCompany();
+        Assert.NotEqual(1, id);
+        Assert.Equal("real books", File.ReadAllText(existing));
+        Assert.Equal("A Traders", host.Companies.Get(host.Owner.Context, id).Name);
+    }
+
+    [Fact]
+    public void Known_settings_must_have_the_right_type()
+    {
+        var id = host.NewCompany();
+        var ex = Fails(ServiceError.Invalid, () => host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "\"yes\""));
+        Assert.Equal("Setting invoice.roundOff must be true or false.", ex.Message);
+        Fails(ServiceError.Invalid, () => host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "1"));
+    }
+
+    [Fact]
+    public void A_company_file_from_a_newer_version_gives_the_message()
+    {
+        var id = host.NewCompany();
+        SqliteConnection.ClearAllPools();
+        using (var c = new SqliteConnection($"Data Source={host.Data.CompanyPath(id)};Pooling=False"))
+        {
+            c.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "PRAGMA user_version = 999";
+            cmd.ExecuteNonQuery();
+        }
+        var fresh = new CompanyHub(host.Data, host.Time);
+        var ex = Assert.Throws<ServiceException>(() => fresh.Open(id));
+        Assert.Equal("This file needs a newer Open Hisab Kitab.", ex.Message);
+    }
 }

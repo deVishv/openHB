@@ -81,6 +81,9 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         {
             var c = tx.Connection!;
             Known(chart, id);
+            // Spec 5.2 invariant 6: profit and loss ledgers open at zero each year.
+            if (amount != Money.Zero && chart.NatureOf(id) is AccountNature.Income or AccountNature.Expense)
+                throw new ServiceException(ServiceError.Invalid, "Income and expense ledgers have no opening balance.");
             var booksStart = new FinancialYear(CompanyRepository.GetProfile(c).FirstFyStartYear).Start;
             if (LockRepository.LockedUpTo(c) is { } locked && locked >= booksStart)
                 throw new ServiceException(ServiceError.Locked, $"Books are locked up to {Text.Date(locked)}.");

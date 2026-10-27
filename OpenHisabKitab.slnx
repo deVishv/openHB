@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/OpenHisabKitab.Core/OpenHisabKitab.Core.csproj" />
+    <Project Path="src/OpenHisabKitab.Data/OpenHisabKitab.Data.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenHisabKitab.Core.Tests/OpenHisabKitab.Core.Tests.csproj" />
+    <Project Path="tests/OpenHisabKitab.Data.Tests/OpenHisabKitab.Data.Tests.csproj" />
   </Folder>
 </Solution>

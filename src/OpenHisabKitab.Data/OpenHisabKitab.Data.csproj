@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenHisabKitab.Core\OpenHisabKitab.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\Host\*.sql" LogicalName="Migrations.Host.%(Filename).sql" />
+    <EmbeddedResource Include="Migrations\Company\*.sql" LogicalName="Migrations.Company.%(Filename).sql" />
+  </ItemGroup>
+
+</Project>

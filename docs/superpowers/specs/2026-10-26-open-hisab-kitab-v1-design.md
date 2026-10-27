@@ -28,6 +28,7 @@ The owner's biggest fear is wrong totals or wrong calculations in reports. Corre
 - **Deep settings.** Settings work like VS Code: layered, searchable, and editable either as a form or as JSON. [Owner]
 - **Accessible.** Font family, sizes, text colours and background colours all meet accessibility standards. [Owner]
 - **Concise text.** All on-screen text is clear and short, with no filler. [Owner]
+- **Local REST API and local MCP server.** Scripts, other local software, and AI assistants can read the books and, where allowed, enter data, under the same rules and permissions as the app. See section 4.1. [Owner asked for both; Designer set the details]
 - **Fast, reliable, bug free.** [Owner]
 
 ### Non-goals for version 1
@@ -76,7 +77,8 @@ These are not rejected, only deferred to later releases, each with its own desig
           | Host service (Windows service)              |
           |  auth, permissions, validation, numbering,  |
           |  posting, audit trail, reports, backups     |
-          +---------+-----------------------------------+
+          |  local REST API and MCP (127.0.0.1)  <------+-- scripts, AI assistants
+          +---------+-----------------------------------+     on the host PC
                     |
           +---------v-----------------------------------+
           | SQLite: one file per company + host.db      |
@@ -94,7 +96,12 @@ These are not rejected, only deferred to later releases, each with its own desig
 - gRPC over HTTP/2 with TLS on a configurable port (default left to the builder).
 - On first run the host generates a self signed certificate. The first time a client connects, it shows the certificate fingerprint and stores it once accepted (trust on first use). After that, any change of certificate blocks the connection until the user accepts it again.
 - A server stream pushes change notifications to clients. When data changes under an open report, the report's tab shows a "Changed" marker in its status bar and F5 (`RFSH`) reloads it. Whether reports reload automatically is a setting, off by default.
-- The installer adds the Windows Firewall rule for the host.
+- The installer adds the Windows Firewall rule for the host's gRPC port only.
+
+### Application services [Designer]
+
+- Inside the host, every operation (log in, save a voucher, run a report, lock a period, and so on) is one method on an application service. The service checks permissions, validates with `Core`, writes, and audits.
+- gRPC, REST, and MCP are thin adapters over these services. No adapter contains accounting rules, permission checks, or SQL. A rule is enforced once, whichever door a request comes through.
 
 ### Storage
 
@@ -110,9 +117,54 @@ These are not rejected, only deferred to later releases, each with its own desig
 | `Core` | Pure domain logic: money, GST calculation, voucher validation, posting, report aggregation, Indian number formatting, command parsing. No I/O. Most tests target this. |
 | `Data` | SQLite access and migrations. |
 | `Contracts` | gRPC `.proto` definitions. |
-| `Host` | The Windows service. |
+| `Host` | The Windows service, including the application services and the gRPC, REST, and MCP adapters. |
+| `McpBridge` | The stdio to HTTP bridge for MCP clients that only launch local programs. |
 | `Client` | The WPF application. |
 | `Tests.*` | One test project per production project. |
+
+## 4.1 Local REST API and MCP server [Owner asked for both; Designer set the details]
+
+### Purpose
+
+- The **REST API** lets the owner's own scripts and other software on the host PC read and enter accounting data.
+- The **MCP server** lets an AI assistant (such as Claude) on the host PC answer questions about the books and, if allowed, prepare entries.
+
+### Where they run
+
+- Both run inside the host service process, on one HTTP port separate from the gRPC port. The host stays the only process that opens the database files.
+- **Local means loopback.** By default the port listens on 127.0.0.1 only, so only programs on the host PC can reach it. A setting, `api.allowLan`, off by default, also listens on the LAN, and then requires TLS with the host's certificate. Internet access stays a non-goal.
+- The REST and MCP routes answer only on this port. The gRPC port answers 404 to them, and the API port does not serve gRPC.
+- The API port is off until the Owner turns it on (`api.enabled`). The MCP endpoint has its own switch (`mcp.enabled`), and needs the API port on.
+
+### Authentication
+
+- Every request carries a bearer token. There is no cookie or session login, and no anonymous access, even on loopback, because web pages in a browser can send requests to loopback addresses.
+- **API tokens** belong to a user. A user creates, names, and revokes their own tokens in `USER`. A token is shown once, when created. `host.db` stores only a hash.
+- A token has the permissions of its user's role, including the Data entry limits, for each company the user can access. A token is either read only or read and write, chosen when it is created. Read only is the default.
+- The host rejects any request whose `Origin` header is present and is not on the allowed list (empty by default). This blocks web pages and DNS rebinding.
+- Repeated failed tokens from one address are slowed down.
+
+### REST API
+
+- Routes are versioned (`/api/v1/...`) and follow the host version rule in section 13: one host version serves one API version.
+- An OpenAPI document is served at `/api/v1/openapi.json`.
+- Resources in version 1: companies and financial years, groups and ledgers, parties, items, vouchers (list, read, create, edit, cancel), and every report in section 6.3 that exists in the build.
+- **Amounts on the wire.** Money is a JSON string of rupees with exactly two decimals, such as `"12345.60"`, with a leading `-` for negative. It is never a JSON number, because many JSON readers turn numbers into floating point. Quantities use the same rule with three decimals, and rates with two (`"18.00"`). The host parses them with `Core`, and rejects any other form.
+- **Dates** are `yyyy-mm-dd`.
+- Each saved voucher returns its host assigned number. Edits send the row version they read. A stale row version gets HTTP 409 with the current record.
+- Errors return one JSON shape with a code and a one line message, written to the same rules as on-screen text (section 6.7).
+
+### MCP server
+
+- MCP uses the Streamable HTTP transport at `/mcp` on the API port, and reports the host version.
+- The installer also ships a small stdio bridge program for assistants that only launch local programs. It forwards to `/mcp` with a token from its configuration, and holds no data or rules itself.
+- **Tools in version 1** cover: list companies, search ledgers and parties, read a ledger statement, run each report, find vouchers, and read one voucher.
+- **Write tools** (create a voucher, create a party) exist but are off by default. They need `mcp.allowWrites` on and a read and write token. Every voucher created through MCP is audited like any other.
+- Tool results carry amounts in the wire format above, plus the Indian formatted text, so the assistant quotes the same figures the screens show.
+
+### Audit
+
+- API and MCP calls that change data are audited like any other change (section 5.5). The record names the source (app, REST, or MCP) and the token name, in addition to the user.
 
 ## 5. Correctness rules
 
@@ -166,7 +218,8 @@ The host checks these. Tests check them on random and fixture data. A failure bl
 
 This meets the requirement under the Companies (Accounts) Rules that the edit log cannot be switched off.
 
-- Every create, edit, cancel, lock, unlock, and permission change on any voucher, master, or setting is recorded. Each record holds the user, PC name, timestamp, and the before and after values.
+- Every create, edit, cancel, lock, unlock, and permission change on any voucher, master, or setting is recorded. Each record holds the user, PC name, source (app, REST, or MCP), token name when there is one, timestamp, and the before and after values.
+- API token creation and revocation are recorded too.
 - The log is append only. Each record includes a hash of the previous record, so a broken chain shows tampering. `AUDT` verifies the chain on demand and reports the result.
 - There is no setting to disable it.
 
@@ -392,6 +445,7 @@ Every action has a shortcut, and every shortcut can be changed in `KEYS`, stored
 - **Editing.** `SETG` shows a searchable list grouped by category and marks settings that differ from their defaults. Settings can also be edited as JSON with validation, and any setting can be reset to its default.
 - **Keybindings** follow the same layering and are edited in `KEYS`.
 - **Coverage.** Every behaviour described as "a setting" in this document must exist in the list.
+- **Host settings,** stored in `host.db` and changed only by the Owner: `api.enabled` (off), `api.port`, `api.allowLan` (off), `api.allowedOrigins` (empty), `mcp.enabled` (off), `mcp.allowWrites` (off). See section 4.1.
 
 ## 8. Users and permissions [Designer]
 
@@ -407,6 +461,7 @@ Every action has a shortcut, and every shortcut can be changed in `KEYS`, stored
 
 - **Custom roles** are built from a permission checklist covering each function, plus create, edit, cancel, export, and unlock rights.
 - **Company access.** Each user has access to a chosen set of companies.
+- **API tokens** act as their user, limited further to read only unless created as read and write. See section 4.1.
 
 ## 9. Backup [Designer]
 
@@ -495,6 +550,7 @@ These are measured on a mid range office PC with 1,000,000 posting lines.
 ## 14. Left to the builder
 
 - Project and folder names, gRPC message shapes, and the database schema details.
+- REST route shapes beyond section 4.1, MCP tool names and descriptions, the token format, and the API port number.
 - The default network port.
 - The installer technology.
 - The internal design of the WPF screens, as long as sections 6 and 7 hold.

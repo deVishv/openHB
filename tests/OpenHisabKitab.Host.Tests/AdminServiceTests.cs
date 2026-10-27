@@ -156,4 +156,16 @@ public sealed class AdminServiceTests : IDisposable
         host.Hub.Gate.Open();
         Assert.NotEmpty(host.Masters.Chart(owner, company).Ledgers);
     }
+
+    [Fact]
+    public void Host_database_audit_and_backups_are_for_the_owner_only()
+    {
+        var meena = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
+        Fails(ServiceError.PermissionDenied, () => host.Admin.VerifyAudit(meena, null));
+        Fails(ServiceError.PermissionDenied, () => host.Admin.Audit(meena, null, new AuditFilter()));
+        Fails(ServiceError.PermissionDenied, () => host.Admin.BackupNow(meena, null));
+        Fails(ServiceError.PermissionDenied, () => host.Admin.Backups(meena, null));
+        Assert.True(host.Admin.VerifyAudit(meena, company).Ok);
+        host.Admin.BackupNow(meena, company);
+    }
 }

@@ -58,14 +58,14 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     public BackupFile BackupNow(CallContext ctx, int? company)
     {
         ctx.Require(Permission.Backup);
-        if (company is { } id) ctx.RequireCompany(id);
+        RequireTarget(ctx, company);
         return Backup(company, ctx.Audit(time.GetUtcNow(), "backup", "database", Source(company), null, null), keep: null);
     }
 
     public IReadOnlyList<BackupFile> Backups(CallContext ctx, int? company)
     {
         ctx.Require(Permission.Backup);
-        if (company is { } id) ctx.RequireCompany(id);
+        RequireTarget(ctx, company);
         return backups.List(data.BackupFolder, Source(company));
     }
 
@@ -123,9 +123,15 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     Microsoft.Data.Sqlite.SqliteConnection OpenForAudit(CallContext ctx, int? company)
     {
         ctx.Require(Permission.ViewAudit);
-        if (company is not { } id) return data.OpenHost();
-        ctx.RequireCompany(id);
-        return hub.Open(id);
+        RequireTarget(ctx, company);
+        return company is { } id ? hub.Open(id) : data.OpenHost();
+    }
+
+    // host.db holds every user and the list of all companies, so only a host administrator may read or copy it.
+    static void RequireTarget(CallContext ctx, int? company)
+    {
+        if (company is { } id) ctx.RequireCompany(id);
+        else ctx.Require(Permission.ManageHostSettings);
     }
 
     internal string Source(int? company) =>

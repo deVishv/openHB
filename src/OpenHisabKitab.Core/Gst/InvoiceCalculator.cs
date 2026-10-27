@@ -36,8 +36,9 @@ public static class InvoiceCalculator
 
         if (!line.PriceIncludesTax) return Tax(amount, line, split);
 
-        // Derive the taxable value from a tax inclusive amount. Prefer the candidate whose
-        // total equals what the user typed, so the line total never drifts by a paisa.
+        // Derive the taxable value from a tax inclusive amount. Prefer a candidate whose total equals
+        // what the user typed. When two separately rounded halves make that impossible, the line
+        // total can differ from the typed amount by a paisa, and screens must show the calculated total.
         var t0 = Rounding.HalfAwayFromZero(amount * 10000m / (10000 + line.Rate.BasisPoints + line.CessRate.BasisPoints));
         foreach (var t in new[] { t0, t0 - 1, t0 + 1 })
         {

@@ -5,6 +5,10 @@ namespace OpenHisabKitab.Core.Time;
 /// <summary>Parses a date typed at the prompt.</summary>
 public static class DateInput
 {
+    // 9998 keeps the financial year containing any accepted date inside DateOnly's range.
+    const int MinYear = 1900;
+    const int MaxYear = 9998;
+
     /// <summary>
     /// Accepts dd-mm-yyyy, dd/mm/yyyy, dd-mm-yy, d-m (inside the financial year containing today), and "today".
     /// </summary>
@@ -14,6 +18,7 @@ public static class DateInput
         var t = token.Trim();
         if (t.Equals("today", StringComparison.OrdinalIgnoreCase)) { date = today; return true; }
 
+        if (t.Contains('-') && t.Contains('/')) return false;
         var parts = t.Split('-', '/');
         if (parts.Length is < 2 or > 3 || parts.Any(p => p.Length == 0 || !p.All(char.IsAsciiDigit))) return false;
         if (parts[0].Length > 2 || parts[1].Length > 2) return false;
@@ -34,7 +39,7 @@ public static class DateInput
         else if (parts[2].Length == 4)
         {
             year = int.Parse(parts[2], CultureInfo.InvariantCulture);
-            if (year < 1) return false;
+            if (year is < MinYear or > MaxYear) return false;
         }
         else
         {

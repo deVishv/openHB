@@ -26,5 +26,8 @@ public class DateInputTests
     [InlineData("abc")]
     [InlineData("")]
     [InlineData("1-1-1-1")]
+    [InlineData("1-4/2026")]
+    [InlineData("1-1-1899")]
+    [InlineData("31-12-9999")]
     public void Rejects(string token) => Assert.False(DateInput.TryParse(token, Today, out _));
 }

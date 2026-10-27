@@ -23,10 +23,12 @@ public class PeriodInputTests
         { new[] { "fy" }, R(2026, 4, 1, 2027, 3, 31) },
         { new[] { "fy25" }, R(2025, 4, 1, 2026, 3, 31) },
         { new[] { "1-4", "30-6" }, R(2026, 4, 1, 2026, 6, 30) },
+        { new[] { "sept" }, R(2026, 9, 1, 2026, 9, 30) },
     };
 
     [Theory]
     [InlineData("30-6", "1-4")]
+    [InlineData("1-3-2026", "30-4-2026")]
     [InlineData("q5", null)]
     [InlineData("fyx", null)]
     [InlineData("xyz", null)]

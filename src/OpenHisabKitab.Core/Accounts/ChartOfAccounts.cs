@@ -36,14 +36,14 @@ public sealed class ChartOfAccounts
 
     public AccountNature NatureOf(LedgerId id) => groupsById[Ledger(id).Group].Nature;
 
-    /// <summary>True when the ledger's group or any ancestor is Cash in Hand or Bank Accounts.</summary>
+    /// <summary>True when the ledger's group or any ancestor is Cash in Hand, Bank Accounts, or Bank Overdraft.</summary>
     public bool IsCashOrBank(LedgerId id)
     {
         GroupId? g = Ledger(id).Group;
         while (g is { } gid)
         {
             var group = groupsById[gid];
-            if (group.Kind is GroupKind.CashInHand or GroupKind.BankAccounts) return true;
+            if (group.Kind is GroupKind.CashInHand or GroupKind.BankAccounts or GroupKind.BankOverdraft) return true;
             g = group.Parent;
         }
         return false;

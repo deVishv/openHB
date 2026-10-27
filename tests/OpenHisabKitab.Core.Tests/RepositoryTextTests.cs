@@ -14,6 +14,19 @@ public class RepositoryTextTests
         Assert.Empty(RepositoryText.FindForbiddenDashes("INV/26-27/00001"));
 
     [Fact]
+    public void Windows_1252_dash_bytes_are_reported() =>
+        Assert.NotEmpty(RepositoryText.FindForbiddenDashes(new byte[] { 0x61, 0x96, 0x62 }));
+
+    [Fact]
+    public void Utf16_dashes_are_reported() =>
+        Assert.NotEmpty(RepositoryText.FindForbiddenDashes(System.Text.Encoding.Unicode.GetPreamble()
+            .Concat(System.Text.Encoding.Unicode.GetBytes("a" + (char)0x2014)).ToArray()));
+
+    [Fact]
+    public void Plain_utf8_bytes_pass() =>
+        Assert.Empty(RepositoryText.FindForbiddenDashes(System.Text.Encoding.UTF8.GetBytes("INV/26-27/00001")));
+
+    [Fact]
     public void Repository_contains_no_en_or_em_dashes()
     {
         var offenders = RepositoryText.ScanRepository();
@@ -49,13 +62,42 @@ public static class RepositoryText
         return found;
     }
 
+    /// <summary>
+    /// Decodes by byte order mark (UTF-8 or UTF-16), otherwise as strict UTF-8. Bytes that are not
+    /// valid UTF-8 are scanned for 0x96 and 0x97, the Windows-1252 en and em dash.
+    /// </summary>
+    public static IReadOnlyList<(int Line, int Column)> FindForbiddenDashes(byte[] bytes)
+    {
+        using (var reader = new StreamReader(new MemoryStream(bytes), new System.Text.UTF8Encoding(false, true), detectEncodingFromByteOrderMarks: true))
+        {
+            try
+            {
+                return FindForbiddenDashes(reader.ReadToEnd());
+            }
+            catch (System.Text.DecoderFallbackException)
+            {
+                // Not UTF-8: fall through to the byte scan.
+            }
+        }
+
+        var found = new List<(int, int)>();
+        int line = 1, column = 1;
+        foreach (var b in bytes)
+        {
+            if (b == 0x0A) { line++; column = 1; continue; }
+            if (b is 0x96 or 0x97) found.Add((line, column));
+            column++;
+        }
+        return found;
+    }
+
     public static IReadOnlyList<string> ScanRepository()
     {
         var root = FindRoot();
         var offenders = new List<string>();
         foreach (var file in EnumerateFiles(root))
         {
-            foreach (var (line, column) in FindForbiddenDashes(File.ReadAllText(file)))
+            foreach (var (line, column) in FindForbiddenDashes(File.ReadAllBytes(file)))
                 offenders.Add($"{Path.GetRelativePath(root, file)}:{line}:{column}");
         }
         return offenders;

@@ -35,6 +35,14 @@ public class ChartOfAccountsTests
     }
 
     [Fact]
+    public void Bank_overdraft_counts_as_bank()
+    {
+        var (c2, od) = c.AddLedger("HDFC OD", c.Group(GroupKind.BankOverdraft));
+        Assert.True(c2.IsCashOrBank(od));
+        Assert.Equal(AccountNature.Liability, c2.NatureOf(od));
+    }
+
+    [Fact]
     public void Sub_group_inherits_nature_and_cash_kind()
     {
         var (c2, g) = c.AddGroup("Petty Cash", c.Group(GroupKind.CashInHand));
@@ -54,6 +62,7 @@ public class ChartOfAccountsTests
     [InlineData("Output  CGST")]
     [InlineData("output\tcgst")]
     [InlineData("Output\u00A0CGST")]
+    [InlineData("Output CG\u200BST")]
     public void Rejects_names_that_differ_only_in_spacing(string name) =>
         Assert.Throws<ChartException>(() => c.AddLedger(name, c.Group(GroupKind.DutiesAndTaxes)));
 

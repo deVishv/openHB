@@ -25,5 +25,11 @@ public class GstRulesTests
     public void Export() => Assert.Equal(TaxSplit.Igst, S("24", "96"));
 
     [Fact]
+    public void Other_territory_is_always_inter_state() => Assert.Equal(TaxSplit.Igst, S("97", "97"));
+
+    [Fact]
+    public void Foreign_supplier_code_is_rejected() => Assert.Throws<ArgumentException>(() => S("96", "96"));
+
+    [Fact]
     public void Unknown_place_of_supply_throws() => Assert.Throws<KeyNotFoundException>(() => S("24", "25"));
 }

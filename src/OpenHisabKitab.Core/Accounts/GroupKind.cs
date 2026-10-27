@@ -16,4 +16,5 @@ public enum GroupKind
     OtherIncome,
     Purchases,
     OtherExpenses,
+    BankOverdraft,
 }

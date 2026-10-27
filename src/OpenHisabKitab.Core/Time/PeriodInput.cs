@@ -6,7 +6,7 @@ namespace OpenHisabKitab.Core.Time;
 public static class PeriodInput
 {
     /// <summary>
-    /// One token: a month name, q1 to q4, fy, or fyNN. Two tokens: a from date and a to date.
+    /// One token: a month name, q1 to q4, fy, or fyNN. Two tokens: a from date and a to date in one financial year.
     /// Months and quarters fall inside the financial year containing today.
     /// </summary>
     public static bool TryParse(IReadOnlyList<string> tokens, DateOnly today, out DateRange range)
@@ -17,7 +17,7 @@ public static class PeriodInput
         if (tokens.Count == 2)
         {
             if (!DateInput.TryParse(tokens[0], today, out var from) || !DateInput.TryParse(tokens[1], today, out var to)) return false;
-            if (from > to) return false;
+            if (from > to || FinancialYear.Containing(from) != FinancialYear.Containing(to)) return false;
             range = new DateRange(from, to);
             return true;
         }
@@ -44,6 +44,7 @@ public static class PeriodInput
 
     static int MonthNumber(string name)
     {
+        if (name.Equals("sept", StringComparison.OrdinalIgnoreCase)) return 9;
         var format = CultureInfo.InvariantCulture.DateTimeFormat;
         for (var m = 1; m <= 12; m++)
         {

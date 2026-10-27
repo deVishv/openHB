@@ -29,7 +29,8 @@ public static class DefaultChart
         Sub("Long Term Borrowings", nonCurrentLiabilities);
 
         var currentLiabilities = Root("Current Liabilities", AccountNature.Liability);
-        Sub("Short Term Borrowings", currentLiabilities);
+        var shortTermBorrowings = Sub("Short Term Borrowings", currentLiabilities);
+        Sub("Bank Overdraft", shortTermBorrowings, GroupKind.BankOverdraft);
         Sub("Trade Payables", currentLiabilities, GroupKind.TradePayables);
         var duties = Sub("Duties and Taxes", currentLiabilities, GroupKind.DutiesAndTaxes);
         Sub("Provisions", currentLiabilities);

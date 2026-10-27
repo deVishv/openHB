@@ -17,6 +17,10 @@ public class NameMatcherTests
     }
 
     [Fact]
+    public void Zero_width_space_is_ignored() =>
+        Assert.Equal(MatchKind.Exact, NameMatcher.Match("HDFC \u200BBank\u200B", new[] { "HDFC Bank" }).Kind);
+
+    [Fact]
     public void Names_with_stray_whitespace_still_match() =>
         Assert.Equal(new[] { "HDFC  Bank " }, NameMatcher.Match("hdfc bank", new[] { "HDFC  Bank " }).Candidates);
 

@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenHisabKitab.Core\OpenHisabKitab.Core.csproj" />
+    <ProjectReference Include="..\OpenHisabKitab.Data\OpenHisabKitab.Data.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpenHisabKitab.Host.Tests" />
+  </ItemGroup>
+
+</Project>

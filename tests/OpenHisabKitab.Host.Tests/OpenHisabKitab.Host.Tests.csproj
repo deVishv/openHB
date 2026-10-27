@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="System.Globalization" />
+    <Using Include="Microsoft.Data.Sqlite" />
+    <Using Include="Microsoft.Extensions.Time.Testing" />
+    <Using Include="OpenHisabKitab.Core.Amounts" />
+    <Using Include="OpenHisabKitab.Core.Time" />
+    <Using Include="OpenHisabKitab.Core.Accounts" />
+    <Using Include="OpenHisabKitab.Core.Vouchers" />
+    <Using Include="OpenHisabKitab.Core.Gst" />
+    <Using Include="OpenHisabKitab.Core.Reports" />
+    <Using Include="OpenHisabKitab.Data" />
+    <Using Include="OpenHisabKitab.Data.Audit" />
+    <Using Include="OpenHisabKitab.Data.HostDb" />
+    <Using Include="OpenHisabKitab.Data.CompanyDb" />
+    <Using Include="OpenHisabKitab.Host.Application" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenHisabKitab.Host\OpenHisabKitab.Host.csproj" />
+  </ItemGroup>
+
+</Project>

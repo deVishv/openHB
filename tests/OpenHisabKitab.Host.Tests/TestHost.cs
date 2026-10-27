@@ -22,6 +22,8 @@ public sealed class TestHost : IDisposable
         Companies = new CompanyService(Data, Hub, Feed, Sessions, Time);
         Masters = new MasterService(Hub, Feed, Observer, Time);
         Vouchers = new VoucherService(Hub, Feed, Observer, Time);
+        Admin = new AdminService(Data, Hub, Sessions, Feed, Books, Time);
+        Scheduler = new BackupScheduler(Admin, Data, Time, Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupScheduler>.Instance);
     }
 
     public string Folder { get; }
@@ -35,6 +37,8 @@ public sealed class TestHost : IDisposable
     public CompanyService Companies { get; }
     public MasterService Masters { get; }
     public VoucherService Vouchers { get; }
+    public AdminService Admin { get; }
+    public BackupScheduler Scheduler { get; }
     public RecordingObserver Observer { get; }
     public CompanyBooks Books { get; }
     public ReportService Reports { get; }

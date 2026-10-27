@@ -16,10 +16,19 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
     readonly ConcurrentDictionary<int, SemaphoreSlim> writeLocks = new();
     readonly ConcurrentDictionary<int, bool> migrated = new();
 
+    public MaintenanceGate Gate { get; } = new();
+
     /// <summary>Test hook: runs before each audit append, so a test can make the append fail.</summary>
     internal Action<AuditEntry>? BeforeAudit { get; set; }
 
     public SqliteConnection Open(int companyId)
+    {
+        Gate.Check();
+        return OpenFile(companyId);
+    }
+
+    /// <summary>Opens without the maintenance check; only a restore that holds the gate may use this.</summary>
+    internal SqliteConnection OpenFile(int companyId)
     {
         var path = data.CompanyPath(companyId);
         if (!File.Exists(path)) throw new ServiceException(ServiceError.NotFound, "No such company.");
@@ -67,6 +76,31 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         await gate.WaitAsync().ConfigureAwait(false);
         try { return Run(companyId, work, afterCommit); }
         finally { gate.Release(); }
+    }
+
+    /// <summary>
+    /// Waits for the company's write lock, then closes the gate so no other company work starts. Disposing reopens both.
+    /// </summary>
+    internal async Task<IDisposable> MaintenanceAsync(int companyId)
+    {
+        var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync().ConfigureAwait(false);
+        Gate.Close();
+        return new Release(() =>
+        {
+            Gate.Open();
+            gate.Release();
+        });
+    }
+
+    sealed class Release(Action release) : IDisposable
+    {
+        int done;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref done, 1) == 0) release();
+        }
     }
 
     /// <summary>Appends to the company's audit trail inside the caller's transaction.</summary>

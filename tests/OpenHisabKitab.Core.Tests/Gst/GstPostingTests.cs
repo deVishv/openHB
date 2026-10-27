@@ -74,7 +74,7 @@ public class GstPostingTests
         {
             new PostingLine(R(RequiredLedger.Purchases), new Money(100000)),
             new PostingLine(R(RequiredLedger.InputIgst), new Money(18000)),
-            new PostingLine(R(RequiredLedger.OutputIgst), new Money(-18000)),
+            new PostingLine(R(RequiredLedger.RcmPayableIgst), new Money(-18000)),
             new PostingLine(party, new Money(-100000)),
         }, p);
     }

@@ -76,6 +76,11 @@ public static class DefaultChart
         Ledger("Input UTGST", gstInput, RequiredLedger.InputUtgst);
         Ledger("Input IGST", gstInput, RequiredLedger.InputIgst);
         Ledger("Input Cess", gstInput, RequiredLedger.InputCess);
+        Ledger("RCM Payable CGST", duties, RequiredLedger.RcmPayableCgst);
+        Ledger("RCM Payable SGST", duties, RequiredLedger.RcmPayableSgst);
+        Ledger("RCM Payable UTGST", duties, RequiredLedger.RcmPayableUtgst);
+        Ledger("RCM Payable IGST", duties, RequiredLedger.RcmPayableIgst);
+        Ledger("RCM Payable Cess", duties, RequiredLedger.RcmPayableCess);
         return c;
     }
 }

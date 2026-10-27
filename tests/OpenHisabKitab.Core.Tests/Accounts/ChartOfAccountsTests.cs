@@ -22,6 +22,7 @@ public class ChartOfAccountsTests
     [InlineData(RequiredLedger.RoundOff, AccountNature.Expense)]
     [InlineData(RequiredLedger.OutputCgst, AccountNature.Liability)]
     [InlineData(RequiredLedger.InputIgst, AccountNature.Asset)]
+    [InlineData(RequiredLedger.RcmPayableIgst, AccountNature.Liability)]
     public void Natures(RequiredLedger r, AccountNature n) => Assert.Equal(n, c.NatureOf(c.Required(r)));
 
     [Fact]

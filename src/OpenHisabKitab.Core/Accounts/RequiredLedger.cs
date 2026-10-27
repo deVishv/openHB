@@ -19,4 +19,9 @@ public enum RequiredLedger
     InputUtgst,
     InputIgst,
     InputCess,
+    RcmPayableCgst,
+    RcmPayableSgst,
+    RcmPayableUtgst,
+    RcmPayableIgst,
+    RcmPayableCess,
 }

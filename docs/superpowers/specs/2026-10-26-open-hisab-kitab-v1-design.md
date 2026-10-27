@@ -147,7 +147,7 @@ The host checks these. Tests check them on random and fixture data. A failure bl
 - **Invoice tax totals** are the sums of the line amounts.
 - **Invoice round off.** A setting, on by default, rounds the grand total to the nearest rupee, with 50 paise rounding up. The difference is posted to a Round Off ledger. Off means no rounding.
 - **Supply type.** Place of supply versus the supplier's state decides intra state versus inter state. A supply to an SEZ (special economic zone) is always inter state. UTGST is used instead of SGST when the place of supply is a union territory without its own legislature.
-- **Reverse charge** is a flag on purchase vouchers. It posts tax as payable instead of as input credit, according to the reverse charge rules.
+- **Reverse charge** is a flag on purchase vouchers. The supplier is paid only the taxable value. The tax is debited to the input credit ledgers and credited to separate RCM Payable ledgers, because reverse charge tax must be paid in cash and cannot be set off against input credit. [Owner]
 - **All tax rates, the state and union territory code list, and every threshold are data.** This includes the B2C large invoice limit, currently ₹1,00,000 for inter state supplies under Notification 12/2024 Central Tax. The data ships as a versioned JSON file with an effective date per entry and can be updated without a new release. None of it is hard-coded.
 
 ### 5.4 Voucher numbering
@@ -470,7 +470,7 @@ These are measured on a mid range office PC with 1,000,000 posting lines.
 
 ### Setting up and connecting
 
-- **Default chart of accounts.** New companies start with a standard set of groups that maps to the Schedule III balance sheet and profit and loss headings, plus required ledgers: Cash, Round Off, Profit and Loss, the GST input and output ledgers for each tax type, and Capital. Users may add groups and ledgers. They may rename but not delete the required ones.
+- **Default chart of accounts.** New companies start with a standard set of groups that maps to the Schedule III balance sheet and profit and loss headings, plus required ledgers: Cash, Round Off, Profit and Loss, the GST input, output, and RCM Payable ledgers for each tax type, and Capital. Users may add groups and ledgers. They may rename but not delete the required ones.
 - **Opening balances.** `ACCT` takes an opening balance per ledger as at the start of the first financial year in the software. `PRTY` takes opening bills (number, date, amount, due date) so that `OUTS` is correct from day one. The opening trial balance must balance before any voucher can be saved. Otherwise an "Opening difference" line is shown and blocks saving.
 - **First run.** The host's first start creates the Owner account. Clients ask for the host address (name or IP and port) on first run and store it in machine settings.
 - **Version match.** Client and host must run the same version. A mismatched client shows one line saying which version to install, and does not connect.

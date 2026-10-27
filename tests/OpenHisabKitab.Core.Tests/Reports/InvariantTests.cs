@@ -111,6 +111,8 @@ public class InvariantTests
             .Select(chart.Required).ToArray();
         var input = new[] { RequiredLedger.InputCgst, RequiredLedger.InputSgst, RequiredLedger.InputUtgst, RequiredLedger.InputIgst, RequiredLedger.InputCess }
             .Select(chart.Required).ToArray();
+        var rcm = new[] { RequiredLedger.RcmPayableCgst, RequiredLedger.RcmPayableSgst, RequiredLedger.RcmPayableUtgst, RequiredLedger.RcmPayableIgst, RequiredLedger.RcmPayableCess }
+            .Select(chart.Required).ToArray();
 
         foreach (var v in vouchers.Where(v => v.Invoice is not null))
         {
@@ -127,11 +129,13 @@ public class InvariantTests
                 {
                     Same(seed, $"voucher {v.Id} output tax {i}", Signed(taxes[i], -1), Posted(output[i]));
                     Same(seed, $"voucher {v.Id} input tax {i}", Money.Zero, Posted(input[i]));
+                    Same(seed, $"voucher {v.Id} rcm tax {i}", Money.Zero, Posted(rcm[i]));
                 }
                 else
                 {
                     Same(seed, $"voucher {v.Id} input tax {i}", Signed(taxes[i], 1), Posted(input[i]));
-                    Same(seed, $"voucher {v.Id} output tax {i}", inv.ReverseCharge ? Signed(taxes[i], -1) : Money.Zero, Posted(output[i]));
+                    Same(seed, $"voucher {v.Id} output tax {i}", Money.Zero, Posted(output[i]));
+                    Same(seed, $"voucher {v.Id} rcm tax {i}", inv.ReverseCharge ? Signed(taxes[i], -1) : Money.Zero, Posted(rcm[i]));
                 }
             }
         }

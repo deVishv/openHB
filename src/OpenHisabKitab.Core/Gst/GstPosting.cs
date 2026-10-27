@@ -12,7 +12,8 @@ public enum GstDocumentKind { Invoice, CreditNote, DebitNote }
 
 public sealed record TaxLedgers(LedgerId Cgst, LedgerId Sgst, LedgerId Utgst, LedgerId Igst, LedgerId Cess);
 
-public sealed record GstPostingAccounts(LedgerId Party, LedgerId RoundOff, TaxLedgers Output, TaxLedgers Input)
+/// <summary>RcmPayable holds reverse charge tax, which must be paid in cash and cannot be set off against input credit.</summary>
+public sealed record GstPostingAccounts(LedgerId Party, LedgerId RoundOff, TaxLedgers Output, TaxLedgers Input, TaxLedgers RcmPayable)
 {
     public static GstPostingAccounts FromChart(ChartOfAccounts chart, LedgerId party) => new(
         party,
@@ -24,7 +25,11 @@ public sealed record GstPostingAccounts(LedgerId Party, LedgerId RoundOff, TaxLe
         new TaxLedgers(
             chart.Required(RequiredLedger.InputCgst), chart.Required(RequiredLedger.InputSgst),
             chart.Required(RequiredLedger.InputUtgst), chart.Required(RequiredLedger.InputIgst),
-            chart.Required(RequiredLedger.InputCess)));
+            chart.Required(RequiredLedger.InputCess)),
+        new TaxLedgers(
+            chart.Required(RequiredLedger.RcmPayableCgst), chart.Required(RequiredLedger.RcmPayableSgst),
+            chart.Required(RequiredLedger.RcmPayableUtgst), chart.Required(RequiredLedger.RcmPayableIgst),
+            chart.Required(RequiredLedger.RcmPayableCess)));
 }
 
 /// <summary>Turns a calculated GST document into balanced posting lines.</summary>
@@ -57,8 +62,8 @@ public static class GstPosting
         {
             for (var i = 0; i < lineLedgers.Count; i++) Add(lineLedgers[i], invoice.Lines[i].Taxable);
             AddTaxes(lines, invoice, accounts.Input, credit: false);
-            // Under reverse charge the business owes the tax itself, payable in cash.
-            if (reverseCharge) AddTaxes(lines, invoice, accounts.Output, credit: true);
+            // Under reverse charge the business owes the tax itself, payable in cash, kept apart from output tax.
+            if (reverseCharge) AddTaxes(lines, invoice, accounts.RcmPayable, credit: true);
             Add(accounts.Party, -invoice.GrandTotal);
             Add(accounts.RoundOff, invoice.RoundOff);
         }

@@ -18,6 +18,7 @@ public sealed class TestHost : IDisposable
         Hub = new CompanyHub(Data, Time);
         Companies = new CompanyService(Data, Hub, Feed, Sessions, Time);
         Masters = new MasterService(Hub, Feed, Observer, Time);
+        Vouchers = new VoucherService(Hub, Feed, Observer, Time);
     }
 
     public string Folder { get; }
@@ -30,6 +31,7 @@ public sealed class TestHost : IDisposable
     public CompanyHub Hub { get; }
     public CompanyService Companies { get; }
     public MasterService Masters { get; }
+    public VoucherService Vouchers { get; }
     public RecordingObserver Observer { get; } = new();
 
     public static readonly GstData Gst = GstData.LoadEmbedded();

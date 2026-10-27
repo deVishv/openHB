@@ -173,4 +173,44 @@ public class AuditLogTests
         Assert.Equal(ChangeSource.Mcp, e.Source);
         Assert.Equal("claude", e.TokenName);
     }
+
+    [Fact]
+    public void Replace_of_existing_row_is_blocked()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 2);
+        var ex = Assert.Throws<SqliteException>(() => Exec(c, """
+            INSERT OR REPLACE INTO audit_log(seq, at, user, machine, source, action, entity, entity_key, prev_hash, hash)
+            SELECT seq, at, 'x', machine, source, action, entity, entity_key, prev_hash, hash FROM audit_log WHERE seq = 1
+            """));
+        Assert.Contains("append only", ex.Message);
+        Assert.Equal("owner", AuditLog.Read(c, new AuditFilter()).Single(r => r.Seq == 1).Entry.User);
+    }
+
+    [Fact]
+    public void Insert_not_chained_to_the_head_is_blocked()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 1);
+        Assert.Throws<SqliteException>(() => Exec(c, """
+            INSERT INTO audit_log(seq, at, user, machine, source, action, entity, entity_key, prev_hash, hash)
+            VALUES (2, 'x', 'u', 'm', 'App', 'a', 'e', 'k', 'not the head', 'h')
+            """));
+        Assert.Throws<SqliteException>(() => Exec(c, """
+            INSERT INTO audit_log(seq, at, user, machine, source, action, entity, entity_key, prev_hash, hash)
+            SELECT 5, 'x', 'u', 'm', 'App', 'a', 'e', 'k', hash, 'h' FROM audit_log WHERE seq = 1
+            """));
+    }
+
+    [Fact]
+    public void Unreadable_row_is_reported_not_thrown()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 3);
+        Exec(c, "DROP TRIGGER audit_log_no_update; UPDATE audit_log SET at = 'garbage', source = 'Nope' WHERE seq = 2;");
+        Assert.Equal(2, AuditLog.Verify(c).FirstBadSeq);
+    }
 }

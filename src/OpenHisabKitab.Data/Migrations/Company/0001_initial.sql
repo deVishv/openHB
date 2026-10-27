@@ -18,6 +18,12 @@ CREATE TABLE audit_log(
 CREATE INDEX audit_log_at ON audit_log(at);
 CREATE TRIGGER audit_log_no_update BEFORE UPDATE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit log is append only'); END;
 CREATE TRIGGER audit_log_no_delete BEFORE DELETE ON audit_log BEGIN SELECT RAISE(ABORT, 'audit log is append only'); END;
+-- A new row must extend the head. This also stops INSERT OR REPLACE, which skips delete triggers.
+CREATE TRIGGER audit_log_insert_at_head BEFORE INSERT ON audit_log BEGIN
+    SELECT RAISE(ABORT, 'audit log is append only')
+    WHERE NEW.seq <> COALESCE((SELECT max(seq) FROM audit_log), 0) + 1
+       OR NEW.prev_hash <> COALESCE((SELECT hash FROM audit_log ORDER BY seq DESC LIMIT 1), '0000000000000000000000000000000000000000000000000000000000000000');
+END;
 
 CREATE TABLE company_profile(
     id INTEGER PRIMARY KEY CHECK (id = 1),

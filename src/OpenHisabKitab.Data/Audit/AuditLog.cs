@@ -61,12 +61,12 @@ public static class AuditLog
         var prev = Genesis;
         while (r.Read())
         {
-            var row = ReadRow(r);
             count++;
-            var ok = row.Seq == expectedSeq && row.PrevHash == prev
-                && Hash(prev, row.Seq, row.Entry, r.GetString(1)) == row.Hash;
-            if (!ok) return new AuditVerification(count, row.Seq);
-            prev = row.Hash;
+            var seq = r.GetInt64(0);
+            // The hash is checked on the raw stored text, so a row too damaged to parse is reported, not thrown.
+            var ok = seq == expectedSeq && r.GetString(11) == prev && RawHash(prev, r) == r.GetString(12);
+            if (!ok) return new AuditVerification(count, seq);
+            prev = r.GetString(12);
             expectedSeq++;
         }
         return new AuditVerification(count, null);
@@ -105,13 +105,20 @@ public static class AuditLog
     // Stored in UTC so text order is time order.
     static string FormatAt(DateTimeOffset at) => at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
 
-    // The hash covers the stored timestamp text, so verification never depends on re-parsing it.
-    static string Hash(string prev, long seq, AuditEntry e, string at)
+    static string Hash(string prev, long seq, AuditEntry e, string at) =>
+        Hash(prev, seq, at, e.User, e.Machine, e.Source.ToString(), e.TokenName, e.Action, e.Entity, e.EntityKey, e.Before, e.After);
+
+    static string RawHash(string prev, SqliteDataReader r) =>
+        Hash(prev, r.GetInt64(0), r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.NullableString(5),
+            r.GetString(6), r.GetString(7), r.GetString(8), r.NullableString(9), r.NullableString(10));
+
+    // The hash covers the stored text of every column, so verification never depends on re-parsing it.
+    static string Hash(string prev, long seq, string at, string user, string machine, string source, string? tokenName,
+        string action, string entity, string entityKey, string? before, string? after)
     {
         var canonical = JsonSerializer.Serialize(new
         {
-            seq, at, user = e.User, machine = e.Machine, source = e.Source.ToString(), tokenName = e.TokenName,
-            action = e.Action, entity = e.Entity, entityKey = e.EntityKey, before = e.Before, after = e.After,
+            seq, at, user, machine, source, tokenName, action, entity, entityKey, before, after,
         });
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(prev + "\n" + canonical)));
     }

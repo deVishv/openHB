@@ -1,0 +1,50 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+// A stale row_version fails with ABORTED; the trailer "ohk-current-bin" holds the current PartyMsg or ItemMsg.
+service Masters {
+  rpc GetChart (CompanyRef) returns (ChartMsg);
+  rpc AddGroup (AddGroupRequest) returns (IdReply);
+  rpc AddLedger (AddLedgerRequest) returns (IdReply);
+  rpc RenameGroup (RenameRequest) returns (Empty);
+  rpc RenameLedger (RenameRequest) returns (Empty);
+  rpc RemoveLedger (LedgerRef) returns (Empty);
+  rpc SetOpening (SetOpeningRequest) returns (Empty);
+  rpc SaveParty (SavePartyRequest) returns (IdReply);
+  rpc ListParties (CompanyRef) returns (PartyList);
+  rpc SaveItem (SaveItemRequest) returns (IdReply);
+  rpc ListItems (CompanyRef) returns (ItemList);
+}
+
+// parent 0 means a top level group. required is empty for ordinary ledgers.
+message GroupMsg { int32 id = 1; string name = 2; int32 parent = 3; string nature = 4; string kind = 5; }
+message LedgerMsg { int32 id = 1; string name = 2; int32 group = 3; string required = 4; int64 opening_paise = 5; }
+message ChartMsg { repeated GroupMsg groups = 1; repeated LedgerMsg ledgers = 2; }
+message AddGroupRequest { int32 company = 1; string name = 2; int32 parent = 3; }
+message AddLedgerRequest { int32 company = 1; string name = 2; int32 group = 3; }
+message RenameRequest { int32 company = 1; int32 id = 2; string name = 3; }
+message LedgerRef { int32 company = 1; int32 ledger = 2; }
+message SetOpeningRequest { int32 company = 1; int32 ledger = 2; int64 paise = 3; }
+
+// ledger 0 creates a new party. gstin is empty for unregistered parties.
+message PartyMsg { int32 ledger = 1; string gstin = 2; string state = 3; int32 credit_days = 4; string address = 5; int64 row_version = 6; }
+message SavePartyRequest { int32 company = 1; string name = 2; int32 group = 3; PartyMsg party = 4; }
+message PartyList { repeated PartyMsg parties = 1; }
+
+// id 0 creates a new item.
+message ItemMsg {
+  int32 id = 1;
+  string name = 2;
+  string hsn_sac = 3;
+  bool is_service = 4;
+  string unit = 5;
+  int32 rate_bp = 6;
+  int32 cess_bp = 7;
+  int64 default_price_paise = 8;
+  int64 row_version = 9;
+}
+message SaveItemRequest { int32 company = 1; ItemMsg item = 2; }
+message ItemList { repeated ItemMsg items = 1; }

@@ -1,0 +1,96 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+// A stale row_version fails with ABORTED; the trailer "ohk-current-bin" holds the current VoucherMsg.
+service Vouchers {
+  rpc SaveJournal (JournalRequest) returns (SavedReply);
+  rpc EditJournal (EditJournalRequest) returns (SavedReply);
+  rpc SaveInvoice (InvoiceRequest) returns (SavedReply);
+  rpc EditInvoice (EditInvoiceRequest) returns (SavedReply);
+  rpc Cancel (CancelRequest) returns (Empty);
+  rpc Get (VoucherRef) returns (VoucherMsg);
+  rpc List (ListVouchersRequest) returns (VoucherList);
+}
+
+message JournalMsg { string type = 1; string date = 2; string narration = 3; repeated PostingLineMsg lines = 4; }
+message JournalRequest { int32 company = 1; JournalMsg journal = 2; }
+message EditJournalRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; JournalMsg journal = 4; }
+
+// item_id 0 means no item. Optional dates and numbers are empty strings when absent.
+message InvoiceLineMsg {
+  int32 item_id = 1;
+  int32 ledger = 2;
+  string description = 3;
+  string hsn_sac = 4;
+  int64 qty_thousandths = 5;
+  int64 unit_price_paise = 6;
+  int64 discount_paise = 7;
+  int32 rate_bp = 8;
+  int32 cess_bp = 9;
+  bool price_includes_tax = 10;
+}
+message InvoiceMsg {
+  string type = 1;
+  string date = 2;
+  string narration = 3;
+  int32 party = 4;
+  string direction = 5;
+  string kind = 6;
+  string place_of_supply = 7;
+  bool reverse_charge = 8;
+  string party_doc_number = 9;
+  string party_doc_date = 10;
+  string original_number = 11;
+  string original_date = 12;
+  repeated InvoiceLineMsg lines = 13;
+}
+message InvoiceRequest { int32 company = 1; InvoiceMsg invoice = 2; }
+message EditInvoiceRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; InvoiceMsg invoice = 4; }
+message SavedReply { int64 id = 1; string display_number = 2; int64 row_version = 3; }
+message CancelRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; string reason = 4; }
+message VoucherRef { int32 company = 1; int64 id = 2; }
+
+message StoredInvoiceLineMsg {
+  InvoiceLineMsg entry = 1;
+  int64 taxable_paise = 2;
+  int64 cgst_paise = 3;
+  int64 sgst_paise = 4;
+  int64 utgst_paise = 5;
+  int64 igst_paise = 6;
+  int64 cess_paise = 7;
+}
+message InvoiceHeaderMsg {
+  int32 party = 1;
+  string direction = 2;
+  string kind = 3;
+  string place_of_supply = 4;
+  bool reverse_charge = 5;
+  string party_doc_number = 6;
+  string party_doc_date = 7;
+  string original_number = 8;
+  string original_date = 9;
+  int64 round_off_paise = 10;
+  repeated StoredInvoiceLineMsg lines = 11;
+}
+// invoice is absent for receipts, payments, journals, and contras.
+message VoucherMsg {
+  int64 id = 1;
+  string type = 2;
+  string series = 3;
+  int32 fy_start_year = 4;
+  int64 number = 5;
+  string display_number = 6;
+  string date = 7;
+  string narration = 8;
+  bool cancelled = 9;
+  int32 created_by = 10;
+  int64 row_version = 11;
+  repeated PostingLineMsg postings = 12;
+  InvoiceHeaderMsg invoice = 13;
+}
+// type is empty for every type.
+message ListVouchersRequest { int32 company = 1; Period period = 2; string type = 3; }
+message VoucherList { repeated VoucherMsg vouchers = 1; }

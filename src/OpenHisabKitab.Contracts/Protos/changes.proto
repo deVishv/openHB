@@ -1,0 +1,13 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+service Changes {
+  // Streams changes to the companies the caller can open, until the call is cancelled.
+  rpc Watch (Empty) returns (stream ChangeEventMsg);
+}
+
+// entity_id 0 means none.
+message ChangeEventMsg { int32 company = 1; string kind = 2; int64 entity_id = 3; }

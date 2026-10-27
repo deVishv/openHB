@@ -1,0 +1,45 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+service Reports {
+  rpc TrialBalance (PeriodRequest) returns (TrialBalanceMsg);
+  rpc ProfitAndLoss (PeriodRequest) returns (ProfitAndLossMsg);
+  rpc BalanceSheet (AsAtRequest) returns (BalanceSheetMsg);
+  rpc LedgerStatement (StatementRequest) returns (StatementMsg);
+}
+
+message PeriodRequest { int32 company = 1; Period period = 2; }
+message AsAtRequest { int32 company = 1; string as_at = 2; }
+message StatementRequest { int32 company = 1; int32 ledger = 2; Period period = 3; }
+
+message TrialBalanceRowMsg { int32 ledger = 1; int64 opening = 2; int64 debits = 3; int64 credits = 4; int64 closing = 5; }
+message TrialBalanceMsg {
+  Period period = 1;
+  repeated TrialBalanceRowMsg rows = 2;
+  int64 opening_difference = 3;
+  int64 total_debit = 4;
+  int64 total_credit = 5;
+}
+message ReportRowMsg { int32 ledger = 1; int64 amount = 2; }
+message ProfitAndLossMsg {
+  Period period = 1;
+  repeated ReportRowMsg income = 2;
+  repeated ReportRowMsg expenses = 3;
+  int64 total_income = 4;
+  int64 total_expenses = 5;
+  int64 net_profit = 6;
+}
+message BalanceSheetMsg {
+  string as_at = 1;
+  repeated ReportRowMsg assets = 2;
+  repeated ReportRowMsg liabilities = 3;
+  int64 current_profit = 4;
+  int64 opening_difference = 5;
+  int64 total_assets = 6;
+  int64 total_liabilities = 7;
+}
+message StatementRowMsg { string date = 1; int64 voucher_id = 2; int64 amount = 3; int64 balance = 4; }
+message StatementMsg { int32 ledger = 1; Period period = 2; int64 opening = 3; repeated StatementRowMsg rows = 4; int64 closing = 5; }

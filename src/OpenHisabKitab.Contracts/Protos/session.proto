@@ -1,0 +1,26 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+// Metadata: "authorization: Bearer TOKEN" on every call except GetInfo, SetupOwner, and Login.
+// "ohk-version: VERSION" on every call except GetInfo. "ohk-machine: PC NAME" on SetupOwner and Login.
+service Session {
+  rpc GetInfo (Empty) returns (HostInfo);
+  rpc SetupOwner (Credentials) returns (LoginReply);
+  rpc Login (Credentials) returns (LoginReply);
+  rpc Logout (Empty) returns (Empty);
+  rpc ChangePassword (ChangePasswordRequest) returns (Empty);
+}
+
+message HostInfo { string version = 1; bool needs_setup = 2; }
+message Credentials { string name = 1; string password = 2; }
+message LoginReply {
+  string token = 1;
+  int32 user_id = 2;
+  string user_name = 3;
+  repeated string permissions = 4;
+  string expires_at = 5;
+}
+message ChangePasswordRequest { string current = 1; string next = 2; }

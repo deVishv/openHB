@@ -1,0 +1,12 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+// Money is int64 paise, quantity int64 thousandths, rates int32 basis points (18% is 1800).
+// Dates are strings in yyyy-MM-dd. Enumerations travel as their names.
+
+message Empty {}
+message CompanyRef { int32 company = 1; }
+message IdReply { int64 id = 1; }
+message Period { string from = 1; string to = 2; }
+message PostingLineMsg { int32 ledger = 1; int64 paise = 2; }

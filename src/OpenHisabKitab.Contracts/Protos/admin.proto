@@ -1,0 +1,47 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+service Admin {
+  rpc LockUpTo (LockRequest) returns (Empty);
+  rpc Unlock (CompanyRef) returns (Empty);
+  rpc VerifyAudit (AuditTarget) returns (AuditVerificationMsg);
+  rpc ListAudit (ListAuditRequest) returns (AuditList);
+  rpc BackupNow (AuditTarget) returns (BackupMsg);
+  rpc ListBackups (AuditTarget) returns (BackupList);
+  rpc Restore (RestoreRequest) returns (Empty);
+  rpc CreateUser (CreateUserRequest) returns (IdReply);
+  rpc SetUserCompanies (SetUserCompaniesRequest) returns (Empty);
+  rpc ListUsers (Empty) returns (UserList);
+}
+
+message LockRequest { int32 company = 1; string date = 2; }
+// company 0 means host.db.
+message AuditTarget { int32 company = 1; }
+// first_bad_seq is 0 when the chain is whole.
+message AuditVerificationMsg { int64 count = 1; bool ok = 2; int64 first_bad_seq = 3; }
+// Empty strings and limit 0 mean no filter and the default limit. from and to are round trip timestamps.
+message ListAuditRequest { int32 company = 1; string from = 2; string to = 3; string user = 4; string entity = 5; int32 limit = 6; }
+message AuditEntryMsg {
+  int64 seq = 1;
+  string at = 2;
+  string user = 3;
+  string machine = 4;
+  string source = 5;
+  string token_name = 6;
+  string action = 7;
+  string entity = 8;
+  string entity_key = 9;
+  string before = 10;
+  string after = 11;
+}
+message AuditList { repeated AuditEntryMsg entries = 1; }
+message BackupMsg { string path = 1; string source = 2; string taken_at = 3; }
+message BackupList { repeated BackupMsg backups = 1; }
+message RestoreRequest { int32 company = 1; string path = 2; }
+message CreateUserRequest { string name = 1; string password = 2; string role = 3; }
+message SetUserCompaniesRequest { int32 user_id = 1; repeated int32 companies = 2; }
+message UserMsg { int32 id = 1; string name = 2; string role = 3; bool active = 4; }
+message UserList { repeated UserMsg users = 1; }

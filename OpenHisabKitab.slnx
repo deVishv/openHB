@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/OpenHisabKitab.Contracts/OpenHisabKitab.Contracts.csproj" />
     <Project Path="src/OpenHisabKitab.Core/OpenHisabKitab.Core.csproj" />
     <Project Path="src/OpenHisabKitab.Data/OpenHisabKitab.Data.csproj" />
     <Project Path="src/OpenHisabKitab.Host/OpenHisabKitab.Host.csproj" />

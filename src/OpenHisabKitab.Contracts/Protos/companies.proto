@@ -1,0 +1,29 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+service Companies {
+  rpc List (Empty) returns (CompanyList);
+  rpc Create (CompanyProfileMsg) returns (CompanyRef);
+  rpc Get (CompanyRef) returns (CompanyProfileMsg);
+  rpc ListYears (CompanyRef) returns (YearList);
+  rpc AddYear (CompanyRef) returns (YearMsg);
+  rpc SetSetting (SettingRequest) returns (Empty);
+}
+
+message CompanyEntry { int32 id = 1; string name = 2; }
+message CompanyList { repeated CompanyEntry companies = 1; }
+// gstin is empty when the company has none.
+message CompanyProfileMsg {
+  string name = 1;
+  string state = 2;
+  string registration = 3;
+  string gstin = 4;
+  string address = 5;
+  int32 first_fy_start_year = 6;
+}
+message YearMsg { int32 start_year = 1; string label = 2; }
+message YearList { repeated YearMsg years = 1; }
+message SettingRequest { int32 company = 1; string key = 2; string json = 3; }

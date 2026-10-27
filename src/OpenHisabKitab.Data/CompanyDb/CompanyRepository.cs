@@ -9,7 +9,7 @@ public sealed record CompanyProfile(string Name, StateCode State, GstRegistratio
 
 public static class CompanyRepository
 {
-    /// <summary>Writes a new company file's profile, first financial year, and chart.</summary>
+    /// <summary>Writes a new company file's profile, first financial year with its number series, and chart.</summary>
     public static void Create(SqliteTransaction tx, CompanyProfile p, ChartOfAccounts chart)
     {
         Sql.Execute(tx, """
@@ -37,8 +37,12 @@ public static class CompanyRepository
     public static IReadOnlyList<FinancialYear> Years(SqliteConnection c) =>
         Sql.Query(c, "SELECT start_year FROM financial_years ORDER BY start_year", r => new FinancialYear(r.GetInt32(0)));
 
-    public static void AddYear(SqliteTransaction tx, FinancialYear fy) =>
+    /// <summary>Adds a financial year and its default number series, which start at 1.</summary>
+    public static void AddYear(SqliteTransaction tx, FinancialYear fy)
+    {
         Sql.Execute(tx, "INSERT INTO financial_years(start_year) VALUES ($y)", ("$y", fy.StartYear));
+        NumberSeriesRepository.EnsureDefaults(tx, fy);
+    }
 
     public static string? GetSetting(SqliteConnection c, string key) =>
         Sql.Single(c, "SELECT value FROM company_settings WHERE key = $key", r => r.GetString(0), ("$key", key));

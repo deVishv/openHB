@@ -81,3 +81,80 @@ CREATE TABLE items(
     default_price_paise INTEGER NOT NULL,
     row_version INTEGER NOT NULL DEFAULT 1
 );
+
+CREATE TABLE number_series(
+    type TEXT NOT NULL,
+    series TEXT NOT NULL,
+    fy_start INTEGER NOT NULL REFERENCES financial_years(start_year),
+    pattern TEXT NOT NULL,
+    width INTEGER NOT NULL,
+    next INTEGER NOT NULL,
+    PRIMARY KEY(type, series, fy_start)
+);
+
+CREATE TABLE vouchers(
+    id INTEGER PRIMARY KEY,
+    type TEXT NOT NULL,
+    series TEXT NOT NULL,
+    fy_start INTEGER NOT NULL,
+    number INTEGER NOT NULL,
+    display_number TEXT NOT NULL,
+    date TEXT NOT NULL,
+    narration TEXT NOT NULL,
+    cancelled INTEGER NOT NULL DEFAULT 0,
+    created_by INTEGER NOT NULL,
+    row_version INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(type, series, fy_start, number)
+);
+CREATE INDEX vouchers_date ON vouchers(date);
+
+CREATE TABLE postings(
+    id INTEGER PRIMARY KEY,
+    voucher_id INTEGER NOT NULL REFERENCES vouchers(id),
+    date TEXT NOT NULL,
+    ledger_id INTEGER NOT NULL REFERENCES ledgers(id),
+    amount_paise INTEGER NOT NULL
+);
+CREATE INDEX postings_ledger_date ON postings(ledger_id, date);
+CREATE INDEX postings_voucher ON postings(voucher_id);
+
+CREATE TABLE invoices(
+    voucher_id INTEGER PRIMARY KEY REFERENCES vouchers(id),
+    party_ledger_id INTEGER NOT NULL REFERENCES ledgers(id),
+    direction TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    place_of_supply TEXT NOT NULL,
+    reverse_charge INTEGER NOT NULL,
+    party_doc_number TEXT NULL,
+    party_doc_date TEXT NULL,
+    original_number TEXT NULL,
+    original_date TEXT NULL,
+    round_off_paise INTEGER NOT NULL
+);
+
+CREATE TABLE invoice_lines(
+    voucher_id INTEGER NOT NULL REFERENCES invoices(voucher_id),
+    line_no INTEGER NOT NULL,
+    item_id INTEGER NULL REFERENCES items(id),
+    ledger_id INTEGER NOT NULL REFERENCES ledgers(id),
+    description TEXT NOT NULL,
+    hsn_sac TEXT NOT NULL,
+    qty_thousandths INTEGER NOT NULL,
+    unit_price_paise INTEGER NOT NULL,
+    discount_paise INTEGER NOT NULL,
+    rate_bp INTEGER NOT NULL,
+    cess_bp INTEGER NOT NULL,
+    price_includes_tax INTEGER NOT NULL,
+    taxable_paise INTEGER NOT NULL,
+    cgst_paise INTEGER NOT NULL,
+    sgst_paise INTEGER NOT NULL,
+    utgst_paise INTEGER NOT NULL,
+    igst_paise INTEGER NOT NULL,
+    cess_paise INTEGER NOT NULL,
+    PRIMARY KEY(voucher_id, line_no)
+);
+
+CREATE TABLE period_lock(
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    locked_up_to TEXT NULL
+);

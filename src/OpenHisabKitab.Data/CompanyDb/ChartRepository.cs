@@ -45,6 +45,10 @@ public static class ChartRepository
         Sql.Execute(tx, "DELETE FROM ledgers WHERE id = $id", ("$id", id.Value));
     }
 
+    public static bool HasPostings(SqliteConnection c, LedgerId id) =>
+        Sql.Query(c, "SELECT EXISTS(SELECT 1 FROM postings WHERE ledger_id = $id) OR EXISTS(SELECT 1 FROM invoice_lines WHERE ledger_id = $id) OR EXISTS(SELECT 1 FROM invoices WHERE party_ledger_id = $id)",
+            r => r.GetInt64(0) != 0, ("$id", id.Value))[0];
+
     public static void SetOpening(SqliteTransaction tx, LedgerId id, Money amount) =>
         Sql.Execute(tx, "UPDATE ledgers SET opening_paise = $amount, row_version = row_version + 1 WHERE id = $id",
             ("$amount", amount.Paise), ("$id", id.Value));

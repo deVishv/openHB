@@ -2,6 +2,46 @@
 
 Items that need the owner's check. Newest plan first. Mark an item done by deleting it or writing "OK" after it.
 
+## Plan 2: Data and host
+
+### Decisions made in the design for the REST API and MCP server (spec 4.1)
+
+Each line says what was decided and what it costs if wrong.
+
+1. **Local only.** The REST API and the MCP server listen on 127.0.0.1, and are off until the Owner turns them on. LAN access is a separate setting, also off. Cost if wrong: one setting.
+2. **Amounts as text.** Amounts in REST and MCP are strings such as `"12345.60"`, never JSON numbers. Cost if wrong: client scripts must quote amounts.
+3. **MCP write tools are off by default.** They need both a setting and a read and write token. Cost if wrong: one setting.
+4. **API tokens** are per user and carry that user's permissions. They are read only unless created as read and write. Cost if wrong: the token screen changes in Plan 3.
+5. **Stdio bridge.** A small bridge program ships for assistants that only launch local programs. Cost if wrong: one small program.
+6. **Plans renumbered.** REST and MCP are Plan 3, the client shell is Plan 4, and so on. The table is in the Plan 2 document.
+
+### Decisions made while building Plan 2
+
+1. **First setup.** The first Owner can only be set up from the host PC itself. Cost if wrong: a remote first setup is not possible.
+2. **Passwords** use PBKDF2 SHA-256 with 600,000 iterations. After 5 failed logins for a user name, logins wait 30 seconds, doubling up to 15 minutes. Cost if wrong: settings to tune.
+3. **Sessions** end after 12 hours idle. A host restart logs everyone out. Cost if wrong: users log in more often.
+4. **Composition and unregistered companies** cannot enter tax on purchases. They enter the full amount at rate 0. Cost if wrong: input tax shows as cost (correct for them), but the tax breakup on purchases is not kept.
+5. **Export under LUT and SEZ without tax** are calculated with zero tax. The item's rate is still stored. Cost if wrong: a calculation change in Plan 7.
+6. **Tax split on purchases** uses the supplier's state (the party) against the place of supply. Sales use the company's state. Cost if wrong: wrong IGST or CGST and SGST on purchases.
+7. **Invoice lines** must use a sales ledger (income) or a purchase ledger (expense, or an asset other than cash and bank). Tax, round off, and party ledgers are refused. Cost if wrong: some ledgers cannot be picked on a line.
+8. **Default number series** are `INV`, `PUR`, `CN`, `DN`, `RCT`, `PAY`, `JV`, and `CON`, followed by `/{FY}/` and 5 digits. Cost if wrong: the defaults change. Existing numbers stay.
+9. **Editing a voucher's date** is allowed only within its financial year, because its number belongs to that year. Cost if wrong: users cancel and re-enter instead.
+10. **Data entry users** cannot cancel, even their own vouchers, because the role table gives them no cancel right. Cost if wrong: one permission.
+11. **A ledger with an opening balance** counts as used and cannot be deleted. Set the opening to zero first. Cost if wrong: one extra step.
+12. **The gRPC port** is 47250.
+13. **Backups** run when the newest backup is 24 hours old, checked every minute, so a PC that was off at night still backs up when it starts. A failed scheduled backup is recorded in the host audit trail.
+14. **The host audit trail and host.db backups** are for the Owner only, because host.db lists every user and company. Accountants see their companies' audit trails.
+15. **Restore** accepts only a backup from that company's backup list, logs everyone out, and backs up the current file first.
+16. **The host runs only on Windows** (`net10.0-windows`), because it protects its certificate key with Windows DPAPI.
+17. **Moved to later plans.** Bill by bill allocation and party opening bills move to Plan 5. Custom roles and host.db restore move to Plan 8. Plan 2 restore covers company files.
+
+### Known limits carried to later plans
+
+1. **Audit trail tampering.** The hash chain shows an edited or removed row, except the newest rows: deleting the last few rows leaves a valid chain. Someone who can write the database file can also rebuild the whole chain. Closing this needs a key kept outside the file, or a copy of the chain head kept elsewhere. Owner to decide whether version 1 needs it.
+2. **Newer files.** A database written by a newer version of the software is refused, not opened read only.
+3. **REST and MCP storage.** The `api_tokens` table exists but is unused until Plan 3.
+4. **Report speed.** A full year trial balance over 1,000,000 posting lines, rebuilt after a save, took 360 ms on the build PC (target under 1 s).
+
 ## Plan 1: Foundation and accounting core
 
 ### Check before the first public release

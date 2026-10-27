@@ -121,7 +121,7 @@ The host must rebuild a chart from database rows, and parties need GSTIN checks.
   - `public ChartOfAccounts RenameGroup(GroupId id, string name)` and `RenameLedger(LedgerId id, string name)`, with the same name rules as adding.
   - `public ChartOfAccounts RemoveLedger(LedgerId id)`. Throws `ChartException("Required ledger {name} cannot be deleted.")` for required ledgers. The caller checks for postings.
   - New ids are `max(existing) + 1`, or 1 when empty.
-  - `public readonly record struct Gstin` with `static bool TryParse(string? text, out Gstin gstin)`, `string Value`, `StateCode State`.
+  - `public readonly record struct Gstin` with `static bool TryParse(string? text, GstData data, out Gstin gstin)`, `string Value`, `StateCode State`. The state prefix is checked against `GstData.States`, because the state list is data (spec 5.3) and `StateCode` only checks for two digits.
   - `public enum GstRegistration { Regular, Composition, Unregistered }`.
   - `public enum InvoiceKind { Regular, ExportWithTax, ExportUnderLut, SezWithTax, SezWithoutTax, DeemedExport }`.
 
@@ -175,7 +175,7 @@ public void Rename_to_existing_name_throws() { /* rename "A" to "cash" throws Ch
 [InlineData(" 24aaacc1206d1zm ", "24")]
 public void Valid_gstin(string text, string state)
 {
-    Assert.True(Gstin.TryParse(text, out var g));
+    Assert.True(Gstin.TryParse(text, GstData.LoadEmbedded(), out var g));
     Assert.Equal(state, g.State.Value);
     Assert.Equal(text.Trim().ToUpperInvariant(), g.Value);
 }
@@ -183,11 +183,11 @@ public void Valid_gstin(string text, string state)
 [Theory]
 [InlineData("07AAACI1681G1ZN")]   // checksum should be R
 [InlineData("27AAPFU0939F1Z")]    // 14 characters
-[InlineData("00AAPFU0939F1ZV")]   // no state 00
+[InlineData("00AAPFU0939F1ZB")]   // checksum valid, but no state 00
 [InlineData("27AAPFU0939F1Z-")]
 [InlineData("")]
 [InlineData(null)]
-public void Invalid_gstin(string? text) => Assert.False(Gstin.TryParse(text, out _));
+public void Invalid_gstin(string? text) => Assert.False(Gstin.TryParse(text, GstData.LoadEmbedded(), out _));
 ```
 
 - [ ] **Step 2: Run them and confirm they fail to compile.** Run: `dotnet test OpenHisabKitab.slnx --filter "ChartLoadTests|GstinTests"`.
@@ -203,7 +203,7 @@ for each of the first 14 characters c:
 check = value^-1((36 - sum % 36) % 36)
 ```
 
-The state prefix must be a known `StateCode` (use `StateCode`'s own validation). Trim and upper case the input with the invariant culture before checking.
+The state prefix must be a code in `GstData.States`. Trim and upper case the input with the invariant culture before checking.
 
 - [ ] **Step 4: Run the whole suite.** Expected: all Plan 1 tests and the new ones pass.
 
@@ -236,6 +236,7 @@ Migrations are embedded resources named `NNNN_name.sql` under `Migrations/Host` 
 [Fact] public void Second_run_does_nothing() { /* second Migrate returns From == To and does not call beforeMigrating */ }
 [Fact] public void Before_migrating_is_not_called_for_a_new_file() { }
 [Fact] public void Pragmas_are_set() { /* journal_mode "wal", foreign_keys 1, synchronous 2 */ }
+[Fact] public void Second_writer_waits_then_fails_busy() { /* connection A holds BeginWrite; connection B (busy_timeout lowered to 200 ms) BeginWrite throws SqliteException with SqliteErrorCode 5 (SQLITE_BUSY). If the default transaction is deferred this fails, so BeginWrite must issue BEGIN IMMEDIATE. */ }
 
 [Fact]
 public void Newer_file_is_refused_and_left_unchanged()
@@ -361,7 +362,7 @@ Custom roles are Plan 8. Storing the role as a `TEXT` built in name keeps that c
 - Consumes: `ChartOfAccounts.Load` (Task 1), `Gstin`, `GstRegistration`.
 - Produces:
   - `public sealed record CompanyProfile(string Name, StateCode State, GstRegistration Registration, Gstin? Gstin, string Address, int FirstFyStartYear);`
-  - `CompanyRepository`: `void Create(SqliteTransaction tx, CompanyProfile p, ChartOfAccounts chart)` writes the profile, the first financial year, the chart, and the default number series (Task 6 table). Also: `CompanyProfile GetProfile(SqliteConnection c)`, `void UpdateProfile(SqliteTransaction tx, CompanyProfile p)`, `IReadOnlyList<FinancialYear> Years(SqliteConnection c)`, `void AddYear(SqliteTransaction tx, FinancialYear fy)`, `string? GetSetting(SqliteConnection c, string key)`, `void SetSetting(SqliteTransaction tx, string key, string json)`.
+  - `CompanyRepository`: `void Create(SqliteTransaction tx, CompanyProfile p, ChartOfAccounts chart)` writes the profile, the first financial year, and the chart. Task 6 extends `Create` to call `NumberSeriesRepository.EnsureDefaults` for the first year, and `AddYear` to do the same for each new year. Also: `CompanyProfile GetProfile(SqliteConnection c)`, `void UpdateProfile(SqliteTransaction tx, CompanyProfile p)`, `IReadOnlyList<FinancialYear> Years(SqliteConnection c)`, `void AddYear(SqliteTransaction tx, FinancialYear fy)`, `string? GetSetting(SqliteConnection c, string key)`, `void SetSetting(SqliteTransaction tx, string key, string json)`.
   - `ChartRepository`: `ChartOfAccounts Load(SqliteConnection c)`, `IReadOnlyDictionary<LedgerId, Money> Openings(SqliteConnection c)`, `void SaveGroup(SqliteTransaction tx, AccountGroup g)` (upsert), `void SaveLedger(SqliteTransaction tx, LedgerAccount l)` (upsert), `void DeleteLedger(SqliteTransaction tx, LedgerId id)`, `void SetOpening(SqliteTransaction tx, LedgerId id, Money amount)`, `bool HasPostings(SqliteConnection c, LedgerId id)`.
   - `public sealed record Party(LedgerId Ledger, Gstin? Gstin, StateCode State, int CreditDays, string Address, long RowVersion);`
   - `PartyRepository`: `Party? Get(SqliteConnection c, LedgerId l)`, `IReadOnlyList<Party> List(SqliteConnection c)`, `void Upsert(SqliteTransaction tx, Party p)` (bumps `RowVersion`).
@@ -470,7 +471,7 @@ Spec 9.
 Spec 8.
 
 **Files:**
-- Create: `src/OpenHisabKitab.Host/OpenHisabKitab.Host.csproj` (`Microsoft.NET.Sdk.Web`), `Application/CallContext.cs`, `Application/Permission.cs`, `Application/Roles.cs`, `Application/ServiceException.cs`, `Application/PasswordHasher.cs`, `Application/SessionStore.cs`, `Application/LoginThrottle.cs`, `Application/HostData.cs`, `Application/AuthService.cs`, `Application/UserService.cs`
+- Create: `src/OpenHisabKitab.Host/OpenHisabKitab.Host.csproj` (`Microsoft.NET.Sdk.Web`), a minimal `Program.cs` (an empty web app plus `public partial class Program`, so the project has an entry point; Task 15 fills it in), `Application/CallContext.cs`, `Application/Permission.cs`, `Application/Roles.cs`, `Application/ServiceException.cs`, `Application/PasswordHasher.cs`, `Application/SessionStore.cs`, `Application/LoginThrottle.cs`, `Application/HostData.cs`, `Application/AuthService.cs`, `Application/UserService.cs`
 - Create: `tests/OpenHisabKitab.Host.Tests/` project with `TestHost.cs` (builds the application services over a temp data directory with a `FakeTimeProvider`), `AuthServiceTests.cs`, `PasswordHasherTests.cs`
 - Modify: `OpenHisabKitab.slnx`
 
@@ -561,7 +562,7 @@ Exact messages:
 - Produces:
   - `CompanyHub(HostData data, TimeProvider time)`:
     - `SqliteConnection Open(int companyId)`: migrates on first open per process, calling a pre migration backup.
-    - `Task<T> WriteAsync<T>(int companyId, Func<SqliteTransaction, T> work)`: takes the company semaphore, `BeginWrite`, runs `work`, commits. It rolls back on any exception.
+    - `Task<T> WriteAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit = null)`: takes the company semaphore, `BeginWrite`, runs `work`, commits, then runs `afterCommit` while still holding the semaphore. It rolls back on any exception in `work`. Cache updates (`CompanyBooks.Apply`, `Invalidate`) and `ChangeFeed.Publish` always go in `afterCommit`, so two writes can never update the cache out of order.
     - The write lock is `SemaphoreSlim(1)` per company.
   - `public enum ChangeKind { Masters, Voucher, Lock, Settings, Restore }`
   - `public sealed record ChangeEvent(int CompanyId, ChangeKind Kind, long? EntityId);`
@@ -736,7 +737,7 @@ Steps inside the transaction, after rules 2 to 4 and 6 to 8 from Task 10:
   - **Intra state sale:** one line, quantity 1, price ₹1,000.00, 18%, to a party in 27. Taxable 1,000.00, CGST 90.00, SGST 90.00, grand total 1,180.00. The number is `INV/26-27/00001`. The party ledger has a 1,180.00 debit in the trial balance.
   - **Inter state sale:** the same line to place of supply 29 gives IGST 180.00.
   - **SEZ without tax:** place of supply 27 and kind `SezWithoutTax` give zero tax and taxable 1,000.00.
-  - **Round off:** price 100.40 at 18% gives a grand total of 118.00 and round off -0.47.
+  - **Round off:** price 100.40 at 18%, place of supply 27, gives CGST 9.04 and SGST 9.04 (each 9.036 rounded), a total of 118.48 before rounding, a grand total of 118.00, and round off -0.48. The same line at place of supply 29 gives IGST 18.07 and round off -0.47.
   - **Client totals ignored:** the input has no totals field. Assert that the stored line amounts equal `InvoiceCalculator` output.
   - **Reverse charge** on a sale is refused.
   - **Reverse charge purchase** from a party in 27 credits RCM Payable CGST and SGST with 90.00 each.
@@ -777,6 +778,7 @@ Spec 5.1 and 10. Plan 1 owner note: report engine build for 1,000,000 lines take
 - [ ] **Step 1: Write the failing tests.**
   - **Matches a full rebuild:** after a sequence of save, edit, and cancel calls, `TrialBalance` from the cache equals one from `new Books(...)` built straight from `VoucherRepository.AllPostings`. Use `RandomBooks` style seeded data with 200 vouchers and assert every row.
   - **Masters change:** after `SetOpening`, the cache reflects it.
+  - **Parallel edits keep the cache right:** 4 parallel loops edit and cancel the same 5 vouchers 50 times each, retrying on Conflict. Afterwards the cached `TrialBalance` equals one from a fresh `Books` built from `AllPostings`.
   - **Permissions:** a data entry user gets PermissionDenied.
   - **Period:** a period crossing 31 March gives the exact message.
   - **Performance** (`[Trait("Category", "Performance")]`, still runs in CI):
@@ -858,7 +860,7 @@ If step 5 fails, the live file is unchanged, the gate reopens, and the error is 
 - Create: `src/OpenHisabKitab.Contracts/OpenHisabKitab.Contracts.csproj` (`Grpc.Tools`, `Google.Protobuf`, `Grpc.AspNetCore` for the generated base classes; `GrpcServices="Both"`)
 - Create: `Protos/common.proto`, `session.proto`, `companies.proto`, `masters.proto`, `vouchers.proto`, `reports.proto`, `admin.proto`, `changes.proto`
 - Create: `src/OpenHisabKitab.Host/Grpc/*Endpoint.cs` (one per proto service), `Grpc/AuthInterceptor.cs`, `Grpc/VersionInterceptor.cs`, `Grpc/ErrorMapping.cs`, `Grpc/Mapping.cs`
-- Test: `tests/OpenHisabKitab.Host.Tests/Grpc/GrpcEndToEndTests.cs` using `WebApplicationFactory<Program>` and `GrpcChannel.ForAddress(factory.Server.BaseAddress, new() { HttpHandler = factory.Server.CreateHandler() })`
+- Test: `tests/OpenHisabKitab.Host.Tests/Grpc/GrpcEndToEndTests.cs` using a `WebApplicationFactory<Program>` that sets `Host:DataDirectory` to a temp folder (never `%ProgramData%`), and `GrpcChannel.ForAddress(factory.Server.BaseAddress, new() { HttpHandler = factory.Server.CreateHandler() })`
 
 **Interfaces:**
 - Consumes: every service from Tasks 8 to 13.
@@ -938,7 +940,7 @@ Spec 4, Transport.
     - RSA 3072, subject `CN=Open Hisab Kitab host`.
     - Subject alternative names: `localhost`, the machine name, and 127.0.0.1.
     - Valid from now minus 1 day for 10 years.
-  - It saves `host-cert.pfx` with a random password. The password is protected with `ProtectedData.Protect(..., DataProtectionScope.LocalMachine)` in `host-cert.key`.
+  - It saves `host-cert.pfx` with a random password, and always serves the certificate reloaded from the PFX with `X509CertificateLoader.LoadPkcs12` (the `X509Certificate2(byte[], string)` constructor is obsolete, and Windows TLS cannot use the ephemeral key from `CreateSelfSigned`). The password is protected with `ProtectedData.Protect(..., DataProtectionScope.LocalMachine)` in `host-cert.key`.
   - It writes the fingerprint to `host-cert-fingerprint.txt` and logs it at startup.
   - `Program`:
     - `builder.Host.UseWindowsService(o => o.ServiceName = "OpenHisabKitabHost")`.

@@ -16,6 +16,9 @@ public sealed class TestHost : IDisposable
         Users = new UserService(Data, Sessions, Time);
         Feed = new ChangeFeed();
         Hub = new CompanyHub(Data, Time);
+        Books = new CompanyBooks(Hub);
+        Observer = new RecordingObserver(Books);
+        Reports = new ReportService(Books);
         Companies = new CompanyService(Data, Hub, Feed, Sessions, Time);
         Masters = new MasterService(Hub, Feed, Observer, Time);
         Vouchers = new VoucherService(Hub, Feed, Observer, Time);
@@ -32,7 +35,9 @@ public sealed class TestHost : IDisposable
     public CompanyService Companies { get; }
     public MasterService Masters { get; }
     public VoucherService Vouchers { get; }
-    public RecordingObserver Observer { get; } = new();
+    public RecordingObserver Observer { get; }
+    public CompanyBooks Books { get; }
+    public ReportService Reports { get; }
 
     public static readonly GstData Gst = GstData.LoadEmbedded();
 
@@ -65,13 +70,21 @@ public sealed class TestHost : IDisposable
     }
 }
 
-/// <summary>Records what the services report to the books cache.</summary>
-public sealed class RecordingObserver : IBooksObserver
+/// <summary>Records what the services report to the books cache, and passes it on.</summary>
+public sealed class RecordingObserver(IBooksObserver inner) : IBooksObserver
 {
     public List<(int Company, long Voucher, IReadOnlyList<PostingRecord> Postings)> Saved { get; } = [];
     public List<int> MastersChanged { get; } = [];
 
-    public void VoucherSaved(int company, long voucherId, IReadOnlyList<PostingRecord> postings) => Saved.Add((company, voucherId, postings));
+    public void VoucherSaved(int company, long voucherId, IReadOnlyList<PostingRecord> postings)
+    {
+        lock (Saved) Saved.Add((company, voucherId, postings));
+        inner.VoucherSaved(company, voucherId, postings);
+    }
 
-    public void ChartChanged(int company) => MastersChanged.Add(company);
+    public void ChartChanged(int company)
+    {
+        lock (MastersChanged) MastersChanged.Add(company);
+        inner.ChartChanged(company);
+    }
 }

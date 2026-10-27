@@ -12,7 +12,7 @@ public sealed class SessionStore(TimeProvider time)
 
     sealed class Entry(CallContext context, DateTimeOffset expiresAt)
     {
-        public CallContext Context { get; } = context;
+        public CallContext Context { get; set; } = context;
         public DateTimeOffset ExpiresAt { get; set; } = expiresAt;
     }
 
@@ -39,8 +39,16 @@ public sealed class SessionStore(TimeProvider time)
                 return null;
             }
             e.ExpiresAt = now + IdleLimit;
+            return e.Context;
         }
-        return e.Context;
+    }
+
+    /// <summary>Changes the context of every session of a user, such as after they gain access to a new company.</summary>
+    public void Update(int userId, Func<CallContext, CallContext> change)
+    {
+        foreach (var e in sessions.Values)
+            lock (e)
+                if (e.Context.UserId == userId) e.Context = change(e.Context);
     }
 
     public void Remove(string token) => sessions.TryRemove(token, out _);

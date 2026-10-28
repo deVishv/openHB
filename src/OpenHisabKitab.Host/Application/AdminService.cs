@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
@@ -9,7 +10,8 @@ using OpenHisabKitab.Data.Migrations;
 namespace OpenHisabKitab.Host.Application;
 
 /// <summary>Period locks (spec 5.6), the audit trail view (5.5), backups and restore (9).</summary>
-public sealed class AdminService(HostData data, CompanyHub hub, SessionStore sessions, ChangeFeed feed, CompanyBooks books, TimeProvider time)
+public sealed class AdminService(HostData data, CompanyHub hub, SessionStore sessions, ChangeFeed feed, CompanyBooks books, TimeProvider time,
+    ILogger<AdminService>? log = null)
 {
     readonly BackupManager backups = new(time);
 
@@ -133,8 +135,9 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
                     return AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after));
                 });
             }
-            catch (Microsoft.Data.Sqlite.SqliteException)
+            catch (Exception e) when (e is not OutOfMemoryException)
             {
+                log?.LogError(e, "Company {Company} was restored, but host.db could not record it. Its audit anchor is reset later.", company);
                 if (AuditLog.Head(live) is { } head) hub.QueueAnchor(company, head, reset: true);
             }
         }

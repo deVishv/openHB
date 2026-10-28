@@ -355,4 +355,66 @@ public sealed class AdminServiceTests : IDisposable
         Assert.True(v.Ok);
         Assert.Equal(AnchorCheck.Matches, v.Anchor);
     }
+
+    AuditHead? StoredAnchor()
+    {
+        using var hostDb = host.Data.OpenHost();
+        return AuditAnchorRepository.Get(hostDb, company);
+    }
+
+    AuditHead FileHead()
+    {
+        using var c = host.Hub.Open(company);
+        return AuditLog.Head(c)!;
+    }
+
+    [Fact]
+    public async Task An_unreadable_company_does_not_hold_up_other_anchors()
+    {
+        host.Hub.QueueAnchor(999, new AuditHead(1, "x"), reset: false);
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        await host.Hub.FlushAnchorsAsync();
+        Assert.Equal(FileHead(), StoredAnchor());
+    }
+
+    [Fact]
+    public async Task A_failing_anchor_write_never_fails_a_save_and_catches_up_later()
+    {
+        host.Hub.BeforeAnchorWrite = () => throw new IOException("host.db is busy");
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        await host.Hub.FlushAnchorsAsync();
+        Assert.NotEqual(FileHead(), StoredAnchor());
+        Assert.True((await host.Admin.VerifyAuditAsync(owner, company)).Ok);
+
+        host.Hub.BeforeAnchorWrite = null;
+        await host.Hub.FlushAnchorsAsync();
+        Assert.Equal(FileHead(), StoredAnchor());
+    }
+
+    [Fact]
+    public async Task A_restore_reset_survives_a_failed_write_and_a_newer_save()
+    {
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        var backup = await host.Admin.BackupNowAsync(owner, company);
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(2));
+        await host.Hub.FlushAnchorsAsync();
+        var beforeRestore = StoredAnchor()!;
+        await host.Admin.RestoreAsync(owner, company, backup.Path);
+
+        // As if the restore's own anchor write had failed: host.db still has the old file's head.
+        host.Data.WriteHost(tx => { AuditAnchorRepository.Set(tx, company, beforeRestore); return 0; });
+        host.Hub.QueueAnchor(company, FileHead(), reset: true);
+        // A save lands while the write that fails is under way, so a newer plain head is queued before the reset is put back.
+        host.Hub.BeforeAnchorWrite = () =>
+        {
+            host.Hub.BeforeAnchorWrite = null;
+            host.Vouchers.SaveJournalAsync(owner, company, Receipt(3)).GetAwaiter().GetResult();
+            throw new IOException("host.db is busy");
+        };
+        await host.Hub.FlushAnchorsAsync();
+
+        var v = await host.Admin.VerifyAuditAsync(owner, company);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+        Assert.Equal(FileHead(), StoredAnchor());
+    }
 }

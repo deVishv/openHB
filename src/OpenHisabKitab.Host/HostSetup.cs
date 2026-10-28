@@ -36,6 +36,7 @@ public static class HostSetup
         s.AddSingleton<ReportService>();
         s.AddSingleton<AdminService>();
         s.AddHostedService<BackupScheduler>();
+        s.AddHostedService<AnchorFlushOnStop>();
         s.AddSingleton<IRemoteAddressAccessor, HttpRemoteAddress>();
         s.AddGrpc(o =>
         {

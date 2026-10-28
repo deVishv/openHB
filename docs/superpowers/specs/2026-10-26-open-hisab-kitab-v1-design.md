@@ -108,7 +108,7 @@ These are not rejected, only deferred to later releases, each with its own desig
 - **One SQLite file per company,** plus `host.db` for users, roles, user settings, and the company list. WAL mode and foreign keys are on.
 - **Money** is stored as 64 bit integers in paise. Quantities are stored as integers in thousandths of a unit. Rates are stored as integers in hundredths of a percent, so 18% is stored as 1800. No floating point anywhere in money, tax, or quantity logic.
 - **Concurrency.** Writes go through the host one transaction at a time. Masters and vouchers carry a row version. If two users edit the same record, the second save is rejected and that user sees the current version.
-- **Migrations.** Schema changes run as versioned migrations. Before migrating, the host takes an automatic backup.
+- **Migrations.** Schema changes run as versioned migrations. Before migrating, the host takes an automatic backup. A file written by a newer version is refused, not opened read only, because an older version could skip what it does not know and show wrong totals. [Builder]
 
 ### Projects [Designer; folder names are Builder]
 
@@ -199,8 +199,8 @@ The host checks these. Tests check them on random and fixture data. A failure bl
 - **Invoice tax totals** are the sums of the line amounts.
 - **Invoice round off.** A setting, on by default, rounds the grand total to the nearest rupee, with 50 paise rounding up. The difference is posted to a Round Off ledger. Off means no rounding.
 - **Supply type.** Place of supply versus the supplier's state decides intra state versus inter state. A supply to an SEZ (special economic zone) is always inter state. UTGST is used instead of SGST when the place of supply is a union territory without its own legislature.
-- **Reverse charge** is a flag on purchase vouchers. The supplier is paid only the taxable value. The tax is debited to the input credit ledgers and credited to separate RCM Payable ledgers, because reverse charge tax must be paid in cash and cannot be set off against input credit. [Owner]
-- **All tax rates, the state and union territory code list, and every threshold are data.** This includes the B2C large invoice limit, currently ₹1,00,000 for inter state supplies under Notification 12/2024 Central Tax. The data ships as a versioned JSON file with an effective date per entry and can be updated without a new release. None of it is hard-coded.
+- **Reverse charge** is a flag on purchase vouchers. The supplier is paid only the taxable value. The tax is debited to the input credit ledgers and credited to separate RCM Payable ledgers, because reverse charge tax must be paid in cash and cannot be set off against input credit. [Owner] A composition company pays reverse charge at the normal rates but has no input credit, so the tax is added to the line's cost instead. An unregistered company cannot record reverse charge, because a business liable to pay it must register. [Builder, at the owner's request]
+- **All tax rates, the state and union territory code list, and every threshold are data.** This includes the B2C large invoice limit, currently ₹1,00,000 for inter state supplies under Notification 12/2024 Central Tax. The data ships as a versioned JSON file with an effective date per entry and can be updated without a new release. None of it is hard-coded. Cess rates are not in the data yet, so any cess rate is accepted until Plan 7 adds checked cess rates, which the owner confirms before release.
 
 ### 5.4 Voucher numbering
 
@@ -221,7 +221,8 @@ This meets the requirement under the Companies (Accounts) Rules that the edit lo
 - Every create, edit, cancel, lock, unlock, and permission change on any voucher, master, or setting is recorded. Each record holds the user, PC name, source (app, REST, or MCP), token name when there is one, timestamp, and the before and after values.
 - API token creation and revocation are recorded too.
 - The log is append only. Each record includes a hash of the previous record, so a broken chain shows tampering. `AUDT` verifies the chain on demand and reports the result.
-- After each audited company write, `host.db` keeps a copy of that company's newest record (its anchor). Verification also checks that the company file still holds the anchored record, so removing the newest records or rebuilding the whole chain shows. [Owner asked for this in version 1; Builder chose the anchor]
+- Each trail also has an anchor, a copy of its newest record kept outside its file: in `host.db` for each company, and in `host-audit-anchor.json` beside `host.db` for the host trail. Verification checks that the file still holds the anchored record, so removing the newest records or rebuilding the whole chain shows. A write moves the anchor only while the file still holds the anchored record, so later work never hides tampering; only a restore resets it. A missing anchor fails verification. [Owner asked for this in version 1; Builder chose the anchor]
+- Limit: someone with administrator rights on the host PC can rewrite a trail and its anchor together. Guarding against that needs a copy kept off the PC, which version 1 does not have.
 - There is no setting to disable it.
 
 ### 5.6 Period locks

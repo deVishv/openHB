@@ -11,7 +11,8 @@ namespace OpenHisabKitab.Host.Application;
 /// <summary>Where the host keeps its files, and access to host.db. Writes to host.db run one at a time.</summary>
 public sealed class HostData(string dataDirectory)
 {
-    readonly Lock hostWrite = new();
+    readonly Lock migrateLock = new();
+    readonly SemaphoreSlim hostWrite = new(1, 1);
     bool migrated;
 
     public string DataDirectory { get; } = dataDirectory;
@@ -40,7 +41,7 @@ public sealed class HostData(string dataDirectory)
     {
         if (!migrated)
         {
-            lock (hostWrite)
+            lock (migrateLock)
             {
                 if (!migrated)
                 {
@@ -65,13 +66,25 @@ public sealed class HostData(string dataDirectory)
 
     public T WriteHost<T>(Func<SqliteTransaction, T> work)
     {
-        lock (hostWrite)
-        {
-            using var c = OpenHost();
-            using var tx = SqliteDatabase.BeginWrite(c);
-            var result = work(tx);
-            tx.Commit();
-            return result;
-        }
+        hostWrite.Wait();
+        try { return RunHost(work); }
+        finally { hostWrite.Release(); }
+    }
+
+    /// <summary>Like WriteHost, but waiting for the host.db write lock frees the thread. Every company save uses it.</summary>
+    public async Task<T> WriteHostAsync<T>(Func<SqliteTransaction, T> work)
+    {
+        await hostWrite.WaitAsync().ConfigureAwait(false);
+        try { return RunHost(work); }
+        finally { hostWrite.Release(); }
+    }
+
+    T RunHost<T>(Func<SqliteTransaction, T> work)
+    {
+        using var c = OpenHost();
+        using var tx = SqliteDatabase.BeginWrite(c);
+        var result = work(tx);
+        tx.Commit();
+        return result;
     }
 }

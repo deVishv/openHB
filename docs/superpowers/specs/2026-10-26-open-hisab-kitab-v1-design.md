@@ -221,6 +221,7 @@ This meets the requirement under the Companies (Accounts) Rules that the edit lo
 - Every create, edit, cancel, lock, unlock, and permission change on any voucher, master, or setting is recorded. Each record holds the user, PC name, source (app, REST, or MCP), token name when there is one, timestamp, and the before and after values.
 - API token creation and revocation are recorded too.
 - The log is append only. Each record includes a hash of the previous record, so a broken chain shows tampering. `AUDT` verifies the chain on demand and reports the result.
+- After each audited company write, `host.db` keeps a copy of that company's newest record (its anchor). Verification also checks that the company file still holds the anchored record, so removing the newest records or rebuilding the whole chain shows. [Owner asked for this in version 1; Builder chose the anchor]
 - There is no setting to disable it.
 
 ### 5.6 Period locks

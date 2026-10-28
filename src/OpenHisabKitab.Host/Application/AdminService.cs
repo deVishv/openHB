@@ -43,10 +43,16 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     }
 
     /// <summary>Checks the audit chain of a company, or of host.db when company is null.</summary>
+    /// <summary>A company trail is also checked against its anchor in host.db.</summary>
     public AuditVerification VerifyAudit(CallContext ctx, int? company)
     {
         using var c = OpenForAudit(ctx, company);
-        return AuditLog.Verify(c);
+        if (company is not { } id) return AuditLog.Verify(c);
+        using var host = data.OpenHost();
+        // The anchor is read before the chain. Anchors only move forward, so a save landing in between cannot make a
+        // sound trail look short.
+        var anchor = AuditAnchorRepository.Get(host, id);
+        return AuditLog.Verify(c, anchor);
     }
 
     public IReadOnlyList<StoredAuditEntry> Audit(CallContext ctx, int? company, AuditFilter filter)
@@ -107,8 +113,13 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
             var after = JsonSerializer.Serialize(new { File = Path.GetFileName(full), PreRestoreCopy = Path.GetFileName(before.Path) });
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "restore", "database", Source(company), null, after));
             tx.Commit();
-            // Also in host.db, which a company restore never replaces.
-            data.WriteHost(hostTx => AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after)));
+            // Also in host.db, which a company restore never replaces. The anchor moves to the restored trail's head; the
+            // prerestore copy keeps the records that came after the chosen backup.
+            await data.WriteHostAsync(hostTx =>
+            {
+                CompanyHub.Anchor(hostTx, company, live);
+                return AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after));
+            });
         }
     }
 

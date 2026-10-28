@@ -232,4 +232,30 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(a.Id, host.Vouchers.Get(owner, company, a.Id).Id);
         Assert.NotNull(host.Sessions.Resolve(host.Owner.Token));
     }
+
+    [Fact]
+    public async Task Removing_the_newest_audit_rows_of_a_company_is_reported()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, company).Anchor);
+
+        using (var c = host.Hub.Open(company))
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            cmd.ExecuteNonQuery();
+        }
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.Null(v.FirstBadSeq);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public void A_new_company_is_anchored_from_its_first_record()
+    {
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.True(v.Ok);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+    }
 }

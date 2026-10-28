@@ -209,7 +209,7 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
     public override Task<AuditVerificationMsg> VerifyAudit(AuditTarget request, ServerCallContext context)
     {
         var v = admin.VerifyAudit(context.Caller(), Wire.Target(request.Company));
-        return Task.FromResult(new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0 });
+        return Task.FromResult(new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0, Anchor = v.Anchor.ToString() });
     }
 
     public override Task<AuditList> ListAudit(ListAuditRequest request, ServerCallContext context)

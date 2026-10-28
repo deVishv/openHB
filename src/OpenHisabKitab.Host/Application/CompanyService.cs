@@ -42,6 +42,7 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
                 hub.DeleteFile(id);
                 throw;
             }
+            CompanyHub.Anchor(tx, id, c);
             c.Dispose();
             AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "create", "company", Text.Key(id), null, after));
             return id;

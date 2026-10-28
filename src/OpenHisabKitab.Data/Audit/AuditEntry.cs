@@ -10,9 +10,19 @@ public sealed record AuditEntry(
 
 public sealed record StoredAuditEntry(long Seq, AuditEntry Entry, string PrevHash, string Hash);
 
-public sealed record AuditVerification(long Count, long? FirstBadSeq)
+/// <summary>The newest record of an audit trail: its number and hash.</summary>
+public sealed record AuditHead(long Seq, string Hash);
+
+/// <summary>
+/// How a company trail compares with its anchor in host.db. NotUsed is host.db's own trail. Missing means host.db has
+/// no anchor for the company; Mismatch means the anchored record is gone or differs, so the newest records were
+/// removed or the chain was rebuilt.
+/// </summary>
+public enum AnchorCheck { NotUsed, Matches, Missing, Mismatch }
+
+public sealed record AuditVerification(long Count, long? FirstBadSeq, AnchorCheck Anchor = AnchorCheck.NotUsed)
 {
-    public bool Ok => FirstBadSeq is null;
+    public bool Ok => FirstBadSeq is null && Anchor is AnchorCheck.NotUsed or AnchorCheck.Matches;
 }
 
 public sealed record AuditFilter(

@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
+using OpenHisabKitab.Data.HostDb;
 using OpenHisabKitab.Data.Migrations;
 
 namespace OpenHisabKitab.Host.Application;
@@ -77,7 +78,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
     {
         var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync().ConfigureAwait(false);
-        try { return Run(companyId, work, afterCommit); }
+        try { return await RunAsync(companyId, work, afterCommit).ConfigureAwait(false); }
         finally { gate.Release(); }
     }
 
@@ -113,16 +114,34 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         AuditLog.Append(tx, e);
     }
 
-    T Run<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
+    async Task<T> RunAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
     {
-        using var c = Open(companyId);
         T result;
-        using (var tx = SqliteDatabase.BeginWrite(c))
+        AuditHead? head;
+        using (var c = Open(companyId))
         {
-            result = work(tx);
-            tx.Commit();
+            using (var tx = SqliteDatabase.BeginWrite(c))
+            {
+                result = work(tx);
+                tx.Commit();
+            }
+            head = AuditLog.Head(c);
+        }
+        // Still under the company lock, so anchors only move forward. The save is already committed: if host.db cannot
+        // take the anchor, the save still stands and the anchor stays one step behind, which verification accepts. The
+        // next save of this company moves it to the head again.
+        if (head is not null)
+        {
+            try { await data.WriteHostAsync(tx => { AuditAnchorRepository.Set(tx, companyId, head); return 0; }).ConfigureAwait(false); }
+            catch (SqliteException) { }
         }
         afterCommit?.Invoke(result);
         return result;
+    }
+
+    /// <summary>Sets the company's anchor to its file's newest audit record, inside the caller's host.db transaction.</summary>
+    internal static void Anchor(SqliteTransaction hostTx, int companyId, SqliteConnection company)
+    {
+        if (AuditLog.Head(company) is { } head) AuditAnchorRepository.Set(hostTx, companyId, head);
     }
 }

@@ -96,30 +96,54 @@ public sealed class HostData(string dataDirectory)
 
     string HostAnchorPath => Path.Combine(DataDirectory, "host-audit-anchor.json");
 
+    // An anchor this process was allowed to write but could not, so a failed write is retried and does not leave the
+    // anchor stuck. Only touched under the host.db write lock.
+    AuditHead? unwrittenHostAnchor;
+
     /// <summary>
     /// The newest record of host.db's own audit trail, kept in a file beside it, so removing host.db's newest records or
-    /// rebuilding its chain shows. Null when the file is missing; a record that matches nothing when it is unreadable.
-    /// A host.db restore (Plan 8) must reset it.
+    /// rebuilding its chain shows. Null when the file is missing; a record that matches nothing when its content is not
+    /// an anchor. A host.db restore (Plan 8) must reset it.
     /// </summary>
     public AuditHead? HostAnchor()
+    {
+        try { return ReadHostAnchor(); }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            throw new ServiceException(ServiceError.Unavailable, "Could not read the host audit anchor. Try again in a minute.");
+        }
+    }
+
+    AuditHead? ReadHostAnchor()
     {
         try { return JsonSerializer.Deserialize<AuditHead>(File.ReadAllText(HostAnchorPath)) ?? new AuditHead(0, ""); }
         catch (FileNotFoundException) { return null; }
         catch (JsonException) { return new AuditHead(0, ""); }
     }
 
-    // Same rule as company anchors: it is made with the first records and then moves only while host.db still holds the
-    // anchored record. Runs under the host.db write lock, so it only moves forward. If the file cannot be written, the
-    // anchor stays behind, which verification accepts, and the next host.db write tries again.
+    // The anchor rule of AuditLog.MayMoveAnchor, plus: the very first records create it. Runs under the host.db write
+    // lock, so it only moves forward. host.db has already committed, so nothing here may fail the caller's write: if the
+    // file cannot be read or written, the anchor stays behind, which verification accepts, and the next host.db write
+    // tries again.
     void AdvanceHostAnchor(SqliteConnection c, AuditHead? before, AuditHead head)
     {
-        var old = HostAnchor();
-        if (!(old is null ? before is null : AuditLog.Holds(c, old))) return;
         try
         {
+            var stored = ReadHostAnchor();
+            var allowed = (stored is null && before is null)
+                || (stored is not null && AuditLog.MayMoveAnchor(c, stored, head))
+                || (unwrittenHostAnchor is { } unwritten && AuditLog.MayMoveAnchor(c, unwritten, head));
+            if (!allowed) return;
+            unwrittenHostAnchor = head;
+            // Flushed before the rename, so a power cut leaves the old anchor or the new one, never a torn file.
             var temp = HostAnchorPath + ".tmp";
-            File.WriteAllText(temp, JsonSerializer.Serialize(head));
+            using (var f = new FileStream(temp, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                f.Write(JsonSerializer.SerializeToUtf8Bytes(head));
+                f.Flush(flushToDisk: true);
+            }
             File.Move(temp, HostAnchorPath, overwrite: true);
+            unwrittenHostAnchor = null;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }

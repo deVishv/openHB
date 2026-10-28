@@ -30,7 +30,10 @@ public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<Company
         return OpenFile(companyId);
     }
 
-    /// <summary>Opens without the maintenance check; only a restore that holds the gate may use this.</summary>
+    /// <summary>
+    /// Opens without the maintenance check. Only a restore that holds the gate may write through it; the anchor writer
+    /// also uses it, to read the newest audit records while a restore runs.
+    /// </summary>
     internal SqliteConnection OpenFile(int companyId)
     {
         var path = data.CompanyPath(companyId);
@@ -79,7 +82,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<Company
     {
         var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync().ConfigureAwait(false);
-        try { return await RunAsync(companyId, work, afterCommit).ConfigureAwait(false); }
+        try { return Run(companyId, work, afterCommit); }
         finally { gate.Release(); }
     }
 
@@ -115,7 +118,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<Company
         AuditLog.Append(tx, e);
     }
 
-    async Task<T> RunAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
+    T Run<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
     {
         using var c = Open(companyId);
         T result;
@@ -125,28 +128,106 @@ public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<Company
             tx.Commit();
         }
         afterCommit?.Invoke(result);
-
-        // Still under the company lock, so anchors only move forward. The save is already committed: if host.db cannot
-        // take the anchor, the save still stands and the anchor stays one step behind, which verification accepts. The
-        // next save of this company moves it to the head again.
-        if (AuditLog.Head(c) is { } head)
-        {
-            try { await data.WriteHostAsync(tx => { Advance(tx, companyId, c, head); return 0; }).ConfigureAwait(false); }
-            catch (SqliteException e)
-            {
-                log?.LogWarning(e, "Could not update the audit anchor of company {Company}. The next save tries again.", companyId);
-            }
-        }
+        if (AuditLog.Head(c) is { } head) QueueAnchor(companyId, head, reset: false);
         return result;
     }
 
-    // A save moves the anchor only while the file still holds the anchored record. After records were removed or the
-    // chain rebuilt, the anchor stays at the last good record, so verification keeps reporting it until a restore. A
-    // save never creates a missing anchor either.
-    static void Advance(SqliteTransaction hostTx, int companyId, SqliteConnection company, AuditHead head)
+    // Anchors waiting to be written to host.db, newest head per company. Saves never wait for host.db: one background
+    // writer stores every waiting anchor in one transaction. An anchor a little behind is fine, since verification
+    // accepts records after the anchor.
+    readonly ConcurrentDictionary<int, (AuditHead Head, bool Reset)> pendingAnchors = new();
+    readonly SemaphoreSlim anchorSignal = new(0);
+    readonly SemaphoreSlim flushing = new(1, 1);
+    readonly Lock writerStart = new();
+    Task? anchorWriter;
+
+    /// <summary>
+    /// Queues the company's head for its anchor. A reset (after a restore whose own anchor write failed) is set outright
+    /// once the file holds it; otherwise <see cref="AuditLog.MayMoveAnchor"/> decides.
+    /// </summary>
+    internal void QueueAnchor(int companyId, AuditHead head, bool reset)
     {
-        if (AuditAnchorRepository.Get(hostTx.Connection!, companyId) is { } old && AuditLog.Holds(company, old))
-            AuditAnchorRepository.Set(hostTx, companyId, head);
+        Requeue(companyId, (head, reset));
+        lock (writerStart) anchorWriter ??= Task.Run(WriteAnchorsLoopAsync);
+        anchorSignal.Release();
+    }
+
+    // The newer head wins, but a reset is never lost: without it the restored file never matches the old anchor.
+    void Requeue(int companyId, (AuditHead Head, bool Reset) entry) =>
+        pendingAnchors.AddOrUpdate(companyId, entry, (_, current) =>
+            (current.Head.Seq >= entry.Head.Seq ? current.Head : entry.Head, current.Reset || entry.Reset));
+
+    /// <summary>Test hook: runs before the anchors' host.db write, so a test can make it fail.</summary>
+    internal Action? BeforeAnchorWrite { get; set; }
+
+    /// <summary>A restore drops the old file's waiting anchor before setting the restored one.</summary>
+    internal void DropPendingAnchor(int companyId) => pendingAnchors.TryRemove(companyId, out _);
+
+    async Task WriteAnchorsLoopAsync()
+    {
+        while (true)
+        {
+            await anchorSignal.WaitAsync().ConfigureAwait(false);
+            await FlushAnchorsAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Writes every waiting anchor now. Verification calls it first, so it judges the newest anchors, and so does host
+    /// shutdown. A company whose file cannot be read keeps its entry without holding up the others. If host.db cannot
+    /// take them, they wait for the next save and the failure is logged; a committed save is never affected.
+    /// </summary>
+    public async Task FlushAnchorsAsync()
+    {
+        await flushing.WaitAsync().ConfigureAwait(false);
+        var batch = new Dictionary<int, (AuditHead Head, bool Reset)>();
+        var files = new Dictionary<int, SqliteConnection>();
+        try
+        {
+            foreach (var id in pendingAnchors.Keys)
+                if (pendingAnchors.TryRemove(id, out var entry)) batch[id] = entry;
+            foreach (var id in batch.Keys)
+            {
+                try { files[id] = OpenFile(id); }
+                catch (Exception e) when (e is not OutOfMemoryException) { Kept(id, batch[id], e); }
+            }
+            if (files.Count == 0) return;
+            try
+            {
+                BeforeAnchorWrite?.Invoke();
+                await data.WriteHostAsync(tx =>
+                {
+                    foreach (var (id, c) in files)
+                    {
+                        var (head, reset) = batch[id];
+                        // One unreadable company file keeps its own entry; the others are still written.
+                        try
+                        {
+                            var stored = AuditAnchorRepository.Get(tx.Connection!, id);
+                            var move = reset ? AuditLog.Holds(c, head) : stored is not null && AuditLog.MayMoveAnchor(c, stored, head);
+                            if (move) AuditAnchorRepository.Set(tx, id, head);
+                        }
+                        catch (SqliteException e) { Kept(id, batch[id], e); }
+                    }
+                    return 0;
+                }).ConfigureAwait(false);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                foreach (var id in files.Keys) Kept(id, batch[id], e);
+            }
+        }
+        finally
+        {
+            foreach (var c in files.Values) c.Dispose();
+            flushing.Release();
+        }
+    }
+
+    void Kept(int companyId, (AuditHead Head, bool Reset) entry, Exception e)
+    {
+        Requeue(companyId, entry);
+        log?.LogWarning(e, "Could not update the audit anchor of company {Company}. It is written with the next save.", companyId);
     }
 
     /// <summary>

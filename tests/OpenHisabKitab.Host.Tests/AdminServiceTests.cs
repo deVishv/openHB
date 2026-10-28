@@ -66,10 +66,10 @@ public sealed class AdminServiceTests : IDisposable
         await host.Masters.AddLedgerAsync(owner, company, "HDFC Bank", host.Masters.Chart(owner, company).Group(GroupKind.BankAccounts));
         await host.Admin.LockUpToAsync(owner, company, new DateOnly(2026, 4, 30));
         await host.Admin.BackupNowAsync(owner, company);
-        var ok = host.Admin.VerifyAudit(owner, company);
+        var ok = await host.Admin.VerifyAuditAsync(owner, company);
         Assert.True(ok.Ok);
         Assert.True(ok.Count >= 12);
-        Assert.True(host.Admin.VerifyAudit(owner, null).Ok);
+        Assert.True((await host.Admin.VerifyAuditAsync(owner, null)).Ok);
         Assert.NotEmpty(host.Admin.Audit(owner, company, new AuditFilter(Entity: "voucher")));
 
         using (var c = host.Hub.Open(company))
@@ -78,14 +78,14 @@ public sealed class AdminServiceTests : IDisposable
             cmd.CommandText = "DROP TRIGGER audit_log_no_update; UPDATE audit_log SET user = 'someone' WHERE seq = 5;";
             cmd.ExecuteNonQuery();
         }
-        Assert.Equal(5, host.Admin.VerifyAudit(owner, company).FirstBadSeq);
+        Assert.Equal(5, (await host.Admin.VerifyAuditAsync(owner, company)).FirstBadSeq);
     }
 
     [Fact]
-    public void Data_entry_cannot_view_the_audit()
+    public async Task Data_entry_cannot_view_the_audit()
     {
         var asha = host.NewUser("asha", BuiltInRole.DataEntry, company).Context;
-        Fails(ServiceError.PermissionDenied, () => host.Admin.VerifyAudit(asha, company));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.VerifyAuditAsync(asha, company));
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(ServiceError.NotFound, Assert.Throws<ServiceException>(() => host.Vouchers.Get(owner, company, b.Id)).Error);
         var cashAfter = host.Reports.TrialBalance(owner, company, new FinancialYear(2026).Range).Rows.Single(r => r.Ledger == cash).Debits;
         Assert.Equal(Money.FromRupees(100), cashAfter);
-        Assert.True(host.Admin.VerifyAudit(owner, company).Ok);
+        Assert.True((await host.Admin.VerifyAuditAsync(owner, company)).Ok);
         Assert.Contains(host.Admin.Audit(owner, company, new AuditFilter()), r => r.Entry.Action == "restore");
         Assert.Single(host.Admin.Backups(owner, company));
         using var hostDb = host.Data.OpenHost();
@@ -180,11 +180,11 @@ public sealed class AdminServiceTests : IDisposable
     public async Task Host_database_audit_and_backups_are_for_the_owner_only()
     {
         var meena = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
-        Fails(ServiceError.PermissionDenied, () => host.Admin.VerifyAudit(meena, null));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.VerifyAuditAsync(meena, null));
         Fails(ServiceError.PermissionDenied, () => host.Admin.Audit(meena, null, new AuditFilter()));
         await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.BackupNowAsync(meena, null));
         Fails(ServiceError.PermissionDenied, () => host.Admin.Backups(meena, null));
-        Assert.True(host.Admin.VerifyAudit(meena, company).Ok);
+        Assert.True((await host.Admin.VerifyAuditAsync(meena, company)).Ok);
         await host.Admin.BackupNowAsync(meena, company);
     }
 
@@ -237,7 +237,7 @@ public sealed class AdminServiceTests : IDisposable
     public async Task Removing_the_newest_audit_rows_of_a_company_is_reported()
     {
         for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
-        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, company).Anchor);
+        Assert.Equal(AnchorCheck.Matches, (await host.Admin.VerifyAuditAsync(owner, company)).Anchor);
 
         using (var c = host.Hub.Open(company))
         using (var cmd = c.CreateCommand())
@@ -245,7 +245,7 @@ public sealed class AdminServiceTests : IDisposable
             cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
             cmd.ExecuteNonQuery();
         }
-        var v = host.Admin.VerifyAudit(owner, company);
+        var v = await host.Admin.VerifyAuditAsync(owner, company);
         Assert.Null(v.FirstBadSeq);
         Assert.False(v.Ok);
         Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
@@ -255,6 +255,7 @@ public sealed class AdminServiceTests : IDisposable
     public async Task A_save_after_removed_audit_rows_does_not_hide_them()
     {
         for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        await host.Hub.FlushAnchorsAsync();
         using (var c = host.Hub.Open(company))
         using (var cmd = c.CreateCommand())
         {
@@ -262,13 +263,14 @@ public sealed class AdminServiceTests : IDisposable
             cmd.ExecuteNonQuery();
         }
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
-        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, company).Anchor);
+        Assert.Equal(AnchorCheck.Mismatch, (await host.Admin.VerifyAuditAsync(owner, company)).Anchor);
     }
 
     [Fact]
     public async Task A_save_after_a_rebuilt_audit_chain_does_not_hide_it()
     {
         for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        await host.Hub.FlushAnchorsAsync();
         using (var c = host.Hub.Open(company))
         {
             var rows = AuditLog.Read(c, new AuditFilter()).OrderBy(r => r.Seq).ToList();
@@ -282,7 +284,7 @@ public sealed class AdminServiceTests : IDisposable
             tx.Commit();
         }
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
-        var v = host.Admin.VerifyAudit(owner, company);
+        var v = await host.Admin.VerifyAuditAsync(owner, company);
         Assert.Null(v.FirstBadSeq);
         Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
     }
@@ -298,21 +300,21 @@ public sealed class AdminServiceTests : IDisposable
             return cmd.ExecuteNonQuery();
         });
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
-        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, company).Anchor);
+        Assert.Equal(AnchorCheck.Missing, (await host.Admin.VerifyAuditAsync(owner, company)).Anchor);
     }
 
     [Fact]
-    public void A_new_company_is_anchored_from_its_first_record()
+    public async Task A_new_company_is_anchored_from_its_first_record()
     {
-        var v = host.Admin.VerifyAudit(owner, company);
+        var v = await host.Admin.VerifyAuditAsync(owner, company);
         Assert.True(v.Ok);
         Assert.Equal(AnchorCheck.Matches, v.Anchor);
     }
 
     [Fact]
-    public void Host_trail_is_anchored_and_removed_newest_records_stay_reported()
+    public async Task Host_trail_is_anchored_and_removed_newest_records_stay_reported()
     {
-        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, null).Anchor);
+        Assert.Equal(AnchorCheck.Matches, (await host.Admin.VerifyAuditAsync(owner, null)).Anchor);
         host.Data.WriteHost(tx =>
         {
             using var cmd = tx.Connection!.CreateCommand();
@@ -320,20 +322,99 @@ public sealed class AdminServiceTests : IDisposable
             cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
             return cmd.ExecuteNonQuery();
         });
-        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, null).Anchor);
+        Assert.Equal(AnchorCheck.Mismatch, (await host.Admin.VerifyAuditAsync(owner, null)).Anchor);
 
         host.NewUser("ravi", BuiltInRole.Viewer);
-        var v = host.Admin.VerifyAudit(owner, null);
+        var v = await host.Admin.VerifyAuditAsync(owner, null);
         Assert.Null(v.FirstBadSeq);
         Assert.False(v.Ok);
         Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
     }
 
     [Fact]
-    public void Missing_host_anchor_file_is_reported()
+    public async Task Missing_host_anchor_file_is_reported()
     {
         File.Delete(Path.Combine(host.Folder, "host-audit-anchor.json"));
         host.NewUser("ravi", BuiltInRole.Viewer);
-        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, null).Anchor);
+        Assert.Equal(AnchorCheck.Missing, (await host.Admin.VerifyAuditAsync(owner, null)).Anchor);
+    }
+
+    [Fact]
+    public async Task A_failed_first_host_anchor_write_is_retried_and_does_not_fail_the_write()
+    {
+        // The class's host already has its Owner, so this needs one whose first host.db write is still to come.
+        using var fresh = new TestHost();
+        var temp = Path.Combine(fresh.Folder, "host-audit-anchor.json.tmp");
+        Directory.CreateDirectory(temp);
+        var setup = fresh.Owner;
+        Assert.False(File.Exists(Path.Combine(fresh.Folder, "host-audit-anchor.json")));
+
+        Directory.Delete(temp);
+        fresh.NewUser("ravi", BuiltInRole.Viewer);
+        var v = await fresh.Admin.VerifyAuditAsync(setup.Context, null);
+        Assert.True(v.Ok);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+    }
+
+    AuditHead? StoredAnchor()
+    {
+        using var hostDb = host.Data.OpenHost();
+        return AuditAnchorRepository.Get(hostDb, company);
+    }
+
+    AuditHead FileHead()
+    {
+        using var c = host.Hub.Open(company);
+        return AuditLog.Head(c)!;
+    }
+
+    [Fact]
+    public async Task An_unreadable_company_does_not_hold_up_other_anchors()
+    {
+        host.Hub.QueueAnchor(999, new AuditHead(1, "x"), reset: false);
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        await host.Hub.FlushAnchorsAsync();
+        Assert.Equal(FileHead(), StoredAnchor());
+    }
+
+    [Fact]
+    public async Task A_failing_anchor_write_never_fails_a_save_and_catches_up_later()
+    {
+        host.Hub.BeforeAnchorWrite = () => throw new IOException("host.db is busy");
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        await host.Hub.FlushAnchorsAsync();
+        Assert.NotEqual(FileHead(), StoredAnchor());
+        Assert.True((await host.Admin.VerifyAuditAsync(owner, company)).Ok);
+
+        host.Hub.BeforeAnchorWrite = null;
+        await host.Hub.FlushAnchorsAsync();
+        Assert.Equal(FileHead(), StoredAnchor());
+    }
+
+    [Fact]
+    public async Task A_restore_reset_survives_a_failed_write_and_a_newer_save()
+    {
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        var backup = await host.Admin.BackupNowAsync(owner, company);
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(2));
+        await host.Hub.FlushAnchorsAsync();
+        var beforeRestore = StoredAnchor()!;
+        await host.Admin.RestoreAsync(owner, company, backup.Path);
+
+        // As if the restore's own anchor write had failed: host.db still has the old file's head.
+        host.Data.WriteHost(tx => { AuditAnchorRepository.Set(tx, company, beforeRestore); return 0; });
+        host.Hub.QueueAnchor(company, FileHead(), reset: true);
+        // A save lands while the write that fails is under way, so a newer plain head is queued before the reset is put back.
+        host.Hub.BeforeAnchorWrite = () =>
+        {
+            host.Hub.BeforeAnchorWrite = null;
+            host.Vouchers.SaveJournalAsync(owner, company, Receipt(3)).GetAwaiter().GetResult();
+            throw new IOException("host.db is busy");
+        };
+        await host.Hub.FlushAnchorsAsync();
+
+        var v = await host.Admin.VerifyAuditAsync(owner, company);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+        Assert.Equal(FileHead(), StoredAnchor());
     }
 }

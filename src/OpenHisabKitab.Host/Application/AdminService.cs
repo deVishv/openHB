@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
@@ -9,7 +10,8 @@ using OpenHisabKitab.Data.Migrations;
 namespace OpenHisabKitab.Host.Application;
 
 /// <summary>Period locks (spec 5.6), the audit trail view (5.5), backups and restore (9).</summary>
-public sealed class AdminService(HostData data, CompanyHub hub, SessionStore sessions, ChangeFeed feed, CompanyBooks books, TimeProvider time)
+public sealed class AdminService(HostData data, CompanyHub hub, SessionStore sessions, ChangeFeed feed, CompanyBooks books, TimeProvider time,
+    ILogger<AdminService>? log = null)
 {
     readonly BackupManager backups = new(time);
 
@@ -42,19 +44,20 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         }, _ => feed.Publish(new ChangeEvent(company, ChangeKind.Lock, null)));
     }
 
-    /// <summary>Checks the audit chain of a company, or of host.db when company is null.</summary>
-    /// <summary>A company trail is also checked against its anchor in host.db, and host.db against the file beside it.</summary>
-    public AuditVerification VerifyAudit(CallContext ctx, int? company)
+    /// <summary>
+    /// Checks the audit chain of a company, or of host.db when company is null, and that the trail still holds its anchor:
+    /// in host.db for a company, in the file beside host.db for host.db itself.
+    /// </summary>
+    public async Task<AuditVerification> VerifyAuditAsync(CallContext ctx, int? company)
     {
         if (company is null)
         {
-            // Read before the chain, for the same reason as below.
-            var hostAnchor = data.HostAnchor();
             using var hostDb = OpenForAudit(ctx, null);
-            return AuditLog.Verify(hostDb, hostAnchor);
+            return AuditLog.Verify(hostDb, data.HostAnchor());
         }
         using var c = OpenForAudit(ctx, company);
         var id = company.Value;
+        await hub.FlushAnchorsAsync();
         using var host = data.OpenHost();
         // The anchor is read before the chain. Anchors only move forward, so a save landing in between cannot make a
         // sound trail look short.
@@ -121,12 +124,22 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "restore", "database", Source(company), null, after));
             tx.Commit();
             // Also in host.db, which a company restore never replaces. The anchor moves to the restored trail's head; the
-            // prerestore copy keeps the records that came after the chosen backup.
-            await data.WriteHostAsync(hostTx =>
+            // prerestore copy keeps the records that came after the chosen backup. The restore has already happened, so
+            // if host.db cannot take this, the anchor reset is queued and retried instead of reporting a failed restore.
+            hub.DropPendingAnchor(company);
+            try
             {
-                CompanyHub.Anchor(hostTx, company, live);
-                return AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after));
-            });
+                await data.WriteHostAsync(hostTx =>
+                {
+                    CompanyHub.Anchor(hostTx, company, live);
+                    return AuditLog.Append(hostTx, ctx.Audit(time.GetUtcNow(), "restore", "company", Text.Key(company), null, after));
+                });
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                log?.LogError(e, "Company {Company} was restored, but host.db could not record it. Its audit anchor is reset later.", company);
+                if (AuditLog.Head(live) is { } head) hub.QueueAnchor(company, head, reset: true);
+            }
         }
     }
 

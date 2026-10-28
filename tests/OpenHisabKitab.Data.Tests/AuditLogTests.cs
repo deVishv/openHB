@@ -272,4 +272,32 @@ public class AuditLogTests
         Assert.Equal(AnchorCheck.Missing, v.Anchor);
         Assert.Equal(AnchorCheck.NotUsed, AuditLog.Verify(c).Anchor);
     }
+
+    [Fact]
+    public void A_broken_row_after_the_anchor_does_not_hide_that_the_anchor_matches()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 2);
+        var anchor = AuditLog.Head(c)!;
+        AppendAll(c, 2);
+        Exec(c, "DROP TRIGGER audit_log_no_update; UPDATE audit_log SET after = '{}' WHERE seq = 4;");
+        var v = AuditLog.Verify(c, anchor);
+        Assert.Equal(4, v.FirstBadSeq);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+    }
+
+    [Fact]
+    public void Anchor_moves_only_forward_and_only_between_held_records()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 3);
+        var two = new AuditHead(2, AuditLog.Read(c, new AuditFilter()).Single(r => r.Seq == 2).Hash);
+        var head = AuditLog.Head(c)!;
+        Assert.True(AuditLog.MayMoveAnchor(c, two, head));
+        Assert.False(AuditLog.MayMoveAnchor(c, head, two));
+        Assert.False(AuditLog.MayMoveAnchor(c, two, head with { Hash = "x" }));
+        Assert.False(AuditLog.MayMoveAnchor(c, two with { Hash = "x" }, head));
+    }
 }

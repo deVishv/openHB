@@ -61,6 +61,14 @@ public static class AuditLog
     public static bool Holds(SqliteConnection c, AuditHead record) =>
         Sql.Single(c, "SELECT hash FROM audit_log WHERE seq = $seq", r => r.GetString(0), ("$seq", record.Seq)) == record.Hash;
 
+    /// <summary>
+    /// The anchor rule for company and host trails alike: an anchor moves from one record to a newer one only while the
+    /// trail still holds both. After records were removed or the chain rebuilt it stays at the last good record, so
+    /// verification keeps reporting the change. Only company creation and restore set an anchor outright.
+    /// </summary>
+    public static bool MayMoveAnchor(SqliteConnection c, AuditHead from, AuditHead to) =>
+        to.Seq >= from.Seq && Holds(c, from) && Holds(c, to);
+
     /// <summary>Checks the chain alone. Use the anchored overload for company files.</summary>
     public static AuditVerification Verify(SqliteConnection c) => Verify(c, null, anchored: false);
 
@@ -77,25 +85,24 @@ public static class AuditLog
         using var r = cmd.ExecuteReader();
         long count = 0, expectedSeq = 1;
         var prev = Genesis;
-        string? anchorFound = null;
         while (r.Read())
         {
             count++;
             var seq = r.GetInt64(0);
             // The hash is checked on the raw stored text, so a row too damaged to parse is reported, not thrown.
             var ok = seq == expectedSeq && r.GetString(11) == prev && RawHash(prev, r) == r.GetString(12);
-            if (!ok) return new AuditVerification(count, seq, Anchor(anchored, anchor, null));
+            if (!ok) return new AuditVerification(count, seq, Anchor(c, anchored, anchor));
             prev = r.GetString(12);
-            if (anchor is not null && seq == anchor.Seq) anchorFound = prev;
             expectedSeq++;
         }
-        return new AuditVerification(count, null, Anchor(anchored, anchor, anchorFound));
+        return new AuditVerification(count, null, Anchor(c, anchored, anchor));
     }
 
-    static AnchorCheck Anchor(bool anchored, AuditHead? anchor, string? hashAtAnchor) =>
+    // Judged on its own, so a broken row elsewhere in the chain does not hide whether the anchored record is intact.
+    static AnchorCheck Anchor(SqliteConnection c, bool anchored, AuditHead? anchor) =>
         !anchored ? AnchorCheck.NotUsed
         : anchor is null ? AnchorCheck.Missing
-        : hashAtAnchor == anchor.Hash ? AnchorCheck.Matches
+        : Holds(c, anchor) ? AnchorCheck.Matches
         : AnchorCheck.Mismatch;
 
     /// <summary>Newest first, at most <see cref="AuditFilter.Limit"/> rows.</summary>

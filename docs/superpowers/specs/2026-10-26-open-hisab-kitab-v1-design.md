@@ -455,8 +455,8 @@ Every action has a shortcut, and every shortcut can be changed in `KEYS`, stored
   | Role | Can do |
   |---|---|
   | Owner | Everything, including users, unlock, and restore. |
-  | Accountant | All vouchers, reports, and GST. Cannot manage users or unlock. |
-  | Data entry | Create and edit vouchers and masters. Can view only their own vouchers, in `DAYB`. No financial or GST reports. |
+  | Accountant | All vouchers, reports, and GST. Can create companies. Cannot manage users or unlock. |
+  | Data entry | Create and edit vouchers and masters, except opening balances and required ledgers (cash, tax, round off, and so on). Can view only their own vouchers, in `DAYB`. No financial or GST reports. |
   | Viewer | Read only. |
 
 - **Custom roles** are built from a permission checklist covering each function, plus create, edit, cancel, export, and unlock rights.

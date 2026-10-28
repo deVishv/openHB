@@ -190,6 +190,8 @@ public sealed class AuthServiceTests : IDisposable
         Assert.DoesNotContain(Permission.Restore, accountant);
         Assert.DoesNotContain(Permission.ManageHostSettings, accountant);
         Assert.Contains(Permission.LockPeriod, accountant);
+        Assert.Contains(Permission.ManageCompanies, accountant);
+        Assert.Contains(Permission.EditOpeningsAndRequiredLedgers, accountant);
         Assert.Equal(new HashSet<Permission> { Permission.EditMasters, Permission.CreateVoucher, Permission.EditVoucher },
             Roles.Of(BuiltInRole.DataEntry).ToHashSet());
         Assert.Equal(new HashSet<Permission> { Permission.ViewAllVouchers, Permission.ViewReports, Permission.ViewGstReports },

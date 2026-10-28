@@ -234,4 +234,23 @@ public sealed class MasterServiceTests : IDisposable
         using var c = host.Hub.Open(company);
         Assert.True(AuditLog.Verify(c).Ok);
     }
+
+    [Fact]
+    public async Task Data_entry_cannot_set_openings_or_rename_required_ledgers()
+    {
+        var clerk = host.NewUser("asha", BuiltInRole.DataEntry, company).Context;
+        var cash = Chart.Required(RequiredLedger.Cash);
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Masters.SetOpeningAsync(clerk, company, cash, Money.FromRupees(5)));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Masters.RenameAsync(clerk, company, cash, "Galla"));
+        Assert.Equal(Money.Zero, host.Masters.Openings(owner, company).GetValueOrDefault(cash));
+
+        var own = await host.Masters.AddLedgerAsync(clerk, company, "Counter Cash", Chart.Group(GroupKind.CashInHand));
+        await host.Masters.RenameAsync(clerk, company, own, "Counter 1 Cash");
+        Assert.Equal("Counter 1 Cash", Chart.Ledger(own).Name);
+
+        var accountant = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
+        await host.Masters.SetOpeningAsync(accountant, company, cash, Money.FromRupees(5));
+        await host.Masters.RenameAsync(accountant, company, cash, "Cash in Hand");
+        Assert.Equal("Cash in Hand", Chart.Ledger(cash).Name);
+    }
 }

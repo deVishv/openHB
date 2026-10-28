@@ -49,6 +49,7 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         ChangeChartAsync<int>(ctx, company, "rename", (tx, chart) =>
         {
             var before = Known(chart, id);
+            if (before.Required is not null) ctx.Require(Permission.EditOpeningsAndRequiredLedgers);
             var next = Charted(() => chart.RenameLedger(id, name));
             ChartRepository.SaveLedger(tx, next.Ledger(id));
             return (id.Value, "ledger", before, next.Ledger(id), 0);
@@ -76,8 +77,10 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         });
 
     /// <summary>Sets a ledger's opening balance at the books start. Positive is a debit.</summary>
-    public Task SetOpeningAsync(CallContext ctx, int company, LedgerId id, Money amount) =>
-        ChangeChartAsync<int>(ctx, company, "set-opening", (tx, chart) =>
+    public Task SetOpeningAsync(CallContext ctx, int company, LedgerId id, Money amount)
+    {
+        ctx.Require(Permission.EditOpeningsAndRequiredLedgers);
+        return ChangeChartAsync<int>(ctx, company, "set-opening", (tx, chart) =>
         {
             var c = tx.Connection!;
             Known(chart, id);
@@ -91,6 +94,7 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             ChartRepository.SetOpening(tx, id, amount);
             return (id.Value, "opening", before.ToString(), amount.ToString(), 0);
         });
+    }
 
     /// <summary>Creates a party with its ledger when Ledger is default, otherwise updates it. Returns the party's ledger.</summary>
     public Task<LedgerId> SavePartyAsync(CallContext ctx, int company, string name, GroupId group, Party p) =>

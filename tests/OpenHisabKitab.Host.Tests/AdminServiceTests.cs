@@ -308,4 +308,32 @@ public sealed class AdminServiceTests : IDisposable
         Assert.True(v.Ok);
         Assert.Equal(AnchorCheck.Matches, v.Anchor);
     }
+
+    [Fact]
+    public void Host_trail_is_anchored_and_removed_newest_records_stay_reported()
+    {
+        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, null).Anchor);
+        host.Data.WriteHost(tx =>
+        {
+            using var cmd = tx.Connection!.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            return cmd.ExecuteNonQuery();
+        });
+        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, null).Anchor);
+
+        host.NewUser("ravi", BuiltInRole.Viewer);
+        var v = host.Admin.VerifyAudit(owner, null);
+        Assert.Null(v.FirstBadSeq);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public void Missing_host_anchor_file_is_reported()
+    {
+        File.Delete(Path.Combine(host.Folder, "host-audit-anchor.json"));
+        host.NewUser("ravi", BuiltInRole.Viewer);
+        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, null).Anchor);
+    }
 }

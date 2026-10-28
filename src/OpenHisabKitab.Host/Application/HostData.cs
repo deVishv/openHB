@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using OpenHisabKitab.Data;
+using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
 using OpenHisabKitab.Data.HostDb;
 using OpenHisabKitab.Data.Migrations;
@@ -82,9 +83,44 @@ public sealed class HostData(string dataDirectory)
     T RunHost<T>(Func<SqliteTransaction, T> work)
     {
         using var c = OpenHost();
-        using var tx = SqliteDatabase.BeginWrite(c);
-        var result = work(tx);
-        tx.Commit();
+        var before = AuditLog.Head(c);
+        T result;
+        using (var tx = SqliteDatabase.BeginWrite(c))
+        {
+            result = work(tx);
+            tx.Commit();
+        }
+        if (AuditLog.Head(c) is { } head && head != before) AdvanceHostAnchor(c, before, head);
         return result;
+    }
+
+    string HostAnchorPath => Path.Combine(DataDirectory, "host-audit-anchor.json");
+
+    /// <summary>
+    /// The newest record of host.db's own audit trail, kept in a file beside it, so removing host.db's newest records or
+    /// rebuilding its chain shows. Null when the file is missing; a record that matches nothing when it is unreadable.
+    /// A host.db restore (Plan 8) must reset it.
+    /// </summary>
+    public AuditHead? HostAnchor()
+    {
+        try { return JsonSerializer.Deserialize<AuditHead>(File.ReadAllText(HostAnchorPath)) ?? new AuditHead(0, ""); }
+        catch (FileNotFoundException) { return null; }
+        catch (JsonException) { return new AuditHead(0, ""); }
+    }
+
+    // Same rule as company anchors: it is made with the first records and then moves only while host.db still holds the
+    // anchored record. Runs under the host.db write lock, so it only moves forward. If the file cannot be written, the
+    // anchor stays behind, which verification accepts, and the next host.db write tries again.
+    void AdvanceHostAnchor(SqliteConnection c, AuditHead? before, AuditHead head)
+    {
+        var old = HostAnchor();
+        if (!(old is null ? before is null : AuditLog.Holds(c, old))) return;
+        try
+        {
+            var temp = HostAnchorPath + ".tmp";
+            File.WriteAllText(temp, JsonSerializer.Serialize(head));
+            File.Move(temp, HostAnchorPath, overwrite: true);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 }

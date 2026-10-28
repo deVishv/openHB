@@ -14,9 +14,9 @@ public sealed record StoredAuditEntry(long Seq, AuditEntry Entry, string PrevHas
 public sealed record AuditHead(long Seq, string Hash);
 
 /// <summary>
-/// How a company trail compares with its anchor in host.db. NotUsed is host.db's own trail. Missing means host.db has
-/// no anchor for the company; Mismatch means the anchored record is gone or differs, so the newest records were
-/// removed or the chain was rebuilt.
+/// How a trail compares with its anchor, a copy of its newest record kept outside its file. NotUsed means only the
+/// chain was checked. Missing means there is no anchor; Mismatch means the anchored record is gone or differs, so the
+/// newest records were removed or the chain was rebuilt.
 /// </summary>
 public enum AnchorCheck { NotUsed, Matches, Missing, Mismatch }
 

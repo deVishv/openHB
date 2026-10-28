@@ -276,4 +276,17 @@ public sealed class InvoiceServiceTests : IDisposable
         Assert.Equal(Money.Parse("-1000.00"), postings[supplier]);
         Assert.False(postings.ContainsKey(compChart.Required(RequiredLedger.InputCgst)));
     }
+
+    [Fact]
+    public async Task Unregistered_company_cannot_record_reverse_charge()
+    {
+        var un = host.NewCompany(TestHost.Profile("U Traders") with { Registration = GstRegistration.Unregistered, Gstin = null });
+        var supplier = Party(un, "Advocate Rao", GroupKind.TradePayables, "27");
+        var purchases = host.Masters.Chart(owner, un).Required(RequiredLedger.Purchases);
+        var purchase = new InvoiceInput(VoucherType.Purchase, June1, "", supplier, TradeDirection.Inward, InvoiceKind.Regular,
+            new StateCode("27"), true, null, null, null, null, [Line(purchases, "1000.00", 0)]);
+        var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, un, purchase));
+        Assert.Equal("An unregistered company cannot pay reverse charge. Register for GST first.", ex.Message);
+        await host.Vouchers.SaveInvoiceAsync(owner, un, purchase with { ReverseCharge = false });
+    }
 }

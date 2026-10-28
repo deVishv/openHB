@@ -21,7 +21,7 @@ message LockRequest { int32 company = 1; string date = 2; }
 // company 0 means host.db.
 message AuditTarget { int32 company = 1; }
 // first_bad_seq is 0 when the chain is whole.
-// anchor: NotUsed (host.db), Matches, Missing, or Mismatch (newest records removed or the chain rebuilt).
+// anchor: Matches, Missing, or Mismatch (newest records removed or the chain rebuilt).
 message AuditVerificationMsg { int64 count = 1; bool ok = 2; int64 first_bad_seq = 3; string anchor = 4; }
 // Empty strings and limit 0 mean no filter and the default limit. from and to are round trip timestamps.
 message ListAuditRequest { int32 company = 1; string from = 2; string to = 3; string user = 4; string entity = 5; int32 limit = 6; }

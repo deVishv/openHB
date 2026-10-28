@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
@@ -12,7 +13,7 @@ namespace OpenHisabKitab.Host.Application;
 /// Opens company files and runs their writes one at a time. A write is one transaction; its after commit step runs
 /// while the company is still locked, so cache updates and change events keep commit order.
 /// </summary>
-public sealed class CompanyHub(HostData data, TimeProvider time)
+public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<CompanyHub>? log = null)
 {
     readonly ConcurrentDictionary<int, SemaphoreSlim> writeLocks = new();
     readonly ConcurrentDictionary<int, bool> migrated = new();
@@ -131,7 +132,10 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         if (AuditLog.Head(c) is { } head)
         {
             try { await data.WriteHostAsync(tx => { Advance(tx, companyId, c, head); return 0; }).ConfigureAwait(false); }
-            catch (SqliteException) { }
+            catch (SqliteException e)
+            {
+                log?.LogWarning(e, "Could not update the audit anchor of company {Company}. The next save tries again.", companyId);
+            }
         }
         return result;
     }

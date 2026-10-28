@@ -43,11 +43,18 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     }
 
     /// <summary>Checks the audit chain of a company, or of host.db when company is null.</summary>
-    /// <summary>A company trail is also checked against its anchor in host.db.</summary>
+    /// <summary>A company trail is also checked against its anchor in host.db, and host.db against the file beside it.</summary>
     public AuditVerification VerifyAudit(CallContext ctx, int? company)
     {
+        if (company is null)
+        {
+            // Read before the chain, for the same reason as below.
+            var hostAnchor = data.HostAnchor();
+            using var hostDb = OpenForAudit(ctx, null);
+            return AuditLog.Verify(hostDb, hostAnchor);
+        }
         using var c = OpenForAudit(ctx, company);
-        if (company is not { } id) return AuditLog.Verify(c);
+        var id = company.Value;
         using var host = data.OpenHost();
         // The anchor is read before the chain. Anchors only move forward, so a save landing in between cannot make a
         // sound trail look short.

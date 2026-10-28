@@ -104,6 +104,9 @@ public sealed partial class VoucherService
     {
         if (input.Kind is InvoiceKind.ExportUnderLut or InvoiceKind.SezWithoutTax) return true;
         if (registration == GstRegistration.Regular) return false;
+        // A business liable to pay reverse charge must register (CGST Act section 24), so the flag means a wrong profile.
+        if (registration == GstRegistration.Unregistered && input.ReverseCharge)
+            throw new ServiceException(ServiceError.Invalid, "An unregistered company cannot pay reverse charge. Register for GST first.");
         if (registration == GstRegistration.Composition && input.Direction == TradeDirection.Inward && input.ReverseCharge) return false;
         if (input.Direction == TradeDirection.Inward && input.Lines.Any(l => l.Rate.BasisPoints != 0 || l.CessRate.BasisPoints != 0))
             throw new ServiceException(ServiceError.Invalid,

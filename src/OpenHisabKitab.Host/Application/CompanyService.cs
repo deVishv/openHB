@@ -42,6 +42,7 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
                 hub.DeleteFile(id);
                 throw;
             }
+            CompanyHub.Anchor(tx, id, c);
             c.Dispose();
             AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "create", "company", Text.Key(id), null, after));
             return id;
@@ -72,11 +73,11 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
     }
 
     /// <summary>Adds the financial year after the latest one.</summary>
-    public FinancialYear AddYear(CallContext ctx, int id)
+    public Task<FinancialYear> AddYearAsync(CallContext ctx, int id)
     {
         ctx.Require(Permission.ManageCompanies);
         ctx.RequireCompany(id);
-        return hub.Write(id, tx =>
+        return hub.WriteAsync(id, tx =>
         {
             var next = new FinancialYear(CompanyRepository.Years(tx.Connection!).Max(y => y.StartYear) + 1);
             CompanyRepository.AddYear(tx, next);
@@ -85,7 +86,7 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
 
-    public void SetSetting(CallContext ctx, int id, string key, string json)
+    public Task SetSettingAsync(CallContext ctx, int id, string key, string json)
     {
         ctx.Require(Permission.ManageCompanies);
         ctx.RequireCompany(id);
@@ -98,7 +99,7 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         catch (JsonException) { throw new ServiceException(ServiceError.Invalid, $"Setting {key} needs a JSON value."); }
         if (BooleanSettings.Contains(key) && kind is not (JsonValueKind.True or JsonValueKind.False))
             throw new ServiceException(ServiceError.Invalid, $"Setting {key} must be true or false.");
-        hub.Write(id, tx =>
+        return hub.WriteAsync(id, tx =>
         {
             var before = CompanyRepository.GetSetting(tx.Connection!, key);
             CompanyRepository.SetSetting(tx, key, json);

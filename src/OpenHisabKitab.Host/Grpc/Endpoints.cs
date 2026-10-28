@@ -74,19 +74,23 @@ internal sealed class CompaniesEndpoint(CompanyService companies) : Companies.Co
         return Task.FromResult(list);
     }
 
-    public override Task<YearMsg> AddYear(CompanyRef request, ServerCallContext context) =>
-        Task.FromResult(Wire.ToMsg(companies.AddYear(context.Caller(), request.Company)));
+    public override async Task<YearMsg> AddYear(CompanyRef request, ServerCallContext context) =>
+        Wire.ToMsg(await companies.AddYearAsync(context.Caller(), request.Company));
 
-    public override Task<V1Empty> SetSetting(SettingRequest request, ServerCallContext context)
+    public override async Task<V1Empty> SetSetting(SettingRequest request, ServerCallContext context)
     {
-        companies.SetSetting(context.Caller(), request.Company, request.Key, request.Json);
-        return Task.FromResult(new V1Empty());
+        await companies.SetSettingAsync(context.Caller(), request.Company, request.Key, request.Json);
+        return new V1Empty();
     }
 }
 
 internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBase
 {
-    static Task<V1Empty> Done() => Task.FromResult(new V1Empty());
+    static async Task<V1Empty> Done(Task work)
+    {
+        await work;
+        return new V1Empty();
+    }
 
     public override Task<ChartMsg> GetChart(CompanyRef request, ServerCallContext context)
     {
@@ -94,43 +98,28 @@ internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBa
         return Task.FromResult(Wire.ToMsg(masters.Chart(ctx, request.Company), masters.Openings(ctx, request.Company)));
     }
 
-    public override Task<IdReply> AddGroup(AddGroupRequest request, ServerCallContext context) =>
-        Task.FromResult(new IdReply { Id = masters.AddGroup(context.Caller(), request.Company, request.Name, new GroupId(request.Parent)).Value });
+    public override async Task<IdReply> AddGroup(AddGroupRequest request, ServerCallContext context) =>
+        new() { Id = (await masters.AddGroupAsync(context.Caller(), request.Company, request.Name, new GroupId(request.Parent))).Value };
 
-    public override Task<IdReply> AddLedger(AddLedgerRequest request, ServerCallContext context) =>
-        Task.FromResult(new IdReply { Id = masters.AddLedger(context.Caller(), request.Company, request.Name, new GroupId(request.Group)).Value });
+    public override async Task<IdReply> AddLedger(AddLedgerRequest request, ServerCallContext context) =>
+        new() { Id = (await masters.AddLedgerAsync(context.Caller(), request.Company, request.Name, new GroupId(request.Group))).Value };
 
-    public override Task<V1Empty> RenameGroup(RenameRequest request, ServerCallContext context)
-    {
-        masters.RenameGroup(context.Caller(), request.Company, new GroupId(request.Id), request.Name);
-        return Done();
-    }
+    public override Task<V1Empty> RenameGroup(RenameRequest request, ServerCallContext context) =>
+        Done(masters.RenameGroupAsync(context.Caller(), request.Company, new GroupId(request.Id), request.Name));
 
-    public override Task<V1Empty> RenameLedger(RenameRequest request, ServerCallContext context)
-    {
-        masters.Rename(context.Caller(), request.Company, new LedgerId(request.Id), request.Name);
-        return Done();
-    }
+    public override Task<V1Empty> RenameLedger(RenameRequest request, ServerCallContext context) =>
+        Done(masters.RenameAsync(context.Caller(), request.Company, new LedgerId(request.Id), request.Name));
 
-    public override Task<V1Empty> RemoveLedger(LedgerRef request, ServerCallContext context)
-    {
-        masters.RemoveLedger(context.Caller(), request.Company, new LedgerId(request.Ledger));
-        return Done();
-    }
+    public override Task<V1Empty> RemoveLedger(LedgerRef request, ServerCallContext context) =>
+        Done(masters.RemoveLedgerAsync(context.Caller(), request.Company, new LedgerId(request.Ledger)));
 
-    public override Task<V1Empty> SetOpening(SetOpeningRequest request, ServerCallContext context)
-    {
-        masters.SetOpening(context.Caller(), request.Company, new LedgerId(request.Ledger), new Money(request.Paise));
-        return Done();
-    }
+    public override Task<V1Empty> SetOpening(SetOpeningRequest request, ServerCallContext context) =>
+        Done(masters.SetOpeningAsync(context.Caller(), request.Company, new LedgerId(request.Ledger), new Money(request.Paise)));
 
-    public override Task<IdReply> SaveParty(SavePartyRequest request, ServerCallContext context)
+    public override async Task<IdReply> SaveParty(SavePartyRequest request, ServerCallContext context)
     {
         var party = Wire.Party(request.Party ?? throw new ServiceException(ServiceError.Invalid, "Enter the party."));
-        return Task.FromResult(new IdReply
-        {
-            Id = masters.SaveParty(context.Caller(), request.Company, request.Name, new GroupId(request.Group), party).Value,
-        });
+        return new IdReply { Id = (await masters.SavePartyAsync(context.Caller(), request.Company, request.Name, new GroupId(request.Group), party)).Value };
     }
 
     public override Task<PartyList> ListParties(CompanyRef request, ServerCallContext context)
@@ -140,10 +129,10 @@ internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBa
         return Task.FromResult(list);
     }
 
-    public override Task<IdReply> SaveItem(SaveItemRequest request, ServerCallContext context)
+    public override async Task<IdReply> SaveItem(SaveItemRequest request, ServerCallContext context)
     {
         var item = Wire.Item(request.Item ?? throw new ServiceException(ServiceError.Invalid, "Enter the item."));
-        return Task.FromResult(new IdReply { Id = masters.SaveItem(context.Caller(), request.Company, item) });
+        return new IdReply { Id = await masters.SaveItemAsync(context.Caller(), request.Company, item) };
     }
 
     public override Task<ItemList> ListItems(CompanyRef request, ServerCallContext context)
@@ -205,22 +194,22 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
 {
     static Task<V1Empty> Done() => Task.FromResult(new V1Empty());
 
-    public override Task<V1Empty> LockUpTo(LockRequest request, ServerCallContext context)
+    public override async Task<V1Empty> LockUpTo(LockRequest request, ServerCallContext context)
     {
-        admin.LockUpTo(context.Caller(), request.Company, Wire.Date(request.Date));
-        return Done();
+        await admin.LockUpToAsync(context.Caller(), request.Company, Wire.Date(request.Date));
+        return new V1Empty();
     }
 
-    public override Task<V1Empty> Unlock(CompanyRef request, ServerCallContext context)
+    public override async Task<V1Empty> Unlock(CompanyRef request, ServerCallContext context)
     {
-        admin.Unlock(context.Caller(), request.Company);
-        return Done();
+        await admin.UnlockAsync(context.Caller(), request.Company);
+        return new V1Empty();
     }
 
     public override Task<AuditVerificationMsg> VerifyAudit(AuditTarget request, ServerCallContext context)
     {
         var v = admin.VerifyAudit(context.Caller(), Wire.Target(request.Company));
-        return Task.FromResult(new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0 });
+        return Task.FromResult(new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0, Anchor = v.Anchor.ToString() });
     }
 
     public override Task<AuditList> ListAudit(ListAuditRequest request, ServerCallContext context)
@@ -230,8 +219,8 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
         return Task.FromResult(list);
     }
 
-    public override Task<BackupMsg> BackupNow(AuditTarget request, ServerCallContext context) =>
-        Task.FromResult(Wire.ToMsg(admin.BackupNow(context.Caller(), Wire.Target(request.Company))));
+    public override async Task<BackupMsg> BackupNow(AuditTarget request, ServerCallContext context) =>
+        Wire.ToMsg(await admin.BackupNowAsync(context.Caller(), Wire.Target(request.Company)));
 
     public override Task<BackupList> ListBackups(AuditTarget request, ServerCallContext context)
     {

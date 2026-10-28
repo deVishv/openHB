@@ -1,8 +1,10 @@
 using System.Collections.Concurrent;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
 using OpenHisabKitab.Data.Backup;
+using OpenHisabKitab.Data.HostDb;
 using OpenHisabKitab.Data.Migrations;
 
 namespace OpenHisabKitab.Host.Application;
@@ -11,7 +13,7 @@ namespace OpenHisabKitab.Host.Application;
 /// Opens company files and runs their writes one at a time. A write is one transaction; its after commit step runs
 /// while the company is still locked, so cache updates and change events keep commit order.
 /// </summary>
-public sealed class CompanyHub(HostData data, TimeProvider time)
+public sealed class CompanyHub(HostData data, TimeProvider time, ILogger<CompanyHub>? log = null)
 {
     readonly ConcurrentDictionary<int, SemaphoreSlim> writeLocks = new();
     readonly ConcurrentDictionary<int, bool> migrated = new();
@@ -72,19 +74,12 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
             File.Delete(data.CompanyPath(companyId) + suffix);
     }
 
-    public T Write<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit = null)
-    {
-        var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
-        gate.Wait();
-        try { return Run(companyId, work, afterCommit); }
-        finally { gate.Release(); }
-    }
-
+    /// <summary>Waiting for the company's write lock frees the thread, so many users saving at once do not tie up the server.</summary>
     public async Task<T> WriteAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit = null)
     {
         var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync().ConfigureAwait(false);
-        try { return Run(companyId, work, afterCommit); }
+        try { return await RunAsync(companyId, work, afterCommit).ConfigureAwait(false); }
         finally { gate.Release(); }
     }
 
@@ -120,7 +115,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
         AuditLog.Append(tx, e);
     }
 
-    T Run<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
+    async Task<T> RunAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
     {
         using var c = Open(companyId);
         T result;
@@ -130,6 +125,36 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
             tx.Commit();
         }
         afterCommit?.Invoke(result);
+
+        // Still under the company lock, so anchors only move forward. The save is already committed: if host.db cannot
+        // take the anchor, the save still stands and the anchor stays one step behind, which verification accepts. The
+        // next save of this company moves it to the head again.
+        if (AuditLog.Head(c) is { } head)
+        {
+            try { await data.WriteHostAsync(tx => { Advance(tx, companyId, c, head); return 0; }).ConfigureAwait(false); }
+            catch (SqliteException e)
+            {
+                log?.LogWarning(e, "Could not update the audit anchor of company {Company}. The next save tries again.", companyId);
+            }
+        }
         return result;
+    }
+
+    // A save moves the anchor only while the file still holds the anchored record. After records were removed or the
+    // chain rebuilt, the anchor stays at the last good record, so verification keeps reporting it until a restore. A
+    // save never creates a missing anchor either.
+    static void Advance(SqliteTransaction hostTx, int companyId, SqliteConnection company, AuditHead head)
+    {
+        if (AuditAnchorRepository.Get(hostTx.Connection!, companyId) is { } old && AuditLog.Holds(company, old))
+            AuditAnchorRepository.Set(hostTx, companyId, head);
+    }
+
+    /// <summary>
+    /// Sets the company's anchor to its file's newest audit record, inside the caller's host.db transaction. Only company
+    /// creation and restore use this, because it may move the anchor back.
+    /// </summary>
+    internal static void Anchor(SqliteTransaction hostTx, int companyId, SqliteConnection company)
+    {
+        if (AuditLog.Head(company) is { } head) AuditAnchorRepository.Set(hostTx, companyId, head);
     }
 }

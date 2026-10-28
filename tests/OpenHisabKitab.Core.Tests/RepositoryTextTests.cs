@@ -41,7 +41,8 @@ public static class RepositoryText
 
     static readonly HashSet<string> SkippedFolders = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".git", "bin", "obj", ".vs", ".superpowers", ".remember",
+        // transcripts holds exported Claude Code sessions: kept locally, never committed, and not written to the rules.
+        ".git", "bin", "obj", ".vs", ".superpowers", ".remember", "transcripts",
     };
 
     static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)

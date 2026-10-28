@@ -213,4 +213,63 @@ public class AuditLogTests
         Exec(c, "DROP TRIGGER audit_log_no_update; UPDATE audit_log SET at = 'garbage', source = 'Nope' WHERE seq = 2;");
         Assert.Equal(2, AuditLog.Verify(c).FirstBadSeq);
     }
+
+    [Fact]
+    public void Anchor_at_the_head_matches_and_a_lagging_anchor_still_matches()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 2);
+        var two = AuditLog.Head(c)!;
+        Assert.Equal(2, two.Seq);
+        Assert.Equal(AnchorCheck.Matches, AuditLog.Verify(c, two).Anchor);
+
+        AppendAll(c, 1);
+        var lagging = AuditLog.Verify(c, two);
+        Assert.True(lagging.Ok);
+        Assert.Equal(AnchorCheck.Matches, lagging.Anchor);
+    }
+
+    [Fact]
+    public void Removing_the_newest_rows_no_longer_matches_the_anchor()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 3);
+        var anchor = AuditLog.Head(c)!;
+        Exec(c, "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq >= 2;");
+        Assert.True(AuditLog.Verify(c).Ok);
+        var v = AuditLog.Verify(c, anchor);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public void Rebuilt_chain_no_longer_matches_the_anchor()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 3);
+        var anchor = AuditLog.Head(c)!;
+        Exec(c, "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log;");
+        using (var tx = SqliteDatabase.BeginWrite(c))
+        {
+            for (var i = 1; i <= 3; i++) AuditLog.Append(tx, Entry(i) with { After = "{}" });
+            tx.Commit();
+        }
+        Assert.True(AuditLog.Verify(c).Ok);
+        Assert.Equal(AnchorCheck.Mismatch, AuditLog.Verify(c, anchor).Anchor);
+    }
+
+    [Fact]
+    public void Missing_anchor_fails()
+    {
+        using var db = new TempDb();
+        using var c = Migrated(db);
+        AppendAll(c, 1);
+        var v = AuditLog.Verify(c, null);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Missing, v.Anchor);
+        Assert.Equal(AnchorCheck.NotUsed, AuditLog.Verify(c).Anchor);
+    }
 }

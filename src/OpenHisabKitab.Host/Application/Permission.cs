@@ -7,6 +7,8 @@ public enum Permission
     ManageUsers,
     ManageCompanies,
     EditMasters,
+    /// <summary>Opening balances and the required ledgers (cash, tax, round off, and so on). Not given to Data entry.</summary>
+    EditOpeningsAndRequiredLedgers,
     CreateVoucher,
     EditVoucher,
     CancelVoucher,

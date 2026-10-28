@@ -29,16 +29,23 @@ public sealed class AdminServiceTests : IDisposable
         return ex;
     }
 
+    static async Task<ServiceException> FailsAsync(ServiceError error, Func<Task> act)
+    {
+        var ex = await Assert.ThrowsAsync<ServiceException>(act);
+        Assert.Equal(error, ex.Error);
+        return ex;
+    }
+
     [Fact]
-    public void Accountant_can_lock_but_not_move_the_lock_earlier_and_owner_can_unlock()
+    public async Task Accountant_can_lock_but_not_move_the_lock_earlier_and_owner_can_unlock()
     {
         var meena = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
-        host.Admin.LockUpTo(meena, company, new DateOnly(2026, 6, 30));
-        host.Admin.LockUpTo(meena, company, new DateOnly(2026, 7, 31));
-        Fails(ServiceError.PermissionDenied, () => host.Admin.LockUpTo(meena, company, new DateOnly(2026, 6, 30)));
-        Fails(ServiceError.PermissionDenied, () => host.Admin.Unlock(meena, company));
-        host.Admin.LockUpTo(owner, company, new DateOnly(2026, 6, 30));
-        host.Admin.Unlock(owner, company);
+        await host.Admin.LockUpToAsync(meena, company, new DateOnly(2026, 6, 30));
+        await host.Admin.LockUpToAsync(meena, company, new DateOnly(2026, 7, 31));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.LockUpToAsync(meena, company, new DateOnly(2026, 6, 30)));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.UnlockAsync(meena, company));
+        await host.Admin.LockUpToAsync(owner, company, new DateOnly(2026, 6, 30));
+        await host.Admin.UnlockAsync(owner, company);
         using var c = host.Hub.Open(company);
         Assert.Null(LockRepository.LockedUpTo(c));
         var actions = AuditLog.Read(c, new AuditFilter(Entity: "lock")).Select(r => r.Entry.Action).Reverse();
@@ -46,19 +53,19 @@ public sealed class AdminServiceTests : IDisposable
     }
 
     [Fact]
-    public void Viewer_cannot_lock()
+    public async Task Viewer_cannot_lock()
     {
         var ravi = host.NewUser("ravi", BuiltInRole.Viewer, company).Context;
-        Fails(ServiceError.PermissionDenied, () => host.Admin.LockUpTo(ravi, company, new DateOnly(2026, 6, 30)));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.LockUpToAsync(ravi, company, new DateOnly(2026, 6, 30)));
     }
 
     [Fact]
     public async Task Audit_verifies_after_mixed_work_and_reports_tampering()
     {
         for (var i = 1; i <= 8; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
-        host.Masters.AddLedger(owner, company, "HDFC Bank", host.Masters.Chart(owner, company).Group(GroupKind.BankAccounts));
-        host.Admin.LockUpTo(owner, company, new DateOnly(2026, 4, 30));
-        host.Admin.BackupNow(owner, company);
+        await host.Masters.AddLedgerAsync(owner, company, "HDFC Bank", host.Masters.Chart(owner, company).Group(GroupKind.BankAccounts));
+        await host.Admin.LockUpToAsync(owner, company, new DateOnly(2026, 4, 30));
+        await host.Admin.BackupNowAsync(owner, company);
         var ok = host.Admin.VerifyAudit(owner, company);
         Assert.True(ok.Ok);
         Assert.True(ok.Count >= 12);
@@ -82,11 +89,11 @@ public sealed class AdminServiceTests : IDisposable
     }
 
     [Fact]
-    public void Backup_now_is_listed_and_audited()
+    public async Task Backup_now_is_listed_and_audited()
     {
-        var b = host.Admin.BackupNow(owner, company);
+        var b = await host.Admin.BackupNowAsync(owner, company);
         Assert.Equal(b.Path, host.Admin.Backups(owner, company).Single().Path);
-        var hostBackup = host.Admin.BackupNow(owner, null);
+        var hostBackup = await host.Admin.BackupNowAsync(owner, null);
         Assert.Equal("host", hostBackup.SourceName);
         using var c = host.Hub.Open(company);
         Assert.Contains(AuditLog.Read(c, new AuditFilter()), r => r.Entry.Action == "backup" && r.Entry.After!.Contains(Path.GetFileName(b.Path)));
@@ -96,7 +103,7 @@ public sealed class AdminServiceTests : IDisposable
     public async Task Restore_brings_back_the_backup_and_ends_all_sessions()
     {
         var a = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
-        var backup = host.Admin.BackupNow(owner, company);
+        var backup = await host.Admin.BackupNowAsync(owner, company);
         host.Time.Advance(TimeSpan.FromMinutes(1));
         var b = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(200));
         var cashBefore = host.Reports.TrialBalance(owner, company, new FinancialYear(2026).Range).Rows.Single(r => r.Ledger == cash).Debits;
@@ -124,7 +131,7 @@ public sealed class AdminServiceTests : IDisposable
     public async Task Damaged_backup_restores_nothing()
     {
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
-        var backup = host.Admin.BackupNow(owner, company);
+        var backup = await host.Admin.BackupNowAsync(owner, company);
         host.Time.Advance(TimeSpan.FromMinutes(1));
         var b = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(200));
         SqliteConnection.ClearAllPools();
@@ -142,7 +149,7 @@ public sealed class AdminServiceTests : IDisposable
     [Fact]
     public async Task Only_listed_backups_can_be_restored_and_only_by_the_owner()
     {
-        var backup = host.Admin.BackupNow(owner, company);
+        var backup = await host.Admin.BackupNowAsync(owner, company);
         var meena = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
         Assert.Equal(ServiceError.PermissionDenied,
             (await Assert.ThrowsAsync<ServiceException>(() => host.Admin.RestoreAsync(meena, company, backup.Path))).Error);
@@ -153,16 +160,16 @@ public sealed class AdminServiceTests : IDisposable
     }
 
     [Fact]
-    public void Closed_gate_refuses_company_work()
+    public async Task Closed_gate_refuses_company_work()
     {
         var other = host.NewCompany(TestHost.Profile("B Traders"));
         host.Hub.Gate.Close(company);
         var ex = Fails(ServiceError.Unavailable, () => host.Masters.Chart(owner, company));
         Assert.Equal("A restore is running. Try again in a minute.", ex.Message);
-        Fails(ServiceError.Unavailable, () => host.Admin.BackupNow(owner, company));
+        await FailsAsync(ServiceError.Unavailable, () => host.Admin.BackupNowAsync(owner, company));
         Assert.NotEmpty(host.Masters.Chart(owner, other).Ledgers);
-        host.Admin.BackupNow(owner, other);
-        host.Scheduler.RunOnce();
+        await host.Admin.BackupNowAsync(owner, other);
+        await host.Scheduler.RunOnceAsync();
         using (var c = host.Data.OpenHost())
             Assert.DoesNotContain(AuditLog.Read(c, new AuditFilter()), r => r.Entry.Action == "backup-failed" && r.Entry.EntityKey == "company-" + other);
         host.Hub.Gate.Open(company);
@@ -170,27 +177,27 @@ public sealed class AdminServiceTests : IDisposable
     }
 
     [Fact]
-    public void Host_database_audit_and_backups_are_for_the_owner_only()
+    public async Task Host_database_audit_and_backups_are_for_the_owner_only()
     {
         var meena = host.NewUser("meena", BuiltInRole.Accountant, company).Context;
         Fails(ServiceError.PermissionDenied, () => host.Admin.VerifyAudit(meena, null));
         Fails(ServiceError.PermissionDenied, () => host.Admin.Audit(meena, null, new AuditFilter()));
-        Fails(ServiceError.PermissionDenied, () => host.Admin.BackupNow(meena, null));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Admin.BackupNowAsync(meena, null));
         Fails(ServiceError.PermissionDenied, () => host.Admin.Backups(meena, null));
         Assert.True(host.Admin.VerifyAudit(meena, company).Ok);
-        host.Admin.BackupNow(meena, company);
+        await host.Admin.BackupNowAsync(meena, company);
     }
 
     [Fact]
     public async Task Copy_taken_before_a_restore_is_never_pruned()
     {
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
-        var backup = host.Admin.BackupNow(owner, company);
+        var backup = await host.Admin.BackupNowAsync(owner, company);
         await host.Admin.RestoreAsync(owner, company, backup.Path);
         var kept = Directory.GetFiles(host.Data.BackupFolder, "*prerestore*.db");
         Assert.Single(kept);
         host.Data.WriteHost(tx => { HostSettingsRepository.Set(tx, "backup.keep", "1"); return 0; });
-        for (var i = 0; i < 3; i++) { host.Time.Advance(TimeSpan.FromDays(1)); host.Scheduler.RunOnce(); }
+        for (var i = 0; i < 3; i++) { host.Time.Advance(TimeSpan.FromDays(1)); await host.Scheduler.RunOnceAsync(); }
         Assert.True(File.Exists(kept[0]));
         Assert.Single(host.Admin.Backups(owner, company));
     }
@@ -199,7 +206,7 @@ public sealed class AdminServiceTests : IDisposable
     public async Task Failed_copy_before_restore_restores_nothing()
     {
         var a = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(100));
-        var backup = host.Admin.BackupNow(owner, company);
+        var backup = await host.Admin.BackupNowAsync(owner, company);
         var b = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(200));
         var folder = new DirectoryInfo(host.Data.BackupFolder);
         var me = System.Security.Principal.WindowsIdentity.GetCurrent().User!;
@@ -224,5 +231,109 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(b.Id, host.Vouchers.Get(owner, company, b.Id).Id);
         Assert.Equal(a.Id, host.Vouchers.Get(owner, company, a.Id).Id);
         Assert.NotNull(host.Sessions.Resolve(host.Owner.Token));
+    }
+
+    [Fact]
+    public async Task Removing_the_newest_audit_rows_of_a_company_is_reported()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, company).Anchor);
+
+        using (var c = host.Hub.Open(company))
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            cmd.ExecuteNonQuery();
+        }
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.Null(v.FirstBadSeq);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public async Task A_save_after_removed_audit_rows_does_not_hide_them()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        using (var c = host.Hub.Open(company))
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            cmd.ExecuteNonQuery();
+        }
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
+        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, company).Anchor);
+    }
+
+    [Fact]
+    public async Task A_save_after_a_rebuilt_audit_chain_does_not_hide_it()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        using (var c = host.Hub.Open(company))
+        {
+            var rows = AuditLog.Read(c, new AuditFilter()).OrderBy(r => r.Seq).ToList();
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log;";
+                cmd.ExecuteNonQuery();
+            }
+            using var tx = Data.SqliteDatabase.BeginWrite(c);
+            foreach (var r in rows) AuditLog.Append(tx, r.Entry with { User = "someone" });
+            tx.Commit();
+        }
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.Null(v.FirstBadSeq);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public async Task A_save_does_not_create_a_missing_anchor()
+    {
+        host.Data.WriteHost(tx =>
+        {
+            using var cmd = tx.Connection!.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM audit_anchors";
+            return cmd.ExecuteNonQuery();
+        });
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, company).Anchor);
+    }
+
+    [Fact]
+    public void A_new_company_is_anchored_from_its_first_record()
+    {
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.True(v.Ok);
+        Assert.Equal(AnchorCheck.Matches, v.Anchor);
+    }
+
+    [Fact]
+    public void Host_trail_is_anchored_and_removed_newest_records_stay_reported()
+    {
+        Assert.Equal(AnchorCheck.Matches, host.Admin.VerifyAudit(owner, null).Anchor);
+        host.Data.WriteHost(tx =>
+        {
+            using var cmd = tx.Connection!.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            return cmd.ExecuteNonQuery();
+        });
+        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, null).Anchor);
+
+        host.NewUser("ravi", BuiltInRole.Viewer);
+        var v = host.Admin.VerifyAudit(owner, null);
+        Assert.Null(v.FirstBadSeq);
+        Assert.False(v.Ok);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public void Missing_host_anchor_file_is_reported()
+    {
+        File.Delete(Path.Combine(host.Folder, "host-audit-anchor.json"));
+        host.NewUser("ravi", BuiltInRole.Viewer);
+        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, null).Anchor);
     }
 }

@@ -8,7 +8,8 @@ namespace OpenHisabKitab.Data.Audit;
 
 /// <summary>
 /// The append only audit trail (spec 5.5). Each row's hash covers the previous row's hash, so editing or removing
-/// any row except the last breaks the chain from that row on.
+/// any row except the last breaks the chain from that row on. A company trail is also checked against its anchor, a
+/// copy of its head kept in host.db, which catches removed newest rows and a rebuilt chain.
 /// </summary>
 public static class AuditLog
 {
@@ -52,25 +53,50 @@ public static class AuditLog
         return seq;
     }
 
-    public static AuditVerification Verify(SqliteConnection c)
+    /// <summary>The newest record, or null for an empty trail.</summary>
+    public static AuditHead? Head(SqliteConnection c) =>
+        Sql.Single(c, "SELECT seq, hash FROM audit_log ORDER BY seq DESC LIMIT 1", r => new AuditHead(r.GetInt64(0), r.GetString(1)));
+
+    /// <summary>True when the trail still has this record with this hash.</summary>
+    public static bool Holds(SqliteConnection c, AuditHead record) =>
+        Sql.Single(c, "SELECT hash FROM audit_log WHERE seq = $seq", r => r.GetString(0), ("$seq", record.Seq)) == record.Hash;
+
+    /// <summary>Checks the chain alone. Use the anchored overload for company files.</summary>
+    public static AuditVerification Verify(SqliteConnection c) => Verify(c, null, anchored: false);
+
+    /// <summary>
+    /// Checks the chain and that it still holds the anchored record. Records after the anchor are fine: the anchor is
+    /// written just after the company commit, so a crash between the two leaves it one step behind.
+    /// </summary>
+    public static AuditVerification Verify(SqliteConnection c, AuditHead? anchor) => Verify(c, anchor, anchored: true);
+
+    static AuditVerification Verify(SqliteConnection c, AuditHead? anchor, bool anchored)
     {
         using var cmd = c.CreateCommand();
         cmd.CommandText = $"SELECT {Columns} FROM audit_log ORDER BY seq";
         using var r = cmd.ExecuteReader();
         long count = 0, expectedSeq = 1;
         var prev = Genesis;
+        string? anchorFound = null;
         while (r.Read())
         {
             count++;
             var seq = r.GetInt64(0);
             // The hash is checked on the raw stored text, so a row too damaged to parse is reported, not thrown.
             var ok = seq == expectedSeq && r.GetString(11) == prev && RawHash(prev, r) == r.GetString(12);
-            if (!ok) return new AuditVerification(count, seq);
+            if (!ok) return new AuditVerification(count, seq, Anchor(anchored, anchor, null));
             prev = r.GetString(12);
+            if (anchor is not null && seq == anchor.Seq) anchorFound = prev;
             expectedSeq++;
         }
-        return new AuditVerification(count, null);
+        return new AuditVerification(count, null, Anchor(anchored, anchor, anchorFound));
     }
+
+    static AnchorCheck Anchor(bool anchored, AuditHead? anchor, string? hashAtAnchor) =>
+        !anchored ? AnchorCheck.NotUsed
+        : anchor is null ? AnchorCheck.Missing
+        : hashAtAnchor == anchor.Hash ? AnchorCheck.Matches
+        : AnchorCheck.Mismatch;
 
     /// <summary>Newest first, at most <see cref="AuditFilter.Limit"/> rows.</summary>
     public static IReadOnlyList<StoredAuditEntry> Read(SqliteConnection c, AuditFilter f)

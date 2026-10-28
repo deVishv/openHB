@@ -3,6 +3,11 @@ using Xunit.Abstractions;
 
 namespace OpenHisabKitab.Host.Tests;
 
+// Timings run alone, after the parallel tests, so other tests' CPU use does not count against the target.
+[CollectionDefinition(nameof(CompanyBooksPerformanceTests), DisableParallelization = true)]
+public sealed class PerformanceCollection;
+
+[Collection(nameof(CompanyBooksPerformanceTests))]
 public sealed class CompanyBooksPerformanceTests(ITestOutputHelper output) : IDisposable
 {
     readonly TestHost host = new();

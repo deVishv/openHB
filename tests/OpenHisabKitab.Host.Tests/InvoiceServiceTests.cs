@@ -24,8 +24,8 @@ public sealed class InvoiceServiceTests : IDisposable
     public void Dispose() => host.Dispose();
 
     LedgerId Party(int id, string name, GroupKind group, string state) =>
-        host.Masters.SaveParty(owner, id, name, host.Masters.Chart(owner, id).Group(group),
-            new Party(default, null, new StateCode(state), 0, "", 0));
+        host.Masters.SavePartyAsync(owner, id, name, host.Masters.Chart(owner, id).Group(group),
+            new Party(default, null, new StateCode(state), 0, "", 0)).GetAwaiter().GetResult();
 
     static InvoiceEntryLine Line(LedgerId ledger, string price, int rateBp = 1800) =>
         new(null, ledger, "Steel rod", "7214", new Quantity(1000), Money.Parse(price), Money.Zero, new GstRate(rateBp), new GstRate(0), false);
@@ -100,7 +100,7 @@ public sealed class InvoiceServiceTests : IDisposable
     [Fact]
     public async Task Round_off_setting_off_keeps_paise()
     {
-        host.Companies.SetSetting(owner, company, "invoice.roundOff", "false");
+        await host.Companies.SetSettingAsync(owner, company, "invoice.roundOff", "false");
         var saved = await host.Vouchers.SaveInvoiceAsync(owner, company, Sale(localCustomer, "27", Line(sales, "100.40")));
         Assert.Equal(Money.Parse("118.48"), Posted(saved.Id, localCustomer));
     }
@@ -256,5 +256,37 @@ public sealed class InvoiceServiceTests : IDisposable
         var line = Line(sales, "10.00") with { ItemId = 999 };
         var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, company, Sale(localCustomer, "27", line)));
         Assert.Equal("Line 1: unknown item.", ex.Message);
+    }
+
+    [Fact]
+    public async Task Composition_company_pays_reverse_charge_as_cost()
+    {
+        var comp = host.NewCompany(TestHost.Profile("C Traders") with { Registration = GstRegistration.Composition, Gstin = null });
+        var compChart = host.Masters.Chart(owner, comp);
+        var supplier = Party(comp, "Advocate Rao", GroupKind.TradePayables, "27");
+        var expense = compChart.Required(RequiredLedger.Purchases);
+        var purchase = new InvoiceInput(VoucherType.Purchase, June1, "", supplier, TradeDirection.Inward, InvoiceKind.Regular,
+            new StateCode("27"), true, null, null, null, null, [Line(expense, "1000.00")]);
+        var saved = await host.Vouchers.SaveInvoiceAsync(owner, comp, purchase);
+
+        var postings = host.Vouchers.Get(owner, comp, saved.Id).Postings.ToDictionary(l => l.Ledger, l => l.Amount);
+        Assert.Equal(Money.Parse("1180.00"), postings[expense]);
+        Assert.Equal(Money.Parse("-90.00"), postings[compChart.Required(RequiredLedger.RcmPayableCgst)]);
+        Assert.Equal(Money.Parse("-90.00"), postings[compChart.Required(RequiredLedger.RcmPayableSgst)]);
+        Assert.Equal(Money.Parse("-1000.00"), postings[supplier]);
+        Assert.False(postings.ContainsKey(compChart.Required(RequiredLedger.InputCgst)));
+    }
+
+    [Fact]
+    public async Task Unregistered_company_cannot_record_reverse_charge()
+    {
+        var un = host.NewCompany(TestHost.Profile("U Traders") with { Registration = GstRegistration.Unregistered, Gstin = null });
+        var supplier = Party(un, "Advocate Rao", GroupKind.TradePayables, "27");
+        var purchases = host.Masters.Chart(owner, un).Required(RequiredLedger.Purchases);
+        var purchase = new InvoiceInput(VoucherType.Purchase, June1, "", supplier, TradeDirection.Inward, InvoiceKind.Regular,
+            new StateCode("27"), true, null, null, null, null, [Line(purchases, "1000.00", 0)]);
+        var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, un, purchase));
+        Assert.Equal("An unregistered company cannot pay reverse charge. Register for GST first.", ex.Message);
+        await host.Vouchers.SaveInvoiceAsync(owner, un, purchase with { ReverseCharge = false });
     }
 }

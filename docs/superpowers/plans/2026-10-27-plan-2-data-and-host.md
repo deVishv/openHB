@@ -125,7 +125,7 @@ The host must rebuild a chart from database rows, and parties need GSTIN checks.
   - `public enum GstRegistration { Regular, Composition, Unregistered }`.
   - `public enum InvoiceKind { Regular, ExportWithTax, ExportUnderLut, SezWithTax, SezWithoutTax, DeemedExport }`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 [Fact]
@@ -190,9 +190,9 @@ public void Valid_gstin(string text, string state)
 public void Invalid_gstin(string? text) => Assert.False(Gstin.TryParse(text, GstData.LoadEmbedded(), out _));
 ```
 
-- [ ] **Step 2: Run them and confirm they fail to compile.** Run: `dotnet test OpenHisabKitab.slnx --filter "ChartLoadTests|GstinTests"`.
+- [x] **Step 2: Run them and confirm they fail to compile.** Run: `dotnet test OpenHisabKitab.slnx --filter "ChartLoadTests|GstinTests"`.
 
-- [ ] **Step 3: Implement.** The GSTIN check digit uses this algorithm (characters `0-9A-Z`, values 0 to 35):
+- [x] **Step 3: Implement.** The GSTIN check digit uses this algorithm (characters `0-9A-Z`, values 0 to 35):
 
 ```text
 factor = 1, sum = 0
@@ -205,9 +205,9 @@ check = value^-1((36 - sum % 36) % 36)
 
 The state prefix must be a code in `GstData.States`. Trim and upper case the input with the invariant culture before checking.
 
-- [ ] **Step 4: Run the whole suite.** Expected: all Plan 1 tests and the new ones pass.
+- [x] **Step 4: Run the whole suite.** Expected: all Plan 1 tests and the new ones pass.
 
-- [ ] **Step 5: Commit** `feat: load, rename, and remove in chart of accounts; GSTIN type`.
+- [x] **Step 5: Commit** `feat: load, rename, and remove in chart of accounts; GSTIN type`.
 
 ---
 
@@ -229,7 +229,7 @@ The state prefix must be a code in `GstData.States`. Trim and upper case the inp
 
 Migrations are embedded resources named `NNNN_name.sql` under `Migrations/Host` and `Migrations/Company`. The version is `PRAGMA user_version`. Each script runs in its own transaction and sets `user_version` inside it. `beforeMigrating(from)` is called once, only when at least one script will run and `from > 0`, so the host can back up first.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 [Fact] public void New_file_migrates_to_latest() { /* Migrate on empty file: result From 0, To Migrator.Latest(Schema.Company); user_version equals Latest */ }
@@ -259,10 +259,10 @@ public void Newer_file_is_refused_and_left_unchanged()
 public void No_floating_point_columns(Schema s) { /* after migrating, no column in sqlite_schema tables has declared type REAL, FLOAT, or DOUBLE */ }
 ```
 
-- [ ] **Step 2: Run, confirm failure.** `dotnet test OpenHisabKitab.slnx --filter MigratorTests`.
-- [ ] **Step 3: Implement** `SqliteDatabase` and `Migrator`. Scripts are read with `Assembly.GetManifestResourceStream`, sorted by their four digit prefix. A gap in the numbering is a startup error (throw `InvalidOperationException`).
-- [ ] **Step 4: Run the full suite.** Expected: pass.
-- [ ] **Step 5: Commit** `feat: data project with SQLite migrations`.
+- [x] **Step 2: Run, confirm failure.** `dotnet test OpenHisabKitab.slnx --filter MigratorTests`.
+- [x] **Step 3: Implement** `SqliteDatabase` and `Migrator`. Scripts are read with `Assembly.GetManifestResourceStream`, sorted by their four digit prefix. A gap in the numbering is a startup error (throw `InvalidOperationException`).
+- [x] **Step 4: Run the full suite.** Expected: pass.
+- [x] **Step 5: Commit** `feat: data project with SQLite migrations`.
 
 ---
 
@@ -288,7 +288,7 @@ Table: `audit_log(seq INTEGER PRIMARY KEY, at TEXT, user TEXT, machine TEXT, sou
 
 Hash: lowercase hex SHA-256 of the UTF-8 bytes of `prev_hash + "\n" + canonical`, where `canonical` is `JsonSerializer.Serialize` of an anonymous object with properties in this order: `seq, at, user, machine, source, tokenName, action, entity, entityKey, before, after`. `at` is formatted `"O"` in UTC. The first record's `prev_hash` is 64 zeros.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 [Fact] public void Empty_log_verifies() { /* Count 0, Ok */ }
@@ -306,10 +306,10 @@ public void Edited_row_is_detected()
 [Fact] public void Hash_does_not_depend_on_culture() { /* set CurrentCulture to "hi-IN" and "de-DE", same entry gives same hash */ }
 ```
 
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.** `Verify` walks rows in `seq` order. It reports the first row whose `seq` is not previous plus one, whose `prev_hash` differs from the previous row's `hash`, or whose recomputed hash differs.
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: append only hash chained audit log`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.** `Verify` walks rows in `seq` order. It reports the first row whose `seq` is not previous plus one, whose `prev_hash` differs from the previous row's `hash`, or whose recomputed hash differs.
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: append only hash chained audit log`.
 
 ---
 
@@ -335,7 +335,7 @@ Also create, unused until Plan 3, `api_tokens(id INTEGER PRIMARY KEY, user_id IN
 
 Custom roles are Plan 8. Storing the role as a `TEXT` built in name keeps that change to an added table.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - Insert then `Find("OWNER")` finds user `owner`.
   - A duplicate name in a different case throws `SqliteException` (unique).
   - `SetCompanies` replaces the previous set.
@@ -344,10 +344,10 @@ Custom roles are Plan 8. Storing the role as a `TEXT` built in name keeps that c
   - The company file name is `company-1.db` for the first company.
   - Setting round trip.
   - The `api_tokens` table exists.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: host database users, companies, and settings`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: host database users, companies, and settings`.
 
 ---
 
@@ -371,17 +371,17 @@ Custom roles are Plan 8. Storing the role as a `TEXT` built in name keeps that c
 
 Ledger and group ids are the `Core` ids, stored as given. Ledgers carry `required TEXT NULL` holding the `RequiredLedger` name, and `opening_paise INTEGER NOT NULL DEFAULT 0`. Item names are unique `COLLATE NOCASE`.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - Create with `DefaultChart.Create()`, then `Load` equals the original groups and ledgers.
   - The profile round trips, including a null GSTIN.
   - `SetOpening` then `Openings` returns the amount.
   - A party for an unknown ledger throws (foreign key).
   - An item round trips its rate in basis points, for example 1800.
   - `Years` after `AddYear(2027)` is `[2026, 2027]`.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: company database profile, chart, parties, items`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: company database profile, chart, parties, items`.
 
 ---
 
@@ -417,7 +417,7 @@ Default series, all width 5:
 
 `vouchers` has `UNIQUE(type, series, fy_start, number)`. Postings live in `postings(voucher_id, date, ledger_id, amount_paise)` with an index on `(ledger_id, date)`. The posting date is copied from the voucher, so an edit rewrites it.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - `Take` twice returns 1 then 2.
   - `Take` for a new financial year after `EnsureDefaults` starts at 1.
   - Insert then `Get` round trips postings and invoice lines.
@@ -427,10 +427,10 @@ Default series, all width 5:
   - A posting to an unknown ledger throws (foreign key).
   - Inserting the same number twice throws (unique).
   - `LockedUpTo` round trips null and a date.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: voucher storage, number series, period lock`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: voucher storage, number series, period lock`.
 
 ---
 
@@ -452,17 +452,17 @@ Spec 9.
     - `void RestoreInto(string backupPath, SqliteConnection live)`: checks the backup's integrity first, then backs it up into `live`.
   - `public sealed class BackupFailedException(string message) : Exception(message);`
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - The backup contains the rows and passes the integrity check.
   - The file name uses the fake clock time.
   - `Prune(keep: 30)` with 32 files leaves the newest 30.
   - `Prune` only touches files of that source name.
   - A truncated backup file is refused by `RestoreInto` with `BackupFailedException`, and the live database is unchanged.
   - A backup taken while another connection holds an open write transaction still succeeds, with the last committed data.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: online backup with integrity check and retention`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: online backup with integrity check and retention`.
 
 ---
 
@@ -531,7 +531,7 @@ Exact messages:
 
 `SetupOwner` and `ChangePassword` are audited. A password change ends the user's other sessions.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - Hash and verify round trip; a wrong password fails.
   - Two hashes of the same password differ.
   - A tampered hash string returns false and does not throw.
@@ -544,10 +544,10 @@ Exact messages:
   - A read only context is denied `CreateVoucher`.
   - The Accountant cannot create users.
   - The host.db audit has the setup entry.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: host login, sessions, roles, and permissions`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: host login, sessions, roles, and permissions`.
 
 ---
 
@@ -604,7 +604,7 @@ Rules:
 
 Every write appends an audit entry, with the before and after values as JSON, and publishes a `ChangeEvent`.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - Create a company, then `Chart` has `Cash`.
   - A user without access gets `PermissionDenied` on `Get`.
   - A GSTIN state mismatch gives the exact message.
@@ -614,10 +614,10 @@ Every write appends an audit entry, with the before and after values as JSON, an
   - A rate of 7% is refused.
   - Every write adds one audit row and one change event.
   - Two writes to different companies run concurrently; two to the same company run in order (use a gate in `work`).
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: company and masters services`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: company and masters services`.
 
 ---
 
@@ -674,7 +674,7 @@ Permissions:
 
 Each save, edit, or cancel writes one audit entry with the voucher before and after as JSON, and publishes a `ChangeEvent(Voucher)`.
 
-- [ ] **Step 1: Write the failing tests.** Cover these:
+- [x] **Step 1: Write the failing tests.** Cover these:
   - A receipt saves as `RCT/26-27/00001`, and the second as `00002`.
   - An unbalanced journal gives `Debits and credits differ.`
   - A voucher dated on the lock date is refused; the day after is accepted.
@@ -685,10 +685,10 @@ Each save, edit, or cancel writes one audit entry with the voucher before and af
   - Cancel keeps the number; the next save does not reuse it.
   - A data entry user cannot `Get` another user's voucher, and `List` excludes it.
   - **Failure halfway:** inject an audit failure (a test only `Func<AuditEntry, AuditEntry>` hook on `CompanyHub` that throws). Afterwards no voucher, no postings, and the next save gets `00001`.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: voucher service for receipts, payments, journals, contras`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: voucher service for receipts, payments, journals, contras`.
 
 ---
 
@@ -733,7 +733,7 @@ Steps inside the transaction, after rules 2 to 4 and 6 to 8 from Task 10:
 
 10. **Store.** Store the computed per line taxable and tax amounts and the round off in `InvoiceHeader`.
 
-- [ ] **Step 1: Write the failing tests.** Use a company in state 27 (Maharashtra), Regular.
+- [x] **Step 1: Write the failing tests.** Use a company in state 27 (Maharashtra), Regular.
   - **Intra state sale:** one line, quantity 1, price ₹1,000.00, 18%, to a party in 27. Taxable 1,000.00, CGST 90.00, SGST 90.00, grand total 1,180.00. The number is `INV/26-27/00001`. The party ledger has a 1,180.00 debit in the trial balance.
   - **Inter state sale:** the same line to place of supply 29 gives IGST 180.00.
   - **SEZ without tax:** place of supply 27 and kind `SezWithoutTax` give zero tax and taxable 1,000.00.
@@ -744,10 +744,10 @@ Steps inside the transaction, after rules 2 to 4 and 6 to 8 from Task 10:
   - **Composition company:** a sale gives zero tax; a purchase at 18% is refused with the exact message.
   - **Line ledger:** a sale line to the Cash ledger gives `Line 1: choose a sales or purchase ledger.`
   - **Credit note** outward reduces Sales: Sales has a debit of 1,000.00.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: GST invoice saving recalculated on the host`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: GST invoice saving recalculated on the host`.
 
 ---
 
@@ -775,7 +775,7 @@ Spec 5.1 and 10. Plan 1 owner note: report engine build for 1,000,000 lines take
     - `LedgerStatement Statement(CallContext ctx, int company, LedgerId ledger, DateRange period)`.
     - A period crossing 31 March: Invalid `Choose a period within one financial year.`
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - **Matches a full rebuild:** after a sequence of save, edit, and cancel calls, `TrialBalance` from the cache equals one from `new Books(...)` built straight from `VoucherRepository.AllPostings`. Use `RandomBooks` style seeded data with 200 vouchers and assert every row.
   - **Masters change:** after `SetOpening`, the cache reflects it.
   - **Parallel edits keep the cache right:** 4 parallel loops edit and cancel the same 5 vouchers 50 times each, retrying on Conflict. Afterwards the cached `TrialBalance` equals one from a fresh `Books` built from `AllPostings`.
@@ -785,10 +785,10 @@ Spec 5.1 and 10. Plan 1 owner note: report engine build for 1,000,000 lines take
     - Load `CompanyBooks` with 1,000,000 in memory posting records (seeded, no SQLite).
     - Apply one voucher.
     - Assert a full year `TrialBalance` returns in under 1 s, using a `Stopwatch` around `Get` plus `TrialBalance`, best of 3.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.** If the performance test fails, profile before changing `Core.Books`, and report the numbers rather than relaxing the limit.
-- [ ] **Step 5: Commit** `feat: report service over an in memory books cache`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.** If the performance test fails, profile before changing `Core.Books`, and report the numbers rather than relaxing the limit.
+- [x] **Step 5: Commit** `feat: report service over an in memory books cache`.
 
 ---
 
@@ -833,7 +833,7 @@ Restore sequence:
 
 If step 5 fails, the live file is unchanged, the gate reopens, and the error is Invalid `Backup file is damaged. Nothing was restored.`
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - **Locking:**
     - The Accountant can lock but cannot move the lock earlier.
     - The Owner can unlock.
@@ -847,10 +847,10 @@ If step 5 fails, the live file is unchanged, the gate reopens, and the error is 
   - **Restore:**
     - Save voucher A, back up, save voucher B, restore. B is gone, A remains, and all sessions are removed.
     - A damaged backup leaves B in place and gives the exact message.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: period locks, audit verification, scheduled backups, restore`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: period locks, audit verification, scheduled backups, restore`.
 
 ---
 
@@ -904,7 +904,7 @@ If step 5 fails, the live file is unchanged, the gate reopens, and the error is 
     The message is the `ServiceException` message. Any other exception is `Internal` with `Something went wrong. Details are in the host log.`, and the details are logged.
   - `SetupOwner` passes `isLoopback = IPAddress.IsLoopback(httpContext.Connection.RemoteIpAddress)`. Under `TestServer` the remote address is null. Treat null as not loopback, and let the test override it through a `IRemoteAddressAccessor` registered in DI.
 
-- [ ] **Step 1: Write the failing end to end tests.**
+- [x] **Step 1: Write the failing end to end tests.**
   - `GetInfo` reports `needs_setup` true.
   - Setup with a loopback accessor, log in, create a company, save a receipt, and read the trial balance. The cash debit equals the amount.
   - A wrong `ohk-version` gives `FailedPrecondition` with the exact message.
@@ -912,10 +912,10 @@ If step 5 fails, the live file is unchanged, the gate reopens, and the error is 
   - A stale edit gives `Aborted`, and the trailer decodes to the current voucher.
   - `Watch` receives a `Voucher` event after a save by another session.
   - A data entry user calling `Reports.TrialBalance` gets `PermissionDenied`.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.** Endpoints build the `CallContext` from the session and set `Source = ChangeSource.App`.
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: gRPC contracts and host endpoints`.
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.** Endpoints build the `CallContext` from the session and set `Source = ChangeSource.App`.
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: gRPC contracts and host endpoints`.
 
 ---
 
@@ -950,19 +950,19 @@ Spec 4, Transport.
     - Exposes `public partial class Program` for tests.
     - Opens host.db and migrates at startup, before accepting connections.
 
-- [ ] **Step 1: Write the failing tests.**
+- [x] **Step 1: Write the failing tests.**
   - `GetOrCreate` twice returns the same thumbprint.
   - The certificate has the three SANs.
   - A missing key file regenerates the certificate (new thumbprint) and logs a warning.
   - **Kestrel TLS:** start the real app on port 0 with a temp data directory and call `GetInfo` over TLS. The client callback compares the server certificate fingerprint with `host-cert-fingerprint.txt`.
-- [ ] **Step 2: Run, confirm failure.**
-- [ ] **Step 3: Implement.** In the README, document:
+- [x] **Step 2: Run, confirm failure.**
+- [x] **Step 3: Implement.** In the README, document:
   - `dotnet run --project src/OpenHisabKitab.Host`.
   - Installing as a service: `sc.exe create OpenHisabKitabHost binPath= "...\OpenHisabKitab.Host.exe" start= auto`.
   - The firewall rule: `netsh advfirewall firewall add rule name="Open Hisab Kitab host" dir=in action=allow protocol=TCP localport=47250`.
   - That the installer does both in Plan 8.
-- [ ] **Step 4: Run, confirm pass.**
-- [ ] **Step 5: Commit** `feat: host process with TLS and Windows service support`.
+- [x] **Step 4: Run, confirm pass.**
+- [x] **Step 5: Commit** `feat: host process with TLS and Windows service support`.
 
 ---
 
@@ -972,7 +972,7 @@ Spec 4, Transport.
 - Test: `tests/OpenHisabKitab.Host.Tests/ConcurrencyTests.cs`
 - Modify: `docs/owner-review.md`, `CLAUDE.md` (only if a new durable command appears)
 
-- [ ] **Step 1: Write the tests.**
+- [x] **Step 1: Write the tests.**
   - **Numbering under contention:**
     - 8 tasks, each with its own session over gRPC, each save 50 receipts at once to one company.
     - Collect the numbers: exactly `RCT/26-27/00001` to `RCT/26-27/00400`, no duplicates.
@@ -980,11 +980,11 @@ Spec 4, Transport.
     - Audit verify is OK, with 400 voucher entries.
   - **Conflicting edits:** two sessions read the same voucher and both edit. Exactly one succeeds, and the other gets `Aborted`.
   - **Readers during writes:** while the 400 saves run, a reader loop calling `TrialBalance` never sees debits differ from credits.
-- [ ] **Step 2: Run the full suite in Release.**
+- [x] **Step 2: Run the full suite in Release.**
   - `dotnet build OpenHisabKitab.slnx -c Release`: 0 warnings.
   - `dotnet test OpenHisabKitab.slnx -c Release --no-build`: all pass.
-- [ ] **Step 3: Append a "Plan 2: Data and host" section to `docs/owner-review.md`.** It goes above the Plan 1 section. It holds the items listed under "Owner review items" below, plus any new decision taken while building.
-- [ ] **Step 4: Commit** `test: numbering and edits under contention; owner review for plan 2`.
+- [x] **Step 3: Append a "Plan 2: Data and host" section to `docs/owner-review.md`.** It goes above the Plan 1 section. It holds the items listed under "Owner review items" below, plus any new decision taken while building.
+- [x] **Step 4: Commit** `test: numbering and edits under contention; owner review for plan 2`.
 
 ## Owner review items (copy into `docs/owner-review.md` in Task 16)
 

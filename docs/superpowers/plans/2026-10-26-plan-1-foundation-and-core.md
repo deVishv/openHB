@@ -102,7 +102,7 @@ Namespaces follow folders, for example `OpenHisabKitab.Core.Amounts`. The folder
 **Interfaces:**
 - Produces: `RepositoryText.FindForbiddenDashes(string text) -> IReadOnlyList<(int Line, int Column)>`. This is a static class inside the test project. It is not product code.
 
-- [ ] **Step 1: Create the solution and projects**
+- [x] **Step 1: Create the solution and projects**
 
   Run from the repo root:
   ```
@@ -118,7 +118,7 @@ Namespaces follow folders, for example `OpenHisabKitab.Core.Amounts`. The folder
   - In `global.json`, set `{"sdk":{"version":"10.0.402","rollForward":"latestFeature"}}`.
   - In `.gitattributes`, set `* text=auto eol=crlf` and `*.sh text eol=lf`.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 ```csharp
 public class RepositoryTextTests
@@ -148,16 +148,16 @@ public class RepositoryTextTests
 
   Line and column are 1 based. `ScanRepository()` returns strings formatted as `path:line:column`. Source files must spell the characters as `\u2013` and `\u2014` escapes, never literally.
 
-- [ ] **Step 3: Run the tests and confirm they fail to compile**
+- [x] **Step 3: Run the tests and confirm they fail to compile**
 
   Run: `dotnet test OpenHisabKitab.slnx`
   Expected: build error, `RepositoryText` does not exist.
 
-- [ ] **Step 4: Implement `RepositoryText` in `tests/OpenHisabKitab.Core.Tests/RepositoryTextTests.cs`**
+- [x] **Step 4: Implement `RepositoryText` in `tests/OpenHisabKitab.Core.Tests/RepositoryTextTests.cs`**
 
   Some file writing tools turn the escape text `\u2014` into the real character. After writing the file, run `grep -c 'u2014' tests/OpenHisabKitab.Core.Tests/RepositoryTextTests.cs`. Expected: 1 or more. If the result is 0, rewrite the line with the escape text. Apply the same check to the `u00A0` escape in `NameMatcherTests.cs` (Task 5).
 
-- [ ] **Step 5: Write the repository files**
+- [x] **Step 5: Write the repository files**
   - **`LICENSE`:** standard MIT text with the copyright line from Global Constraints.
   - **`README.md`:** at most 40 lines. It has:
     - A one line description: "Open source accounting for Indian businesses."
@@ -171,7 +171,7 @@ public class RepositoryTextTests
     - The conventional commit prefixes.
   - **Issue templates:** a bug template with fields for steps, expected, actual, and version, and a feature template with fields for problem and proposal.
 
-- [ ] **Step 6: Write `.github/workflows/ci.yml`**
+- [x] **Step 6: Write `.github/workflows/ci.yml`**
 
 ```yaml
 name: CI
@@ -188,16 +188,16 @@ jobs:
       - run: dotnet test OpenHisabKitab.slnx -c Release --no-build
 ```
 
-- [ ] **Step 7: Run the tests and confirm they pass**
+- [x] **Step 7: Run the tests and confirm they pass**
 
   Run: `dotnet test OpenHisabKitab.slnx`
   Expected: `Passed!` with 3 tests and 0 failures.
 
-- [ ] **Step 8: Record the build commands in the local `CLAUDE.md`**
+- [x] **Step 8: Record the build commands in the local `CLAUDE.md`**
 
   Append to `CLAUDE.md` under "Rules and guidelines": the build and test commands, and the dash rule. The file is gitignored, so it is not committed.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
   ```
   git add -A
@@ -225,7 +225,7 @@ jobs:
   - `static class Rounding` with `static long HalfAwayFromZero(decimal value)`.
   - `readonly record struct Quantity(long Thousandths)` with `decimal Times(Money unitPrice)`, the exact product in paise.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class MoneyTests
@@ -281,21 +281,21 @@ public class QuantityTests
 
   Parse rules: optional leading `-`, digits, and commas only between digits. Commas are accepted in any grouping. An optional `.` must be followed by 1 or 2 digits. Surrounding whitespace is trimmed.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
   Run: `dotnet test --filter "FullyQualifiedName~Amounts"`
   Expected: build errors because the types are missing.
 
-- [ ] **Step 3: Implement `Money`, `Rounding`, and `Quantity` as specified in Interfaces**
+- [x] **Step 3: Implement `Money`, `Rounding`, and `Quantity` as specified in Interfaces**
 
   `Rounding` uses `decimal.Round(value, MidpointRounding.AwayFromZero)` and then a checked conversion to `long`.
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
   Run: `dotnet test --filter "FullyQualifiedName~Amounts"`
   Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   `feat: add Money, Quantity, and rounding`
 
@@ -315,7 +315,7 @@ public class QuantityTests
     - `string Format(Money m, NegativeStyle style = NegativeStyle.Brackets)`
     - `string FormatDrCr(Money m)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class IndianNumberFormatTests
@@ -360,17 +360,17 @@ public class IndianNumberFormatTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Formatting"`
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Formatting"`
 
-- [ ] **Step 3: Implement `IndianNumberFormat`**
+- [x] **Step 3: Implement `IndianNumberFormat`**
 
   Work on the absolute value as `ulong`, so that `long.MinValue` is safe:
   - Split it into rupees and paise.
   - Rupees: the last 3 digits form one group. The digits before them are grouped in pairs from the right.
 
-- [ ] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 4: Run the tests and confirm they pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   `feat: add Indian number formatting`
 
@@ -400,7 +400,7 @@ public class IndianNumberFormatTests
   - `static class PeriodInput`. Members:
     - `bool TryParse(IReadOnlyList<string> tokens, DateOnly today, out DateRange range)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class FinancialYearTests
@@ -478,13 +478,13 @@ public class PeriodInputTests
   - `fyNN` means the financial year starting `2000 + NN`.
   - A bare `d-m` date resolves to the financial year that contains `today`: months 4 to 12 fall in the start year, months 1 to 3 in the following year.
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Time"`
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Time"`
 
-- [ ] **Step 3: Implement the four types.** `PeriodInput.TryParse` returns false, rather than throwing, when the from date is after the to date. Separators are `-` or `/`. Use `DateOnly` construction inside a `try` block, or check `DateTime.DaysInMonth` first, to reject impossible dates.
+- [x] **Step 3: Implement the four types.** `PeriodInput.TryParse` returns false, rather than throwing, when the from date is after the to date. Separators are `-` or `/`. Use `DateOnly` construction inside a `try` block, or check `DateTime.DaysInMonth` first, to reject impossible dates.
 
-- [ ] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 4: Run the tests and confirm they pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   `feat: add financial year, date, and period parsing`
 
@@ -536,7 +536,7 @@ Matching ignores case. Empty text returns `All`.
 
 Candidates keep their original spelling and input order.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class CommandParserTests
@@ -593,13 +593,13 @@ public class NameMatcherTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Commands"`
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Commands"`
 
-- [ ] **Step 3: Implement the three types.**
+- [x] **Step 3: Implement the three types.**
 
-- [ ] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 4: Run the tests and confirm they pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   `feat: add command parser, function catalog, and name matcher`
 
@@ -659,7 +659,7 @@ Required ledgers and their groups:
 | Output CGST, Output SGST, Output UTGST, Output IGST, Output Cess | Duties and Taxes |
 | Input CGST, Input SGST, Input UTGST, Input IGST, Input Cess | GST Input Credit |
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class ChartOfAccountsTests
@@ -706,13 +706,13 @@ public class ChartOfAccountsTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Accounts"`
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Accounts"`
 
-- [ ] **Step 3: Implement the types.** Ids are assigned sequentially from 1, separately for groups and for ledgers.
+- [x] **Step 3: Implement the types.** Ids are assigned sequentially from 1, separately for groups and for ledgers.
 
-- [ ] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 4: Run the tests and confirm they pass.**
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   `feat: add chart of accounts and default chart`
 
@@ -743,7 +743,7 @@ The validation rules are:
 - Receipt: at least one debit line on a cash or bank ledger.
 - Payment: at least one credit line on a cash or bank ledger.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class VoucherValidatorTests
@@ -783,10 +783,10 @@ public class VoucherValidatorTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Vouchers"`
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Vouchers"`
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: add voucher validation and posting consolidation`
 
@@ -834,7 +834,7 @@ Shape of `gst-data.json`. Dates are ISO strings, and `to` may be `null`:
 }
 ```
 
-- [ ] **Step 1: Fill `gst-data.json` from official sources and record each URL in `sources`**
+- [x] **Step 1: Fill `gst-data.json` from official sources and record each URL in `sources`**
 
   **States.** Use the GST state code list from the GST portal or CBIC. It must include:
   - 01 to 24, 26, 27, and 29 to 38
@@ -851,7 +851,7 @@ Shape of `gst-data.json`. Dates are ISO strings, and `to` may be `null`:
 
   **Schemas.** Set `einvoice` to the version shown on the e-invoice portal. Leave `gstr1` and `gstr2b` empty; Plan 6 fills them in.
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 ```csharp
 public class GstDataTests
@@ -893,16 +893,16 @@ public class GstRulesTests
 }
 ```
 
-- [ ] **Step 3: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Gst"`
+- [x] **Step 3: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Gst"`
 
-- [ ] **Step 4: Implement the types.**
+- [x] **Step 4: Implement the types.**
   - Parse the JSON with `System.Text.Json`, using `JsonDocument` or DTO records.
   - Validate while loading: unique state codes, no overlapping threshold ranges for the same key, and `from <= to`.
   - Throw `FormatException` with the reason if any check fails.
 
-- [ ] **Step 5: Run the tests and confirm they pass.**
+- [x] **Step 5: Run the tests and confirm they pass.**
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   `feat: add GST reference data and tax split rules`
 
@@ -943,7 +943,7 @@ Rules (spec 5.3). All rounding is half away from zero, to the paisa.
    - When `roundOff` is true, the grand total is the raw total rounded to the nearest rupee, with 50 paise rounding up, and `RoundOff = GrandTotal - raw`.
    - When `roundOff` is false, `RoundOff` is 0.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class InvoiceCalculatorTests
@@ -1017,10 +1017,10 @@ public class InvoiceCalculatorTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~InvoiceCalculator"`
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~InvoiceCalculator"`
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: add GST invoice calculator`
 
@@ -1069,7 +1069,7 @@ Posting rules. The sign for the document is +1 for `Invoice` and `DebitNote`, an
 
 **`lineLedgers.Count != invoice.Lines.Count`:** throw `ArgumentException`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class GstPostingTests
@@ -1121,10 +1121,10 @@ public class GstPostingTests
 
   The order of posting lines is: party first for outward documents, then line ledgers, then taxes in the order CGST, SGST, UTGST, IGST, Cess, then Round Off. For inward documents the party comes after the taxes. The tests above pin this order.
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~GstPosting"`
-- [ ] **Step 3: Implement.** For inward documents, the line order is: line ledgers, input taxes, output taxes, party, Round Off.
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~GstPosting"`
+- [x] **Step 3: Implement.** For inward documents, the line order is: line ledgers, input taxes, output taxes, party, Round Off.
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: post GST documents to ledgers`
 
@@ -1148,7 +1148,7 @@ public class GstPostingTests
       - The prefix may contain only `[A-Za-z0-9/-]`. Otherwise the error is `InvalidCharacter`.
       - `Width` must be from 1 to 10. Otherwise the error is `BadWidth`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```csharp
 public class NumberSeriesTests
@@ -1166,10 +1166,10 @@ public class NumberSeriesTests
 }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~NumberSeries"`
-- [ ] **Step 3: Implement.**
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~NumberSeries"`
+- [x] **Step 3: Implement.**
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: add GST compliant number series`
 
@@ -1213,7 +1213,7 @@ public class NumberSeriesTests
 - **`TotalDebit`** is the sum of the positive closing balances. **`TotalCredit`** is the sum of the negated negative closing balances.
 - **When `OpeningDifference` is not zero,** it counts on the opposite side so that the totals still agree. A positive difference is added to `TotalCredit`. A negative difference adds its absolute value to `TotalDebit`. The client shows it as the "Opening difference" line (spec 13).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
   Shared fixture in the test class:
   - Start from the default chart.
@@ -1270,10 +1270,10 @@ public class NumberSeriesTests
 
   Write these as separate `[Fact]` methods named for what they check. The fixture is built in the constructor using `PostingRecord` values.
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Reports"`
-- [ ] **Step 3: Implement `Books.TrialBalance` and `Books.Statement`.**
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Reports"`
+- [x] **Step 3: Implement `Books.TrialBalance` and `Books.Statement`.**
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: add books engine with trial balance, ledger statement, and year carry forward`
 
@@ -1302,7 +1302,7 @@ public class NumberSeriesTests
   - `Books.ProfitAndLoss(DateRange period)`, under the same one-year rule.
   - `Books.BalanceSheet(DateOnly asAt)`
 
-- [ ] **Step 1: Write the failing tests** using the Task 12 fixture.
+- [x] **Step 1: Write the failing tests** using the Task 12 fixture.
 
   **P&L for FY 2025-26.**
   - Income: [Sales 1,000,000]. Expenses: [Rent 200,000].
@@ -1322,10 +1322,10 @@ public class NumberSeriesTests
 
   **Invariant 4.** `ProfitAndLoss(fy.Range).NetProfit == BalanceSheet(fy.End).CurrentProfit` for both years.
 
-- [ ] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Reports"`
-- [ ] **Step 3: Implement.** Both methods use the same per-ledger opening and closing helper as `TrialBalance` (spec 5.1). They must not have their own summing loop over raw postings.
-- [ ] **Step 4: Run the tests and confirm they pass.**
-- [ ] **Step 5: Commit**
+- [x] **Step 2: Run the tests and confirm they fail.** Run: `dotnet test --filter "FullyQualifiedName~Reports"`
+- [x] **Step 3: Implement.** Both methods use the same per-ledger opening and closing helper as `TrialBalance` (spec 5.1). They must not have their own summing loop over raw postings.
+- [x] **Step 4: Run the tests and confirm they pass.**
+- [x] **Step 5: Commit**
 
   `feat: add profit and loss and balance sheet`
 
@@ -1345,7 +1345,7 @@ public class NumberSeriesTests
   - `sealed record GeneratedVoucher(long Id, DateOnly Date, IReadOnlyList<PostingLine> Lines, GeneratedInvoice? Invoice)`
   - `static class RandomBooks` with `(Books Books, ChartOfAccounts Chart, IReadOnlyList<GeneratedVoucher> Vouchers) Generate(int seed)`
 
-- [ ] **Step 1: Build `GoldenCompany`**
+- [x] **Step 1: Build `GoldenCompany`**
 
   The figures were calculated by hand during planning, and the test asserts them. The software is not used to produce them. The chart is the default chart plus four ledgers:
   - `Gupta Enterprises` (Trade Receivables)
@@ -1364,7 +1364,7 @@ public class NumberSeriesTests
   | V5 | 30-04-2025 | Payment: Dr Mehta, Cr Cash, ₹7,080 | Posting lines |
   | V6 | 05-05-2026 | Journal: Dr Cash, Cr Interest Received, ₹1,000 | Posting lines |
 
-- [ ] **Step 2: Write `GoldenCompanyTests` with these exact expectations (in rupees; use `Money.FromRupees`)**
+- [x] **Step 2: Write `GoldenCompanyTests` with these exact expectations (in rupees; use `Money.FromRupees`)**
 
   **Trial balance, FY 2025-26.** Closing balances:
 
@@ -1406,7 +1406,7 @@ public class NumberSeriesTests
   - Running balances are 61,800, 59,800, and 52,720.
   - Closing is 52,720.
 
-- [ ] **Step 3: Build `RandomBooks.Generate(seed)`** using `new Random(seed)`. The generated company has:
+- [x] **Step 3: Build `RandomBooks.Generate(seed)`** using `new Random(seed)`. The generated company has:
   - **Chart:** the default chart plus 5 party ledgers (3 receivables, 2 payables), `HDFC Bank`, `Rent`, and `Interest Received`.
   - **Books start:** 1-4-2025.
   - **Openings:** random amounts from ₹0 to ₹10,00,000 on Cash, the bank, and the parties. Capital balances them to zero.
@@ -1420,7 +1420,7 @@ public class NumberSeriesTests
     - 40% are journals with 2 to 5 random lines of up to 100000000 paise each, balanced by a final line.
   - **Posting records:** every voucher's lines become `PostingRecord`s.
 
-- [ ] **Step 4: Write `InvariantTests`**
+- [x] **Step 4: Write `InvariantTests`**
 
   This is a `[Theory]` over seeds 1 to 100, using `MemberData`. For each seed, assert spec 5.2 invariants 1 to 7:
   1. Every voucher's lines sum to zero.
@@ -1433,12 +1433,12 @@ public class NumberSeriesTests
 
   Include the seed in every assertion message so a failure can be reproduced.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
   Run: `dotnet test OpenHisabKitab.slnx -c Release`
   Expected: all pass, 0 failed. The test run reports more than 100 invariant cases.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   `test: add golden company and random invariant tests`
 

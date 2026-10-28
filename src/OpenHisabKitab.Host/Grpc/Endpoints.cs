@@ -206,10 +206,10 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
         return new V1Empty();
     }
 
-    public override Task<AuditVerificationMsg> VerifyAudit(AuditTarget request, ServerCallContext context)
+    public override async Task<AuditVerificationMsg> VerifyAudit(AuditTarget request, ServerCallContext context)
     {
-        var v = admin.VerifyAudit(context.Caller(), Wire.Target(request.Company));
-        return Task.FromResult(new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0, Anchor = v.Anchor.ToString() });
+        var v = await admin.VerifyAuditAsync(context.Caller(), Wire.Target(request.Company));
+        return new AuditVerificationMsg { Count = v.Count, Ok = v.Ok, FirstBadSeq = v.FirstBadSeq ?? 0, Anchor = v.Anchor.ToString() };
     }
 
     public override Task<AuditList> ListAudit(ListAuditRequest request, ServerCallContext context)

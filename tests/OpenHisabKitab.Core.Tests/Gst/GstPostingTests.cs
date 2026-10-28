@@ -103,4 +103,21 @@ public class GstPostingTests
     public void Line_ledger_count_must_match() =>
         Assert.Throws<ArgumentException>(() =>
             GstPosting.Post(Sale999(), Array.Empty<LedgerId>(), TradeDirection.Outward, GstDocumentKind.Invoice, false, acc));
+
+    [Fact]
+    public void Reverse_charge_without_input_credit_puts_the_tax_in_the_cost()
+    {
+        var r = InvoiceCalculator.Calculate(
+            new[] { new InvoiceLineInput(new Quantity(1000), new Money(100000), Money.Zero, new GstRate(1800), new GstRate(0)) },
+            TaxSplit.CgstSgst, true, true);
+        var p = GstPosting.Post(r, new[] { R(RequiredLedger.Purchases) }, TradeDirection.Inward, GstDocumentKind.Invoice, true, acc,
+            inputCredit: false);
+        Assert.Equal(new[]
+        {
+            new PostingLine(R(RequiredLedger.Purchases), new Money(118000)),
+            new PostingLine(R(RequiredLedger.RcmPayableCgst), new Money(-9000)),
+            new PostingLine(R(RequiredLedger.RcmPayableSgst), new Money(-9000)),
+            new PostingLine(party, new Money(-100000)),
+        }, p);
+    }
 }

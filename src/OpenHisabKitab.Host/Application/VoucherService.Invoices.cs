@@ -85,7 +85,7 @@ public sealed partial class VoucherService
             _ => GstDocumentKind.Invoice,
         };
         var postings = GstPosting.Post(result, [.. input.Lines.Select(l => l.Ledger)], input.Direction, kind, input.ReverseCharge,
-            GstPostingAccounts.FromChart(chart, input.Party));
+            GstPostingAccounts.FromChart(chart, input.Party), inputCredit: profile.Registration == GstRegistration.Regular);
         Check(new VoucherDraft(input.Type, input.Date, postings), chart);
 
         var rows = input.Lines.Select((l, i) => new InvoiceLineRow(
@@ -98,11 +98,13 @@ public sealed partial class VoucherService
     }
 
     // Zero tax: exports under LUT and SEZ supplies without payment, a composition company's bills of supply, and every
-    // document of an unregistered company. Composition and unregistered companies cannot take input credit.
+    // document of an unregistered company. Composition and unregistered companies cannot take input credit, but a
+    // composition company still pays reverse charge at the normal rates (CGST Act section 9(3) and 9(4)).
     static bool TaxFree(GstRegistration registration, InvoiceInput input)
     {
         if (input.Kind is InvoiceKind.ExportUnderLut or InvoiceKind.SezWithoutTax) return true;
         if (registration == GstRegistration.Regular) return false;
+        if (registration == GstRegistration.Composition && input.Direction == TradeDirection.Inward && input.ReverseCharge) return false;
         if (input.Direction == TradeDirection.Inward && input.Lines.Any(l => l.Rate.BasisPoints != 0 || l.CessRate.BasisPoints != 0))
             throw new ServiceException(ServiceError.Invalid,
                 "This company cannot take input tax credit. Enter the purchase with rate 0 and the full amount.");

@@ -257,4 +257,23 @@ public sealed class InvoiceServiceTests : IDisposable
         var ex = await Fails(ServiceError.Invalid, () => host.Vouchers.SaveInvoiceAsync(owner, company, Sale(localCustomer, "27", line)));
         Assert.Equal("Line 1: unknown item.", ex.Message);
     }
+
+    [Fact]
+    public async Task Composition_company_pays_reverse_charge_as_cost()
+    {
+        var comp = host.NewCompany(TestHost.Profile("C Traders") with { Registration = GstRegistration.Composition, Gstin = null });
+        var compChart = host.Masters.Chart(owner, comp);
+        var supplier = Party(comp, "Advocate Rao", GroupKind.TradePayables, "27");
+        var expense = compChart.Required(RequiredLedger.Purchases);
+        var purchase = new InvoiceInput(VoucherType.Purchase, June1, "", supplier, TradeDirection.Inward, InvoiceKind.Regular,
+            new StateCode("27"), true, null, null, null, null, [Line(expense, "1000.00")]);
+        var saved = await host.Vouchers.SaveInvoiceAsync(owner, comp, purchase);
+
+        var postings = host.Vouchers.Get(owner, comp, saved.Id).Postings.ToDictionary(l => l.Ledger, l => l.Amount);
+        Assert.Equal(Money.Parse("1180.00"), postings[expense]);
+        Assert.Equal(Money.Parse("-90.00"), postings[compChart.Required(RequiredLedger.RcmPayableCgst)]);
+        Assert.Equal(Money.Parse("-90.00"), postings[compChart.Required(RequiredLedger.RcmPayableSgst)]);
+        Assert.Equal(Money.Parse("-1000.00"), postings[supplier]);
+        Assert.False(postings.ContainsKey(compChart.Required(RequiredLedger.InputCgst)));
+    }
 }

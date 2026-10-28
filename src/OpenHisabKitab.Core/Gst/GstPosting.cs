@@ -32,7 +32,10 @@ public sealed record GstPostingAccounts(LedgerId Party, LedgerId RoundOff, TaxLe
             chart.Required(RequiredLedger.RcmPayableCess)));
 }
 
-/// <summary>Turns a calculated GST document into balanced posting lines.</summary>
+/// <summary>
+/// Turns a calculated GST document into balanced posting lines. Without input credit (a composition company paying
+/// reverse charge), each inward line's tax is part of that line's cost instead of going to the input tax ledgers.
+/// </summary>
 public static class GstPosting
 {
     public static IReadOnlyList<PostingLine> Post(
@@ -41,7 +44,8 @@ public static class GstPosting
         TradeDirection direction,
         GstDocumentKind kind,
         bool reverseCharge,
-        GstPostingAccounts accounts)
+        GstPostingAccounts accounts,
+        bool inputCredit = true)
     {
         if (lineLedgers.Count != invoice.Lines.Count)
             throw new ArgumentException("Each invoice line needs exactly one ledger.", nameof(lineLedgers));
@@ -60,8 +64,12 @@ public static class GstPosting
         }
         else
         {
-            for (var i = 0; i < lineLedgers.Count; i++) Add(lineLedgers[i], invoice.Lines[i].Taxable);
-            AddTaxes(lines, invoice, accounts.Input, credit: false);
+            for (var i = 0; i < lineLedgers.Count; i++)
+            {
+                var l = invoice.Lines[i];
+                Add(lineLedgers[i], inputCredit ? l.Taxable : l.Taxable + l.Cgst + l.Sgst + l.Utgst + l.Igst + l.Cess);
+            }
+            if (inputCredit) AddTaxes(lines, invoice, accounts.Input, credit: false);
             // Under reverse charge the business owes the tax itself, payable in cash, kept apart from output tax.
             if (reverseCharge) AddTaxes(lines, invoice, accounts.RcmPayable, credit: true);
             Add(accounts.Party, -invoice.GrandTotal);

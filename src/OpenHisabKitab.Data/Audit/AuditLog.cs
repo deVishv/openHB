@@ -57,6 +57,10 @@ public static class AuditLog
     public static AuditHead? Head(SqliteConnection c) =>
         Sql.Single(c, "SELECT seq, hash FROM audit_log ORDER BY seq DESC LIMIT 1", r => new AuditHead(r.GetInt64(0), r.GetString(1)));
 
+    /// <summary>True when the trail still has this record with this hash.</summary>
+    public static bool Holds(SqliteConnection c, AuditHead record) =>
+        Sql.Single(c, "SELECT hash FROM audit_log WHERE seq = $seq", r => r.GetString(0), ("$seq", record.Seq)) == record.Hash;
+
     /// <summary>Checks the chain alone. Use the anchored overload for company files.</summary>
     public static AuditVerification Verify(SqliteConnection c) => Verify(c, null, anchored: false);
 

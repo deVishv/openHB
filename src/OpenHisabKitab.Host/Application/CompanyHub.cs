@@ -116,30 +116,39 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
 
     async Task<T> RunAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit)
     {
+        using var c = Open(companyId);
         T result;
-        AuditHead? head;
-        using (var c = Open(companyId))
+        using (var tx = SqliteDatabase.BeginWrite(c))
         {
-            using (var tx = SqliteDatabase.BeginWrite(c))
-            {
-                result = work(tx);
-                tx.Commit();
-            }
-            head = AuditLog.Head(c);
+            result = work(tx);
+            tx.Commit();
         }
+        afterCommit?.Invoke(result);
+
         // Still under the company lock, so anchors only move forward. The save is already committed: if host.db cannot
         // take the anchor, the save still stands and the anchor stays one step behind, which verification accepts. The
         // next save of this company moves it to the head again.
-        if (head is not null)
+        if (AuditLog.Head(c) is { } head)
         {
-            try { await data.WriteHostAsync(tx => { AuditAnchorRepository.Set(tx, companyId, head); return 0; }).ConfigureAwait(false); }
+            try { await data.WriteHostAsync(tx => { Advance(tx, companyId, c, head); return 0; }).ConfigureAwait(false); }
             catch (SqliteException) { }
         }
-        afterCommit?.Invoke(result);
         return result;
     }
 
-    /// <summary>Sets the company's anchor to its file's newest audit record, inside the caller's host.db transaction.</summary>
+    // A save moves the anchor only while the file still holds the anchored record. After records were removed or the
+    // chain rebuilt, the anchor stays at the last good record, so verification keeps reporting it until a restore. A
+    // save never creates a missing anchor either.
+    static void Advance(SqliteTransaction hostTx, int companyId, SqliteConnection company, AuditHead head)
+    {
+        if (AuditAnchorRepository.Get(hostTx.Connection!, companyId) is { } old && AuditLog.Holds(company, old))
+            AuditAnchorRepository.Set(hostTx, companyId, head);
+    }
+
+    /// <summary>
+    /// Sets the company's anchor to its file's newest audit record, inside the caller's host.db transaction. Only company
+    /// creation and restore use this, because it may move the anchor back.
+    /// </summary>
     internal static void Anchor(SqliteTransaction hostTx, int companyId, SqliteConnection company)
     {
         if (AuditLog.Head(company) is { } head) AuditAnchorRepository.Set(hostTx, companyId, head);

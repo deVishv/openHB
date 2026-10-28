@@ -252,6 +252,56 @@ public sealed class AdminServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task A_save_after_removed_audit_rows_does_not_hide_them()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        using (var c = host.Hub.Open(company))
+        using (var cmd = c.CreateCommand())
+        {
+            cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log WHERE seq = (SELECT max(seq) FROM audit_log);";
+            cmd.ExecuteNonQuery();
+        }
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
+        Assert.Equal(AnchorCheck.Mismatch, host.Admin.VerifyAudit(owner, company).Anchor);
+    }
+
+    [Fact]
+    public async Task A_save_after_a_rebuilt_audit_chain_does_not_hide_it()
+    {
+        for (var i = 1; i <= 3; i++) await host.Vouchers.SaveJournalAsync(owner, company, Receipt(i));
+        using (var c = host.Hub.Open(company))
+        {
+            var rows = AuditLog.Read(c, new AuditFilter()).OrderBy(r => r.Seq).ToList();
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "DROP TRIGGER audit_log_no_delete; DELETE FROM audit_log;";
+                cmd.ExecuteNonQuery();
+            }
+            using var tx = Data.SqliteDatabase.BeginWrite(c);
+            foreach (var r in rows) AuditLog.Append(tx, r.Entry with { User = "someone" });
+            tx.Commit();
+        }
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(4));
+        var v = host.Admin.VerifyAudit(owner, company);
+        Assert.Null(v.FirstBadSeq);
+        Assert.Equal(AnchorCheck.Mismatch, v.Anchor);
+    }
+
+    [Fact]
+    public async Task A_save_does_not_create_a_missing_anchor()
+    {
+        host.Data.WriteHost(tx =>
+        {
+            using var cmd = tx.Connection!.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = "DELETE FROM audit_anchors";
+            return cmd.ExecuteNonQuery();
+        });
+        await host.Vouchers.SaveJournalAsync(owner, company, Receipt(1));
+        Assert.Equal(AnchorCheck.Missing, host.Admin.VerifyAudit(owner, company).Anchor);
+    }
+
+    [Fact]
     public void A_new_company_is_anchored_from_its_first_record()
     {
         var v = host.Admin.VerifyAudit(owner, company);

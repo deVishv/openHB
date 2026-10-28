@@ -14,7 +14,7 @@ public sealed class VoucherServiceTests : IDisposable
         var chart = host.Masters.Chart(owner, company);
         cash = chart.Required(RequiredLedger.Cash);
         sales = chart.Required(RequiredLedger.Sales);
-        bank = host.Masters.AddLedger(owner, company, "HDFC Bank", chart.Group(GroupKind.BankAccounts));
+        bank = host.Masters.AddLedgerAsync(owner, company, "HDFC Bank", chart.Group(GroupKind.BankAccounts)).GetAwaiter().GetResult();
     }
 
     public void Dispose() => host.Dispose();
@@ -101,7 +101,7 @@ public sealed class VoucherServiceTests : IDisposable
     [Fact]
     public async Task Lock_date_is_refused_and_the_day_after_accepted()
     {
-        host.Hub.Write(company, tx => { LockRepository.Set(tx, new DateOnly(2026, 6, 30)); return 0; });
+        await host.Hub.WriteAsync(company, tx => { LockRepository.Set(tx, new DateOnly(2026, 6, 30)); return 0; });
         var ex = await Fails(ServiceError.Locked, () => host.Vouchers.SaveJournalAsync(owner, company, Receipt(new DateOnly(2026, 6, 30), 5)));
         Assert.Equal("Books are locked up to 30-06-2026.", ex.Message);
         await host.Vouchers.SaveJournalAsync(owner, company, Receipt(new DateOnly(2026, 7, 1), 5));
@@ -110,7 +110,7 @@ public sealed class VoucherServiceTests : IDisposable
     [Fact]
     public async Task Edit_cannot_leave_the_financial_year()
     {
-        host.Companies.AddYear(owner, company);
+        await host.Companies.AddYearAsync(owner, company);
         var saved = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(May10, 5));
         var ex = await Fails(ServiceError.Invalid, () =>
             host.Vouchers.EditJournalAsync(owner, company, saved.Id, saved.RowVersion, Receipt(new DateOnly(2027, 4, 10), 5)));
@@ -122,7 +122,7 @@ public sealed class VoucherServiceTests : IDisposable
     {
         var early = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(new DateOnly(2026, 5, 1), 5));
         var late = await host.Vouchers.SaveJournalAsync(owner, company, Receipt(new DateOnly(2026, 8, 1), 5));
-        host.Hub.Write(company, tx => { LockRepository.Set(tx, new DateOnly(2026, 6, 30)); return 0; });
+        await host.Hub.WriteAsync(company, tx => { LockRepository.Set(tx, new DateOnly(2026, 6, 30)); return 0; });
         await Fails(ServiceError.Locked, () => host.Vouchers.EditJournalAsync(owner, company, late.Id, late.RowVersion, Receipt(new DateOnly(2026, 6, 1), 5)));
         await Fails(ServiceError.Locked, () => host.Vouchers.EditJournalAsync(owner, company, early.Id, early.RowVersion, Receipt(new DateOnly(2026, 8, 1), 5)));
         await Fails(ServiceError.Locked, () => host.Vouchers.CancelAsync(owner, company, early.Id, early.RowVersion, "wrong"));
@@ -131,7 +131,7 @@ public sealed class VoucherServiceTests : IDisposable
     [Fact]
     public async Task Opening_difference_blocks_saving()
     {
-        host.Masters.SetOpening(owner, company, cash, Money.FromRupees(100));
+        await host.Masters.SetOpeningAsync(owner, company, cash, Money.FromRupees(100));
         var ex = await Fails(ServiceError.OpeningDifference, () => host.Vouchers.SaveJournalAsync(owner, company, Receipt(May10, 5)));
         Assert.Equal("Opening balances differ by 100.00. Fix them in ACCT.", ex.Message);
     }

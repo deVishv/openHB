@@ -13,6 +13,13 @@ public sealed class CompanyServiceTests : IDisposable
         return ex;
     }
 
+    static async Task<ServiceException> FailsAsync(ServiceError error, Func<Task> act)
+    {
+        var ex = await Assert.ThrowsAsync<ServiceException>(act);
+        Assert.Equal(error, ex.Error);
+        return ex;
+    }
+
     [Fact]
     public void Created_company_has_the_default_chart_and_first_year()
     {
@@ -86,24 +93,24 @@ public sealed class CompanyServiceTests : IDisposable
     }
 
     [Fact]
-    public void Add_year_adds_the_next_one()
+    public async Task Add_year_adds_the_next_one()
     {
         var id = host.NewCompany();
-        host.Companies.AddYear(host.Owner.Context, id);
+        await host.Companies.AddYearAsync(host.Owner.Context, id);
         Assert.Equal([new FinancialYear(2026), new FinancialYear(2027)], host.Companies.Years(host.Owner.Context, id));
     }
 
     [Fact]
-    public void Setting_must_be_json()
+    public async Task Setting_must_be_json()
     {
         var id = host.NewCompany();
-        host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "false");
-        var ex = Fails(ServiceError.Invalid, () => host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "nope"));
+        await host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.roundOff", "false");
+        var ex = await FailsAsync(ServiceError.Invalid, () => host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.roundOff", "nope"));
         Assert.Equal("Setting invoice.roundOff needs a JSON value.", ex.Message);
     }
 
     [Fact]
-    public void Unknown_company_is_not_found() =>
+    public async Task Unknown_company_is_not_found() =>
         Fails(ServiceError.NotFound, () => host.Companies.Get(host.Owner.Context, 42));
 
     [Fact]
@@ -155,12 +162,12 @@ public sealed class CompanyServiceTests : IDisposable
     }
 
     [Fact]
-    public void Known_settings_must_have_the_right_type()
+    public async Task Known_settings_must_have_the_right_type()
     {
         var id = host.NewCompany();
-        var ex = Fails(ServiceError.Invalid, () => host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "\"yes\""));
+        var ex = await FailsAsync(ServiceError.Invalid, () => host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.roundOff", "\"yes\""));
         Assert.Equal("Setting invoice.roundOff must be true or false.", ex.Message);
-        Fails(ServiceError.Invalid, () => host.Companies.SetSetting(host.Owner.Context, id, "invoice.roundOff", "1"));
+        await FailsAsync(ServiceError.Invalid, () => host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.roundOff", "1"));
     }
 
     [Fact]

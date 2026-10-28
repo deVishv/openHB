@@ -14,11 +14,11 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     readonly BackupManager backups = new(time);
 
     /// <summary>Locks the books up to a date. Moving the lock earlier unlocks a period, which needs the unlock right.</summary>
-    public void LockUpTo(CallContext ctx, int company, DateOnly date)
+    public Task LockUpToAsync(CallContext ctx, int company, DateOnly date)
     {
         ctx.Require(Permission.LockPeriod);
         ctx.RequireCompany(company);
-        hub.Write(company, tx =>
+        return hub.WriteAsync(company, tx =>
         {
             var current = LockRepository.LockedUpTo(tx.Connection!);
             var earlier = current is { } c && date < c;
@@ -29,11 +29,11 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         }, _ => feed.Publish(new ChangeEvent(company, ChangeKind.Lock, null)));
     }
 
-    public void Unlock(CallContext ctx, int company)
+    public Task UnlockAsync(CallContext ctx, int company)
     {
         ctx.Require(Permission.UnlockPeriod);
         ctx.RequireCompany(company);
-        hub.Write(company, tx =>
+        return hub.WriteAsync(company, tx =>
         {
             var current = LockRepository.LockedUpTo(tx.Connection!);
             LockRepository.Set(tx, null);
@@ -55,11 +55,11 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         return AuditLog.Read(c, filter);
     }
 
-    public BackupFile BackupNow(CallContext ctx, int? company)
+    public Task<BackupFile> BackupNowAsync(CallContext ctx, int? company)
     {
         ctx.Require(Permission.Backup);
         RequireTarget(ctx, company);
-        return Backup(company, ctx.Audit(time.GetUtcNow(), "backup", "database", Source(company), null, null), keep: null);
+        return BackupAsync(company, ctx.Audit(time.GetUtcNow(), "backup", "database", Source(company), null, null), keep: null);
     }
 
     public IReadOnlyList<BackupFile> Backups(CallContext ctx, int? company)
@@ -116,7 +116,7 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
     /// Backs up host.db (company null) or one company, prunes to <paramref name="keep"/> when given, and audits the
     /// backup in the database it copied.
     /// </summary>
-    internal BackupFile Backup(int? company, AuditEntry audit, int? keep)
+    internal async Task<BackupFile> BackupAsync(int? company, AuditEntry audit, int? keep)
     {
         if (company is { } gated) hub.Gate.Check(gated);
         var path = company is { } id ? data.CompanyPath(id) : data.HostDbPath;
@@ -128,7 +128,7 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         if (keep is { } k) backups.Prune(folder, Source(company), k);
 
         var entry = audit with { After = JsonSerializer.Serialize(new { File = Path.GetFileName(file.Path) }) };
-        if (company is { } companyId) hub.Write(companyId, tx => { hub.Audit(tx, entry); return 0; });
+        if (company is { } companyId) await hub.WriteAsync(companyId, tx => { hub.Audit(tx, entry); return 0; }).ConfigureAwait(false);
         else data.WriteHost(tx => AuditLog.Append(tx, entry));
         return file;
     }

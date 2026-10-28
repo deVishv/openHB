@@ -72,14 +72,7 @@ public sealed class CompanyHub(HostData data, TimeProvider time)
             File.Delete(data.CompanyPath(companyId) + suffix);
     }
 
-    public T Write<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit = null)
-    {
-        var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));
-        gate.Wait();
-        try { return Run(companyId, work, afterCommit); }
-        finally { gate.Release(); }
-    }
-
+    /// <summary>Waiting for the company's write lock frees the thread, so many users saving at once do not tie up the server.</summary>
     public async Task<T> WriteAsync<T>(int companyId, Func<SqliteTransaction, T> work, Action<T>? afterCommit = null)
     {
         var gate = writeLocks.GetOrAdd(companyId, _ => new SemaphoreSlim(1, 1));

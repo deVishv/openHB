@@ -28,8 +28,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         return ChartRepository.Openings(c);
     }
 
-    public GroupId AddGroup(CallContext ctx, int company, string name, GroupId parent) =>
-        ChangeChart<GroupId>(ctx, company, "create", (tx, chart) =>
+    public Task<GroupId> AddGroupAsync(CallContext ctx, int company, string name, GroupId parent) =>
+        ChangeChartAsync<GroupId>(ctx, company, "create", (tx, chart) =>
         {
             var (next, id) = Charted(() => chart.AddGroup(name, parent));
             var group = next.Groups.Single(g => g.Id == id);
@@ -37,16 +37,16 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             return (id.Value, "group", (object?)null, (object?)group, id);
         });
 
-    public LedgerId AddLedger(CallContext ctx, int company, string name, GroupId group) =>
-        ChangeChart<LedgerId>(ctx, company, "create", (tx, chart) =>
+    public Task<LedgerId> AddLedgerAsync(CallContext ctx, int company, string name, GroupId group) =>
+        ChangeChartAsync<LedgerId>(ctx, company, "create", (tx, chart) =>
         {
             var (next, id) = Charted(() => chart.AddLedger(name, group));
             ChartRepository.SaveLedger(tx, next.Ledger(id));
             return (id.Value, "ledger", (object?)null, (object?)next.Ledger(id), id);
         });
 
-    public void Rename(CallContext ctx, int company, LedgerId id, string name) =>
-        ChangeChart<int>(ctx, company, "rename", (tx, chart) =>
+    public Task RenameAsync(CallContext ctx, int company, LedgerId id, string name) =>
+        ChangeChartAsync<int>(ctx, company, "rename", (tx, chart) =>
         {
             var before = Known(chart, id);
             var next = Charted(() => chart.RenameLedger(id, name));
@@ -54,8 +54,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             return (id.Value, "ledger", before, next.Ledger(id), 0);
         });
 
-    public void RenameGroup(CallContext ctx, int company, GroupId id, string name) =>
-        ChangeChart<int>(ctx, company, "rename", (tx, chart) =>
+    public Task RenameGroupAsync(CallContext ctx, int company, GroupId id, string name) =>
+        ChangeChartAsync<int>(ctx, company, "rename", (tx, chart) =>
         {
             var before = chart.Groups.SingleOrDefault(g => g.Id == id) ?? throw new ServiceException(ServiceError.NotFound, "No such group.");
             var after = Charted(() => chart.RenameGroup(id, name)).Groups.Single(g => g.Id == id);
@@ -63,8 +63,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             return (id.Value, "group", before, after, 0);
         });
 
-    public void RemoveLedger(CallContext ctx, int company, LedgerId id) =>
-        ChangeChart<int>(ctx, company, "delete", (tx, chart) =>
+    public Task RemoveLedgerAsync(CallContext ctx, int company, LedgerId id) =>
+        ChangeChartAsync<int>(ctx, company, "delete", (tx, chart) =>
         {
             var before = Known(chart, id);
             Charted(() => chart.RemoveLedger(id));
@@ -76,8 +76,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         });
 
     /// <summary>Sets a ledger's opening balance at the books start. Positive is a debit.</summary>
-    public void SetOpening(CallContext ctx, int company, LedgerId id, Money amount) =>
-        ChangeChart<int>(ctx, company, "set-opening", (tx, chart) =>
+    public Task SetOpeningAsync(CallContext ctx, int company, LedgerId id, Money amount) =>
+        ChangeChartAsync<int>(ctx, company, "set-opening", (tx, chart) =>
         {
             var c = tx.Connection!;
             Known(chart, id);
@@ -93,8 +93,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         });
 
     /// <summary>Creates a party with its ledger when Ledger is default, otherwise updates it. Returns the party's ledger.</summary>
-    public LedgerId SaveParty(CallContext ctx, int company, string name, GroupId group, Party p) =>
-        ChangeChart<LedgerId>(ctx, company, p.Ledger == default ? "create" : "edit", (tx, chart) =>
+    public Task<LedgerId> SavePartyAsync(CallContext ctx, int company, string name, GroupId group, Party p) =>
+        ChangeChartAsync<LedgerId>(ctx, company, p.Ledger == default ? "create" : "edit", (tx, chart) =>
         {
             if (!IsUnder(chart, group, GroupKind.TradeReceivables) && !IsUnder(chart, group, GroupKind.TradePayables))
                 throw new ServiceException(ServiceError.Invalid, "Parties belong under Trade Receivables or Trade Payables.");
@@ -130,7 +130,7 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
     }
 
     /// <summary>Creates an item when Id is 0, otherwise updates it. Returns the item id.</summary>
-    public int SaveItem(CallContext ctx, int company, Item item)
+    public Task<int> SaveItemAsync(CallContext ctx, int company, Item item)
     {
         ctx.Require(Permission.EditMasters);
         ctx.RequireCompany(company);
@@ -140,7 +140,7 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         if (!Gst.IsValidRate(i.Rate, Text.Today(time)))
             throw new ServiceException(ServiceError.Invalid, $"GST rate {Text.Rate(i.Rate)}% is not valid.");
 
-        return hub.Write(company, tx =>
+        return hub.WriteAsync(company, tx =>
         {
             var c = tx.Connection!;
             Item? before = null;
@@ -175,12 +175,12 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
     }
 
     // One chart change: check rights, run it in the company's write transaction, audit it, then tell the books and clients.
-    T ChangeChart<T>(CallContext ctx, int company, string action,
+    async Task<T> ChangeChartAsync<T>(CallContext ctx, int company, string action,
         Func<SqliteTransaction, ChartOfAccounts, (long Key, string Entity, object? Before, object? After, T Result)> change)
     {
         ctx.Require(Permission.EditMasters);
         ctx.RequireCompany(company);
-        var (key, result) = hub.Write(company, tx =>
+        var (key, result) = await hub.WriteAsync(company, tx =>
         {
             var (key, entity, before, after, result) = change(tx, ChartRepository.Load(tx.Connection!));
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), action, entity, Text.Key(key), Json(before), Json(after)));
@@ -189,7 +189,7 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         {
             books.ChartChanged(company);
             feed.Publish(new ChangeEvent(company, ChangeKind.Masters, r.key));
-        });
+        }).ConfigureAwait(false);
         return result;
     }
 

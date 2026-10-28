@@ -16,7 +16,7 @@ public sealed class ReportServiceTests : IDisposable
         ledgers =
         [
             chart.Required(RequiredLedger.Cash),
-            host.Masters.AddLedger(owner, company, "HDFC Bank", chart.Group(GroupKind.BankAccounts)),
+            host.Masters.AddLedgerAsync(owner, company, "HDFC Bank", chart.Group(GroupKind.BankAccounts)).GetAwaiter().GetResult(),
             chart.Required(RequiredLedger.Sales),
             chart.Required(RequiredLedger.Purchases),
             chart.Required(RequiredLedger.Capital),
@@ -119,8 +119,8 @@ public sealed class ReportServiceTests : IDisposable
         var capital = ledgers[4];
         await host.Vouchers.SaveJournalAsync(owner, company, RandomJournal(new Random(1)));
         _ = host.Reports.TrialBalance(owner, company, Year);
-        host.Masters.SetOpening(owner, company, cash, Money.FromRupees(500));
-        host.Masters.SetOpening(owner, company, capital, Money.FromRupees(-500));
+        await host.Masters.SetOpeningAsync(owner, company, cash, Money.FromRupees(500));
+        await host.Masters.SetOpeningAsync(owner, company, capital, Money.FromRupees(-500));
         var tb = host.Reports.TrialBalance(owner, company, Year);
         Assert.Equal(Money.FromRupees(500), tb.Rows.Single(x => x.Ledger == cash).Opening);
         AssertSame(Fresh(Year), tb);

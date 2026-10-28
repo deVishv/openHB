@@ -17,13 +17,13 @@ public sealed class BackupScheduler(AdminService admin, HostData data, TimeProvi
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { RunOnce(); }
+            try { await RunOnceAsync().ConfigureAwait(false); }
             catch (Exception e) when (e is not OperationCanceledException) { log.LogError(e, "Scheduled backup check failed."); }
             await Task.Delay(TimeSpan.FromMinutes(1), time, stoppingToken).ConfigureAwait(false);
         }
     }
 
-    public void RunOnce()
+    public async Task RunOnceAsync()
     {
         int interval, keep;
         IReadOnlyList<int> companies;
@@ -41,7 +41,7 @@ public sealed class BackupScheduler(AdminService admin, HostData data, TimeProvi
             var source = admin.Source(company);
             try
             {
-                admin.Backup(company, SystemEntry("backup", source, null), keep);
+                await admin.BackupAsync(company, SystemEntry("backup", source, null), keep).ConfigureAwait(false);
             }
             catch (ServiceException e) when (e.Error == ServiceError.Unavailable)
             {

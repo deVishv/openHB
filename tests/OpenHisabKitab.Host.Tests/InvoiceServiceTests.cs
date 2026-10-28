@@ -24,8 +24,8 @@ public sealed class InvoiceServiceTests : IDisposable
     public void Dispose() => host.Dispose();
 
     LedgerId Party(int id, string name, GroupKind group, string state) =>
-        host.Masters.SaveParty(owner, id, name, host.Masters.Chart(owner, id).Group(group),
-            new Party(default, null, new StateCode(state), 0, "", 0));
+        host.Masters.SavePartyAsync(owner, id, name, host.Masters.Chart(owner, id).Group(group),
+            new Party(default, null, new StateCode(state), 0, "", 0)).GetAwaiter().GetResult();
 
     static InvoiceEntryLine Line(LedgerId ledger, string price, int rateBp = 1800) =>
         new(null, ledger, "Steel rod", "7214", new Quantity(1000), Money.Parse(price), Money.Zero, new GstRate(rateBp), new GstRate(0), false);
@@ -100,7 +100,7 @@ public sealed class InvoiceServiceTests : IDisposable
     [Fact]
     public async Task Round_off_setting_off_keeps_paise()
     {
-        host.Companies.SetSetting(owner, company, "invoice.roundOff", "false");
+        await host.Companies.SetSettingAsync(owner, company, "invoice.roundOff", "false");
         var saved = await host.Vouchers.SaveInvoiceAsync(owner, company, Sale(localCustomer, "27", Line(sales, "100.40")));
         Assert.Equal(Money.Parse("118.48"), Posted(saved.Id, localCustomer));
     }

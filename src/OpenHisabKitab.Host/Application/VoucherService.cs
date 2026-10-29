@@ -137,7 +137,8 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
     static bool OwnOnly(CallContext ctx)
     {
         if (ctx.Has(Permission.ViewAllVouchers)) return false;
-        if (ctx.Has(Permission.CreateVoucher)) return true;
+        // Seeing one's own vouchers is a read, so a read only token of a Data entry user keeps it.
+        if (ctx.Permissions.Contains(Permission.CreateVoucher)) return true;
         throw ServiceException.Denied();
     }
 

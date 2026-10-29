@@ -53,7 +53,6 @@ These are not rejected, only deferred to later releases, each with its own desig
 - A posted voucher that can be changed or removed without leaving a trace in the audit trail.
 - Any task that cannot be completed without a mouse.
 - Decorative, promotional, or explanatory filler text on screens.
-- An em dash (U+2014) or en dash (U+2013) anywhere in the software or its documentation. [Owner]
 
 ## 3. Constraints
 
@@ -210,7 +209,7 @@ The host checks these. Tests check them on random and fixture data. A failure bl
   - Only letters, digits, hyphen (`-`), and slash (`/`).
   - Unique and consecutive within the financial year and series.
   - The settings screen rejects any pattern that could exceed 16 characters.
-  - The ASCII hyphen is allowed here because the law requires it. It is not an en or em dash.
+  - The separator must be the ASCII hyphen. An en or em dash is not allowed in a GST document number.
 - The host assigns the number inside the save transaction, so two users can never get the same number.
 - **Posted vouchers are never deleted, only cancelled.** A cancelled voucher keeps its number, posts nothing, and appears as cancelled in the GSTR-1 document summary (Table 13).
 
@@ -434,7 +433,6 @@ Every action has a shortcut, and every shortcut can be changed in `KEYS`, stored
 
 - Labels are nouns. Buttons are verbs. Messages state what happened and what to do, in one line where possible.
 - No welcome screens, tips, marketing, or decorative text.
-- No em dash or en dash characters anywhere. A CI check fails the build if U+2013 or U+2014 appears in source code, resource strings, or docs.
 
 ## 7. Settings [Owner asked for VS Code depth; Designer set the structure]
 

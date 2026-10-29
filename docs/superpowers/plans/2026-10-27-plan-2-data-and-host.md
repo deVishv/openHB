@@ -47,7 +47,7 @@ Each later plan that adds a host feature also adds its REST route and MCP tool, 
   - `Microsoft.AspNetCore.Mvc.Testing` 10.0.14
   - `Microsoft.Extensions.TimeProvider.Testing` 10.11.0
   - Keep the Plan 1 test packages at their current versions.
-- **No em dash or en dash** in any file. `RepositoryTextTests` already scans the repo. In C#, never type `\u` escapes for these characters.
+- **No em dash or en dash** in any file. `RepositoryTextTests` already scans the repo. In C#, never type `\u` escapes for these characters. *(Rule removed by the owner on 2026-10-29. The scan test was deleted.)*
 - **Money.** Store `long` paise in `INTEGER` columns. Quantities: `long` thousandths. Rates: `int` basis points. No `REAL` column anywhere. A test in Task 2 enforces this.
 - **Dates** are stored as `TEXT` `yyyy-MM-dd`. Timestamps are stored as `TEXT` UTC in round trip format (`"O"`). Always use `CultureInfo.InvariantCulture`.
 - **Time.** Code that reads the clock takes a `TimeProvider`. Tests use `FakeTimeProvider`.

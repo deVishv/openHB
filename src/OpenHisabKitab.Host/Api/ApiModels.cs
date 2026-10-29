@@ -117,3 +117,41 @@ public static class ApiMap
             [.. s.Rows.Select(r => new StatementRowDto(r.Date, r.VoucherId, numbers.TryGetValue(r.VoucherId, out var n) ? n : "", r.Amount, r.Balance))],
             s.Closing);
 }
+
+// Request records. Amounts, quantities, rates, dates, and choices are strings, read by ApiParse, so REST and the MCP write
+// tools share one schema that says "string" and one set of refusal messages.
+
+public sealed record IdDto(long Id);
+
+public sealed record SavedDto(long Id, string Number, long RowVersion);
+
+public sealed record GroupRequest(string Name, int ParentId);
+
+public sealed record LedgerRequest(string Name, int GroupId);
+
+public sealed record RenameRequest(string Name);
+
+public sealed record PartyRequest(string Name, int GroupId, string? Gstin, string State, int CreditDays, string Address, long? RowVersion = null);
+
+public sealed record ItemRequest(
+    string Name, string HsnSac, bool IsService, string Unit, string Rate, string CessRate, string DefaultPrice, long? RowVersion = null);
+
+/// <summary>A ledger line; amount is positive for debit.</summary>
+public sealed record LineRequest(int LedgerId, string Amount);
+
+public sealed record JournalRequest(string Type, string Date, string Narration, IReadOnlyList<LineRequest> Lines);
+
+public sealed record InvoiceLineRequest(
+    int? ItemId, int LedgerId, string Description, string HsnSac, string Quantity, string UnitPrice, string Discount, string Rate,
+    string CessRate, bool PriceIncludesTax);
+
+public sealed record InvoiceRequest(
+    string Type, string Date, string Narration, int PartyId, string Direction, string Kind, string PlaceOfSupply, bool ReverseCharge,
+    IReadOnlyList<InvoiceLineRequest> Lines, string? PartyDocNumber = null, string? PartyDocDate = null, string? OriginalNumber = null,
+    string? OriginalDate = null);
+
+public sealed record EditJournalRequest(long RowVersion, JournalRequest Voucher);
+
+public sealed record EditInvoiceRequest(long RowVersion, InvoiceRequest Voucher);
+
+public sealed record CancelRequest(long RowVersion, string Reason);

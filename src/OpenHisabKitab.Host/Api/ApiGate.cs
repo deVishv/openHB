@@ -87,8 +87,12 @@ internal sealed class ApiGate(
         }
     }
 
+    // A JsonReaderException (internal to System.Text.Json) inside means the text is not JSON at all. A path of $ alone means a required field is missing.
     static Task BadJson(HttpContext c, JsonException e) =>
-        ApiErrors.Write(c, 400, "invalid", e.Path is { Length: > 0 } p ? $"Check {p} in the request body." : "The request body is not valid JSON.");
+        ApiErrors.Write(c, 400, "invalid",
+            e.InnerException?.GetType().Name == "JsonReaderException" || e.Path is null ? "The request body is not valid JSON."
+            : e.Path == "$" ? "Add the missing fields to the request body."
+            : $"Check {e.Path} in the request body.");
 
     static bool Allowed(string origin, IReadOnlyList<string> allowed) =>
         allowed.Any(a => string.Equals(a.TrimEnd('/'), origin.TrimEnd('/'), StringComparison.OrdinalIgnoreCase));

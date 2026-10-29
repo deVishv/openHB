@@ -1,6 +1,7 @@
 using OpenHisabKitab.Host.Api;
 using OpenHisabKitab.Host.Application;
 using OpenHisabKitab.Host.Grpc;
+using OpenHisabKitab.Host.Mcp;
 
 namespace OpenHisabKitab.Host;
 
@@ -44,6 +45,11 @@ public static class HostSetup
         s.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
         s.ConfigureHttpJsonOptions(o => ApiJson.Strict(o.SerializerOptions));
         s.AddApiDocument();
+        s.AddHttpContextAccessor();
+        s.AddMcpServer(o => o.ServerInfo = new() { Name = "Open Hisab Kitab", Version = HostVersion.Current })
+            .WithHttpTransport(o => o.Stateless = true)
+            .WithTools<ReadTools>()
+            .WithTools<WriteTools>();
         s.AddGrpc(o =>
         {
             o.Interceptors.Add<ErrorInterceptor>();
@@ -58,6 +64,7 @@ public static class HostSetup
         app.UseMiddleware<ApiGate>();
         app.MapRestApi();
         app.MapOpenApi("/api/v1/openapi.json");
+        app.MapMcp("/mcp");
         app.MapGrpcService<SessionEndpoint>();
         app.MapGrpcService<CompaniesEndpoint>();
         app.MapGrpcService<MastersEndpoint>();

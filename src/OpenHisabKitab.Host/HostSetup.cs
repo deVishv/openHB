@@ -35,6 +35,8 @@ public static class HostSetup
         s.AddSingleton<VoucherService>();
         s.AddSingleton<ReportService>();
         s.AddSingleton<AdminService>();
+        s.AddSingleton<ApiTokenService>();
+        s.AddSingleton<HostSettingsService>();
         s.AddHostedService<BackupScheduler>();
         s.AddHostedService<AnchorFlushOnStop>();
         s.AddSingleton<IRemoteAddressAccessor, HttpRemoteAddress>();

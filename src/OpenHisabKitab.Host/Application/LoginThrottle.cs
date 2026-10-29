@@ -27,8 +27,9 @@ public sealed class LoginThrottle(TimeProvider time)
             var left = s.LockedUntil - time.GetUtcNow();
             if (left <= TimeSpan.Zero) return;
             var seconds = (long)Math.Ceiling(left.TotalSeconds);
-            throw new ServiceException(ServiceError.NotAuthenticated,
-                string.Create(CultureInfo.InvariantCulture, $"Too many attempts. Try again in {seconds} seconds."));
+            throw new ServiceException(ServiceError.TooManyAttempts,
+                string.Create(CultureInfo.InvariantCulture, $"Too many attempts. Try again in {seconds} seconds."))
+            { RetryAfter = TimeSpan.FromSeconds(seconds) };
         }
     }
 

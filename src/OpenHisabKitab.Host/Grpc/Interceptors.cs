@@ -50,7 +50,7 @@ internal sealed class ErrorInterceptor(ILogger<ErrorInterceptor> log) : Intercep
 
     static StatusCode Code(ServiceError e) => e switch
     {
-        ServiceError.NotAuthenticated => StatusCode.Unauthenticated,
+        ServiceError.NotAuthenticated or ServiceError.TooManyAttempts => StatusCode.Unauthenticated,
         ServiceError.PermissionDenied => StatusCode.PermissionDenied,
         ServiceError.NotFound => StatusCode.NotFound,
         ServiceError.Conflict => StatusCode.Aborted,

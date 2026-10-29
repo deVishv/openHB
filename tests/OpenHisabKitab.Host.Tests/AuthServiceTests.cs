@@ -81,7 +81,7 @@ public sealed class AuthServiceTests : IDisposable
     {
         _ = host.Owner;
         for (var i = 0; i < 5; i++) Fails(ServiceError.NotAuthenticated, () => host.Auth.Login("owner", "wrong-password", "PC2"));
-        var ex = Fails(ServiceError.NotAuthenticated, () => host.Auth.Login("owner", TestHost.OwnerPassword, "PC2"));
+        var ex = Fails(ServiceError.TooManyAttempts, () => host.Auth.Login("owner", TestHost.OwnerPassword, "PC2"));
         Assert.Equal("Too many attempts. Try again in 30 seconds.", ex.Message);
         host.Time.Advance(TimeSpan.FromSeconds(31));
         Assert.Equal("owner", host.Auth.Login("owner", TestHost.OwnerPassword, "PC2").Context.UserName);
@@ -94,7 +94,7 @@ public sealed class AuthServiceTests : IDisposable
         for (var i = 0; i < 5; i++) Fails(ServiceError.NotAuthenticated, () => host.Auth.Login("owner", "wrong-password", "PC2"));
         host.Time.Advance(TimeSpan.FromSeconds(31));
         Fails(ServiceError.NotAuthenticated, () => host.Auth.Login("owner", "wrong-password", "PC2"));
-        var ex = Fails(ServiceError.NotAuthenticated, () => host.Auth.Login("owner", TestHost.OwnerPassword, "PC2"));
+        var ex = Fails(ServiceError.TooManyAttempts, () => host.Auth.Login("owner", TestHost.OwnerPassword, "PC2"));
         Assert.Equal("Too many attempts. Try again in 60 seconds.", ex.Message);
     }
 

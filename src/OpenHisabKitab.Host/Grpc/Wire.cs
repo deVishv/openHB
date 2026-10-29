@@ -22,6 +22,9 @@ internal static class Wire
     static readonly GstData Gst = GstData.LoadEmbedded();
     const string DateFormat = "yyyy-MM-dd";
 
+    /// <summary>A timestamp as round trip UTC text.</summary>
+    public static string At(DateTimeOffset at) => at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+
     public static DateOnly Date(string text) =>
         DateOnly.TryParseExact(text, DateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d)
             ? d : throw Invalid("Use dates as yyyy-mm-dd.");

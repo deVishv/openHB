@@ -15,6 +15,8 @@ service Admin {
   rpc CreateUser (CreateUserRequest) returns (IdReply);
   rpc SetUserCompanies (SetUserCompaniesRequest) returns (Empty);
   rpc ListUsers (Empty) returns (UserList);
+  rpc ListHostSettings (Empty) returns (HostSettingList);
+  rpc SetHostSetting (HostSettingRequest) returns (SetHostSettingReply);
 }
 
 message LockRequest { int32 company = 1; string date = 2; }
@@ -46,3 +48,9 @@ message CreateUserRequest { string name = 1; string password = 2; string role = 
 message SetUserCompaniesRequest { int32 user_id = 1; repeated int32 companies = 2; }
 message UserMsg { int32 id = 1; string name = 2; string role = 3; bool active = 4; }
 message UserList { repeated UserMsg users = 1; }
+// Host settings (spec 7). Values are JSON text.
+message HostSettingMsg { string key = 1; string type = 2; string default_json = 3; string description = 4; string allowed_values = 5; string json = 6; }
+message HostSettingList { repeated HostSettingMsg settings = 1; }
+message HostSettingRequest { string key = 1; string json = 2; }
+// restart_needed: the change applies when the host service restarts.
+message SetHostSettingReply { bool restart_needed = 1; }

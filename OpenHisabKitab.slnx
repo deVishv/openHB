@@ -4,10 +4,12 @@
     <Project Path="src/OpenHisabKitab.Core/OpenHisabKitab.Core.csproj" />
     <Project Path="src/OpenHisabKitab.Data/OpenHisabKitab.Data.csproj" />
     <Project Path="src/OpenHisabKitab.Host/OpenHisabKitab.Host.csproj" />
+    <Project Path="src/OpenHisabKitab.McpBridge/OpenHisabKitab.McpBridge.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OpenHisabKitab.Core.Tests/OpenHisabKitab.Core.Tests.csproj" />
     <Project Path="tests/OpenHisabKitab.Data.Tests/OpenHisabKitab.Data.Tests.csproj" />
     <Project Path="tests/OpenHisabKitab.Host.Tests/OpenHisabKitab.Host.Tests.csproj" />
+    <Project Path="tests/OpenHisabKitab.McpBridge.Tests/OpenHisabKitab.McpBridge.Tests.csproj" />
   </Folder>
 </Solution>

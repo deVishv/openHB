@@ -17,6 +17,7 @@ public sealed class GrpcEndToEndTests : IDisposable
     readonly Vouchers.VouchersClient vouchers;
     readonly Reports.ReportsClient reports;
     readonly Admin.AdminClient admin;
+    readonly Tokens.TokensClient tokens;
 
     public GrpcEndToEndTests()
     {
@@ -27,6 +28,7 @@ public sealed class GrpcEndToEndTests : IDisposable
         vouchers = new(channel);
         reports = new(channel);
         admin = new(channel);
+        tokens = new(channel);
     }
 
     public void Dispose() => factory.Dispose();
@@ -202,5 +204,42 @@ public sealed class GrpcEndToEndTests : IDisposable
         vouchers.SaveJournal(new JournalRequest { Company = company, Journal = Receipt(cash, sales, 100) }, Headers(other));
         var ex = await Assert.ThrowsAsync<RpcException>(() => watch.ResponseStream.MoveNext(cts.Token));
         Assert.Equal(StatusCode.Unauthenticated, ex.StatusCode);
+    }
+
+    [Fact]
+    public void Owner_creates_lists_and_revokes_a_token_over_grpc()
+    {
+        var owner = Owner();
+        var created = tokens.Create(new CreateTokenRequest { Name = "scripts", ReadWrite = true }, Headers(owner));
+        Assert.StartsWith("ohk_", created.Token, StringComparison.Ordinal);
+        Assert.Equal(("scripts", true), (created.Name, created.ReadWrite));
+        var listed = Assert.Single(tokens.List(new V1Empty(), Headers(owner)).Tokens);
+        Assert.Equal((created.Id, "scripts", true, ""), (listed.Id, listed.Name, listed.ReadWrite, listed.RevokedAt));
+        Assert.NotEmpty(listed.CreatedAt);
+        tokens.Revoke(new TokenRef { Id = created.Id }, Headers(owner));
+        Assert.NotEmpty(Assert.Single(tokens.List(new V1Empty(), Headers(owner)).Tokens).RevokedAt);
+    }
+
+    [Fact]
+    public void Api_token_is_not_a_session_on_the_grpc_port()
+    {
+        var owner = Owner();
+        var created = tokens.Create(new CreateTokenRequest { Name = "scripts" }, Headers(owner));
+        var e = Assert.Throws<RpcException>(() => companies.List(new V1Empty(), Headers(created.Token)));
+        Assert.Equal((StatusCode.Unauthenticated, "Log in again."), (e.StatusCode, e.Status.Detail));
+    }
+
+    [Fact]
+    public void Owner_sets_a_host_setting_over_grpc()
+    {
+        var owner = Owner();
+        Assert.True(admin.SetHostSetting(new HostSettingRequest { Key = "api.enabled", Json = "true" }, Headers(owner)).RestartNeeded);
+        var list = admin.ListHostSettings(new V1Empty(), Headers(owner)).Settings;
+        Assert.Equal(6, list.Count);
+        var enabled = list.Single(s => s.Key == "api.enabled");
+        Assert.Equal(("true", "false", "bool", "true, false"), (enabled.Json, enabled.DefaultJson, enabled.Type, enabled.AllowedValues));
+        Assert.Equal("Turns on the local REST API port.", enabled.Description);
+        var e = Assert.Throws<RpcException>(() => admin.SetHostSetting(new HostSettingRequest { Key = "api.port", Json = "80" }, Headers(owner)));
+        Assert.Equal((StatusCode.InvalidArgument, "api.port must be 1024 to 65535, not the gRPC port."), (e.StatusCode, e.Status.Detail));
     }
 }

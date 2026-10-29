@@ -1,6 +1,6 @@
 namespace OpenHisabKitab.Host.Application;
 
-public enum ServiceError { NotAuthenticated, PermissionDenied, NotFound, Conflict, Locked, Invalid, OpeningDifference, SetupRequired, Unavailable, TooNew }
+public enum ServiceError { NotAuthenticated, PermissionDenied, NotFound, Conflict, Locked, Invalid, OpeningDifference, SetupRequired, Unavailable, TooNew, TooManyAttempts }
 
 /// <summary>
 /// A refusal the user can act on. The message is shown as is, so it follows the writing rules of spec 6.7.
@@ -11,6 +11,9 @@ public sealed class ServiceException(ServiceError error, string message, object?
     public ServiceError Error { get; } = error;
 
     public object? Current { get; } = current;
+
+    /// <summary>For TooManyAttempts: how long until the next attempt is accepted.</summary>
+    public TimeSpan? RetryAfter { get; init; }
 
     public static ServiceException Denied() => new(ServiceError.PermissionDenied, "You do not have permission for this.");
 }

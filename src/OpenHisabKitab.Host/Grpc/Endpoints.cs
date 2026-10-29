@@ -190,7 +190,7 @@ internal sealed class ReportsEndpoint(ReportService reports) : Reports.ReportsBa
         Task.FromResult(Wire.ToMsg(reports.Statement(context.Caller(), request.Company, new LedgerId(request.Ledger), Wire.Range(request.Period))));
 }
 
-internal sealed class AdminEndpoint(AdminService admin, UserService users) : Admin.AdminBase
+internal sealed class AdminEndpoint(AdminService admin, UserService users, HostSettingsService settings) : Admin.AdminBase
 {
     static Task<V1Empty> Done() => Task.FromResult(new V1Empty());
 
@@ -252,6 +252,46 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users) : Adm
         var list = new UserList();
         list.Users.AddRange(users.List(context.Caller()).Select(u => new UserMsg { Id = u.Id, Name = u.Name, Role = u.Role.ToString(), Active = u.Active }));
         return Task.FromResult(list);
+    }
+
+    public override Task<HostSettingList> ListHostSettings(V1Empty request, ServerCallContext context)
+    {
+        var list = new HostSettingList();
+        list.Settings.AddRange(settings.List(context.Caller()).Select(s => new HostSettingMsg
+        {
+            Key = s.Definition.Key, Type = s.Definition.Type, DefaultJson = s.Definition.DefaultJson,
+            Description = s.Definition.Description, AllowedValues = s.Definition.AllowedValues, Json = s.Json,
+        }));
+        return Task.FromResult(list);
+    }
+
+    public override Task<SetHostSettingReply> SetHostSetting(HostSettingRequest request, ServerCallContext context) =>
+        Task.FromResult(new SetHostSettingReply { RestartNeeded = settings.Set(context.Caller(), request.Key, request.Json) });
+}
+
+internal sealed class TokensEndpoint(ApiTokenService tokens) : Tokens.TokensBase
+{
+    public override Task<CreatedTokenMsg> Create(CreateTokenRequest request, ServerCallContext context)
+    {
+        var t = tokens.Create(context.Caller(), request.Name, request.ReadWrite);
+        return Task.FromResult(new CreatedTokenMsg { Id = t.Id, Name = t.Name, ReadWrite = t.ReadWrite, Token = t.Token });
+    }
+
+    public override Task<TokenList> List(V1Empty request, ServerCallContext context)
+    {
+        var list = new TokenList();
+        list.Tokens.AddRange(tokens.List(context.Caller()).Select(t => new TokenMsg
+        {
+            Id = t.Id, Name = t.Name, ReadWrite = t.ReadWrite, CreatedAt = Wire.At(t.CreatedAt),
+            LastUsedAt = t.LastUsedAt is { } used ? Wire.At(used) : "", RevokedAt = t.RevokedAt is { } revoked ? Wire.At(revoked) : "",
+        }));
+        return Task.FromResult(list);
+    }
+
+    public override Task<V1Empty> Revoke(TokenRef request, ServerCallContext context)
+    {
+        tokens.Revoke(context.Caller(), request.Id);
+        return Task.FromResult(new V1Empty());
     }
 }
 

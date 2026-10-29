@@ -232,4 +232,15 @@ public sealed class ApiTokenServiceTests : IDisposable
         Auth(t.Token);
         Assert.NotNull(Assert.Single(h.Tokens.List(h.Owner.Context)).LastUsedAt);
     }
+
+    [Fact]
+    public void A_valid_call_from_the_same_address_does_not_clear_the_failed_count()
+    {
+        var good = h.Tokens.Create(h.Owner.Context, "good", readWrite: false);
+        for (var i = 0; i < 4; i++) Fails(ServiceError.NotAuthenticated, () => Auth("ohk_bad"));
+        Auth(good.Token);   // another program on the host PC, with a good token
+        Fails(ServiceError.NotAuthenticated, () => Auth("ohk_bad"));
+        Fails(ServiceError.TooManyAttempts, () => Auth("ohk_bad"));
+        Auth(good.Token);
+    }
 }

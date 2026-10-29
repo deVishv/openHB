@@ -21,8 +21,8 @@ public sealed class ApiTokenService(HostData data, TimeProvider time)
     const string Prefix = "ohk_";
     static readonly TimeSpan TouchInterval = TimeSpan.FromSeconds(60);
 
-    // Failed tokens are slowed per caller address. A valid token always passes, so one script on the host PC sending a
-    // bad token cannot lock out every other program there.
+    // Failed tokens are slowed per caller address (spec 4.1). A valid token always passes, so one script on the host PC
+    // sending a bad token cannot lock out every other program there.
     readonly LoginThrottle throttle = new(time);
 
     public CreatedToken Create(CallContext ctx, string name, bool readWrite)
@@ -82,7 +82,8 @@ public sealed class ApiTokenService(HostData data, TimeProvider time)
             throttle.Failed(key);
             throw invalid;
         }
-        throttle.Succeeded(key);
+        // No reset on success: every program on the host PC shares 127.0.0.1, so one valid caller must not clear another's
+        // failures. A valid token passes even while its address is slowed, so nobody is locked out by this.
 
         var now = time.GetUtcNow();
         if (token.LastUsedAt is not { } used || now - used > TouchInterval)

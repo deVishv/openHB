@@ -125,4 +125,26 @@ public sealed class BridgeTests : IDisposable
         Assert.Equal(2, lines.Length);
         Assert.All(lines, l => Assert.Equal(-32000, JsonDocument.Parse(l).RootElement.GetProperty("error").GetProperty("code").GetInt32()));
     }
+
+    sealed class SplitEvents : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            const string body = "event: message\ndata: {\"jsonrpc\":\"2.0\",\ndata: \"id\":2,\"result\":{}}\n\n" +
+                                "event: message\ndata: {\"jsonrpc\":\"2.0\",\"id\":3,\"result\":{}}\n\n";
+            var content = new StringContent(body);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("text/event-stream");
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        }
+    }
+
+    [Fact]
+    public async Task An_event_split_over_several_data_lines_is_one_message()
+    {
+        var config = new BridgeConfig(new Uri("http://localhost/mcp"), "ohk_x", null);
+        var stdout = new StringWriter();
+        await Bridge.RunAsync(new StringReader(ToolsList + "\n"), stdout, new StringWriter(), new SplitEvents(), config, CancellationToken.None);
+        var lines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).ToArray();
+        Assert.Equal([2, 3], lines.Select(l => JsonDocument.Parse(l).RootElement.GetProperty("id").GetInt32()));
+    }
 }

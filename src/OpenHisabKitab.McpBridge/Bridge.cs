@@ -59,13 +59,37 @@ public static class Bridge
         }
         if (response.Content.Headers.ContentType?.MediaType == "text/event-stream")
         {
-            foreach (var data in body.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.StartsWith("data:", StringComparison.Ordinal)))
-                stdout.WriteLine(data["data:".Length..].Trim());
+            foreach (var message in Events(body)) stdout.WriteLine(OneLine(message));
         }
         else if (body.Trim().Length > 0)
         {
-            stdout.WriteLine(body.ReplaceLineEndings(" ").Trim());
+            stdout.WriteLine(OneLine(body));
         }
+    }
+
+    // The data of each server-sent event. An event's data may span several data: lines, joined by newlines; a blank line ends it.
+    static IEnumerable<string> Events(string body)
+    {
+        var data = new List<string>();
+        foreach (var raw in body.Split('\n').Append(""))
+        {
+            var line = raw.TrimEnd('\r');
+            if (line.StartsWith("data:", StringComparison.Ordinal)) data.Add(line["data:".Length..].TrimStart(' '));
+            else if (line.Length == 0 && data.Count > 0)
+            {
+                yield return string.Join('\n', data);
+                data.Clear();
+            }
+        }
+    }
+
+    static readonly JsonSerializerOptions Compact = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    // stdout carries one JSON-RPC message per line.
+    static string OneLine(string json)
+    {
+        try { return JsonNode.Parse(json)?.ToJsonString(Compact) ?? json.Trim(); }
+        catch (JsonException) { return json.ReplaceLineEndings(" ").Trim(); }
     }
 
     // A request gets a JSON-RPC error with its id; a notification has no id, so it gets only a line on stderr.
@@ -94,7 +118,7 @@ public static class Bridge
             ["id"] = id,
             ["error"] = new JsonObject { ["code"] = HostError, ["message"] = message },
         };
-        stdout.WriteLine(error.ToJsonString(new JsonSerializerOptions { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }));
+        stdout.WriteLine(error.ToJsonString(Compact));
     }
 
     static string? HostMessage(string body)

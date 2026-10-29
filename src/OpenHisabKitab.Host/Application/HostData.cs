@@ -72,6 +72,23 @@ public sealed class HostData(string dataDirectory)
         finally { hostWrite.Release(); }
     }
 
+    /// <summary>
+    /// A small write outside any audited change, such as a token's last use, done only if host.db's write lock is free
+    /// right now. False when it was skipped, so a busy host.db never delays or fails the caller.
+    /// </summary>
+    public bool TryWriteHostNow(Action<SqliteConnection> work)
+    {
+        if (!hostWrite.Wait(0)) return false;
+        try
+        {
+            using var c = OpenHost();
+            work(c);
+            return true;
+        }
+        catch (SqliteException e) when (e.SqliteErrorCode == 5) { return false; }
+        finally { hostWrite.Release(); }
+    }
+
     /// <summary>Like WriteHost, but waiting for the host.db write lock frees the thread. Every company save uses it.</summary>
     public async Task<T> WriteHostAsync<T>(Func<SqliteTransaction, T> work)
     {

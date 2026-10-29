@@ -44,8 +44,28 @@ internal sealed class ApiGate(
             if (!settings.AllowLan && !Loopback.Is(caller))
                 throw new ServiceException(ServiceError.PermissionDenied, "The API accepts only programs on the host PC.");
             // Before the token is read, so a web page never reaches the token check or the failed token count.
-            if (c.Request.Headers.Origin.Count > 0 && !Allowed(c.Request.Headers.Origin.ToString(), settings.AllowedOrigins))
-                throw new ServiceException(ServiceError.PermissionDenied, "Requests from web pages are not allowed.");
+            if (c.Request.Headers.Origin.Count > 0)
+            {
+                var origin = c.Request.Headers.Origin.ToString();
+                if (!Allowed(origin, settings.AllowedOrigins))
+                    throw new ServiceException(ServiceError.PermissionDenied, "Requests from web pages are not allowed.");
+                // An allowed web origin must be told so, or the browser hides every answer from the page.
+                c.Response.OnStarting(() =>
+                {
+                    c.Response.Headers.AccessControlAllowOrigin = origin;
+                    c.Response.Headers.Vary = "Origin";
+                    return Task.CompletedTask;
+                });
+                if (HttpMethods.IsOptions(c.Request.Method) && c.Request.Headers.AccessControlRequestMethod.Count > 0)
+                {
+                    // A browser's preflight carries no token; it only asks what the real request may send.
+                    c.Response.Headers.AccessControlAllowMethods = "GET, POST, PUT, DELETE";
+                    c.Response.Headers.AccessControlAllowHeaders = "Authorization, Content-Type, Accept, Mcp-Protocol-Version";
+                    c.Response.Headers.AccessControlMaxAge = "600";
+                    c.Response.StatusCode = StatusCodes.Status204NoContent;
+                    return;
+                }
+            }
             if (isMcp && !settings.McpEnabled)
                 throw new ServiceException(ServiceError.Unavailable, "MCP is off. The Owner can turn on mcp.enabled.");
 

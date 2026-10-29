@@ -170,4 +170,47 @@ public sealed class ApiGateTests : IDisposable
         Assert.Equal((HttpStatusCode.ServiceUnavailable, "unavailable", "MCP is off. The Owner can turn on mcp.enabled."),
             await Error(await f.ApiClient(f.NewToken()).PostAsync("/mcp", init)));
     }
+
+    [Fact]
+    public async Task Doubled_slashes_do_not_reach_the_api_on_the_grpc_port()
+    {
+        f.EnableApi(mcp: true);
+        var grpcPort = f.CreateClient();
+        grpcPort.DefaultRequestHeaders.Authorization = new("Bearer", f.NewToken());
+        foreach (var path in new[] { "//api/v1/info", "/./api/v1/info", "//api/v1/openapi.json" })
+            Assert.Equal(HttpStatusCode.NotFound, (await grpcPort.GetAsync(path)).StatusCode);
+        var init = new StringContent("""{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}""", Encoding.UTF8, "application/json");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "//mcp") { Content = init };
+        request.Headers.Accept.ParseAdd("application/json, text/event-stream");
+        Assert.Equal(HttpStatusCode.NotFound, (await grpcPort.SendAsync(request)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Allowed_origin_gets_cors_preflight_and_headers()
+    {
+        f.EnableApi();
+        f.Set("api.allowedOrigins", """["https://ok.example"]""");
+        var anon = f.ApiClient(null);
+        using var preflight = new HttpRequestMessage(HttpMethod.Options, "/api/v1/info");
+        preflight.Headers.Add("Origin", "https://ok.example");
+        preflight.Headers.Add("Access-Control-Request-Method", "GET");
+        preflight.Headers.Add("Access-Control-Request-Headers", "authorization");
+        var r = await anon.SendAsync(preflight);
+        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+        Assert.Equal("https://ok.example", r.Headers.GetValues("Access-Control-Allow-Origin").Single());
+        Assert.Contains("authorization", r.Headers.GetValues("Access-Control-Allow-Headers").Single(), StringComparison.OrdinalIgnoreCase);
+
+        using var call = new HttpRequestMessage(HttpMethod.Get, "/api/v1/info");
+        call.Headers.Add("Origin", "https://ok.example");
+        var ok = await f.ApiClient(f.NewToken()).SendAsync(call);
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        Assert.Equal("https://ok.example", ok.Headers.GetValues("Access-Control-Allow-Origin").Single());
+
+        using var evil = new HttpRequestMessage(HttpMethod.Options, "/api/v1/info");
+        evil.Headers.Add("Origin", "https://evil.example");
+        evil.Headers.Add("Access-Control-Request-Method", "GET");
+        var refused = await anon.SendAsync(evil);
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.False(refused.Headers.Contains("Access-Control-Allow-Origin"));
+    }
 }

@@ -85,7 +85,8 @@ public sealed class ApiTokenService(HostData data, TimeProvider time)
         throttle.Succeeded(key);
 
         var now = time.GetUtcNow();
-        if (token.LastUsedAt is not { } used || now - used > TouchInterval) ApiTokenRepository.Touch(c, token.Id, now);
+        if (token.LastUsedAt is not { } used || now - used > TouchInterval)
+            data.TryWriteHostNow(w => ApiTokenRepository.Touch(w, token.Id, now));
 
         var machine = Loopback.Is(remote) ? Environment.MachineName : remote?.ToString() ?? "unknown";
         var ctx = AuthService.ContextFor(user, UserRepository.Companies(c, user.Id), machine) with { Source = source, TokenName = token.Name };

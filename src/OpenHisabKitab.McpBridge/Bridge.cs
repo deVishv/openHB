@@ -21,6 +21,7 @@ public static class Bridge
             not ("http" or "https") => "endpoint must be an http or https address.",
             _ when string.IsNullOrWhiteSpace(config.Token) => "Add token to the bridge config.",
             "https" when config.CertificateFingerprint is null => "Add certificateFingerprint to the bridge config. Find it in the host log.",
+            "http" when !config.Endpoint.IsLoopback => "Use https for a host on another PC, so the token is not sent in plain text.",
             _ => null,
         };
         if (problem is null) return 0;

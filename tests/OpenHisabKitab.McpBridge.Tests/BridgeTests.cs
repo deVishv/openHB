@@ -90,4 +90,39 @@ public sealed class BridgeTests : IDisposable
         }
         finally { File.Delete(path); }
     }
+
+    [Fact]
+    public void Plain_http_is_refused_unless_the_endpoint_is_this_pc()
+    {
+        var stderr = new StringWriter();
+        Assert.Equal(2, Bridge.CheckConfig(new BridgeConfig(new Uri("http://192.168.1.10:47251/mcp"), "ohk_x", null), stderr));
+        Assert.Equal("Use https for a host on another PC, so the token is not sent in plain text.", stderr.ToString().Trim());
+        foreach (var local in new[] { "http://localhost:47251/mcp", "http://127.0.0.1:47251/mcp", "http://[::1]:47251/mcp" })
+            Assert.Equal(0, Bridge.CheckConfig(new BridgeConfig(new Uri(local), "ohk_x", null), new StringWriter()));
+    }
+
+    sealed class BrokenBody : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StreamContent(new Failing()) });
+
+        sealed class Failing : MemoryStream
+        {
+            public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken ct) => throw new IOException("connection reset");
+            public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken ct) => throw new IOException("connection reset");
+            public override int Read(byte[] buffer, int offset, int count) => throw new IOException("connection reset");
+        }
+    }
+
+    [Fact]
+    public async Task A_reply_cut_off_midway_is_an_error_for_that_request_only()
+    {
+        var config = new BridgeConfig(new Uri("http://localhost/mcp"), "ohk_x", null);
+        var stdout = new StringWriter();
+        var exit = await Bridge.RunAsync(new StringReader(ToolsList + "\n" + ToolsList + "\n"), stdout, new StringWriter(), new BrokenBody(), config, CancellationToken.None);
+        Assert.Equal(0, exit);
+        var lines = stdout.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(2, lines.Length);
+        Assert.All(lines, l => Assert.Equal(-32000, JsonDocument.Parse(l).RootElement.GetProperty("error").GetProperty("code").GetInt32()));
+    }
 }

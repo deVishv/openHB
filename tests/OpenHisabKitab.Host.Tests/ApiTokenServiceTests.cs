@@ -212,4 +212,24 @@ public sealed class ApiTokenServiceTests : IDisposable
         Assert.Equal("""{"Name":"x","ReadWrite":true}""", rows[1].Entry.Before);
         Assert.All(rows, r => Assert.DoesNotContain(t.Token, (r.Entry.Before ?? "") + (r.Entry.After ?? ""), StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task A_busy_host_db_neither_fails_nor_delays_authentication()
+    {
+        var t = h.Tokens.Create(h.Owner.Context, "x", readWrite: false);
+        using var holding = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        var writer = Task.Run(() => h.Data.WriteHost(_ => { holding.Set(); release.Wait(); return 0; }));
+        holding.Wait();
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var ctx = Auth(t.Token);   // last_used_at is due, but a save holds the host.db write lock
+        watch.Stop();
+        release.Set();
+        await writer;
+        Assert.Equal("x", ctx.TokenName);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"Waited {watch.ElapsedMilliseconds} ms.");
+        Assert.Null(Assert.Single(h.Tokens.List(h.Owner.Context)).LastUsedAt);
+        Auth(t.Token);
+        Assert.NotNull(Assert.Single(h.Tokens.List(h.Owner.Context)).LastUsedAt);
+    }
 }

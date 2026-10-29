@@ -57,6 +57,7 @@ public static class HostSetup
         app.MapGrpcService<VouchersEndpoint>();
         app.MapGrpcService<ReportsEndpoint>();
         app.MapGrpcService<AdminEndpoint>();
+        app.MapGrpcService<TokensEndpoint>();
         app.MapGrpcService<ChangesEndpoint>();
         return app;
     }

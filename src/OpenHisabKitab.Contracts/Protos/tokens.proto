@@ -1,0 +1,20 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+// API tokens for the local REST API and MCP. A user manages only their own.
+service Tokens {
+  rpc Create (CreateTokenRequest) returns (CreatedTokenMsg);
+  rpc List (Empty) returns (TokenList);
+  rpc Revoke (TokenRef) returns (Empty);
+}
+
+message CreateTokenRequest { string name = 1; bool read_write = 2; }
+// token is shown only here, once.
+message CreatedTokenMsg { int32 id = 1; string name = 2; bool read_write = 3; string token = 4; }
+// Times are round trip UTC timestamps; an empty string means none.
+message TokenMsg { int32 id = 1; string name = 2; bool read_write = 3; string created_at = 4; string last_used_at = 5; string revoked_at = 6; }
+message TokenList { repeated TokenMsg tokens = 1; }
+message TokenRef { int32 id = 1; }

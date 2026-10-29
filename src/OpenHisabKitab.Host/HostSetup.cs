@@ -1,3 +1,4 @@
+using OpenHisabKitab.Host.Api;
 using OpenHisabKitab.Host.Application;
 using OpenHisabKitab.Host.Grpc;
 
@@ -40,6 +41,8 @@ public static class HostSetup
         s.AddHostedService<BackupScheduler>();
         s.AddHostedService<AnchorFlushOnStop>();
         s.AddSingleton<IRemoteAddressAccessor, HttpRemoteAddress>();
+        s.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
+        s.ConfigureHttpJsonOptions(o => ApiJson.Strict(o.SerializerOptions));
         s.AddGrpc(o =>
         {
             o.Interceptors.Add<ErrorInterceptor>();
@@ -51,6 +54,8 @@ public static class HostSetup
 
     public static WebApplication MapOpenHisabKitab(this WebApplication app)
     {
+        app.UseMiddleware<ApiGate>();
+        app.MapRestApi();
         app.MapGrpcService<SessionEndpoint>();
         app.MapGrpcService<CompaniesEndpoint>();
         app.MapGrpcService<MastersEndpoint>();

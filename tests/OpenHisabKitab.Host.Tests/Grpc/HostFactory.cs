@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using OpenHisabKitab.Host.Api;
 using OpenHisabKitab.Host.Grpc;
 
 namespace OpenHisabKitab.Host.Tests.Grpc;
@@ -17,7 +18,11 @@ public sealed class HostFactory(bool callerIsLoopback = true) : WebApplicationFa
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("Host:DataDirectory", Folder);
-        builder.ConfigureServices(s => s.AddSingleton<IRemoteAddressAccessor>(new FixedAddress(callerIsLoopback ? IPAddress.Loopback : null)));
+        builder.ConfigureServices(s =>
+        {
+            s.AddSingleton<IRemoteAddressAccessor>(new FixedAddress(callerIsLoopback ? IPAddress.Loopback : IPAddress.Parse("192.168.1.9")));
+            s.AddSingleton<IListenerAccessor>(new TestListener());
+        });
     }
 
     public GrpcChannel Channel() =>
@@ -37,6 +42,14 @@ public sealed class HostFactory(bool callerIsLoopback = true) : WebApplicationFa
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try { Directory.Delete(Folder, recursive: true); }
         catch (IOException) { }
+    }
+
+    /// <summary>The in-memory server has one port; a request with this header is treated as arriving on the API port.</summary>
+    public const string ApiPortHeader = "X-Test-Port";
+
+    sealed class TestListener : IListenerAccessor
+    {
+        public bool OnApiPort(HttpContext context) => context.Request.Headers[ApiPortHeader] == "api";
     }
 
     sealed class FixedAddress(IPAddress? address) : IRemoteAddressAccessor

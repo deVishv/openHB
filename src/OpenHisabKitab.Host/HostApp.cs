@@ -1,10 +1,11 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using OpenHisabKitab.Host.Api;
 using OpenHisabKitab.Host.Application;
 using OpenHisabKitab.Host.Security;
 
 namespace OpenHisabKitab.Host;
 
-/// <summary>Builds the host: the Windows service, the gRPC port over TLS, and the application services.</summary>
+/// <summary>Builds the host: the Windows service, the gRPC port over TLS, the API port when turned on, and the application services.</summary>
 public static class HostApp
 {
     public const string ServiceName = "OpenHisabKitabHost";
@@ -14,6 +15,10 @@ public static class HostApp
         var builder = WebApplication.CreateBuilder(args);
         builder.Host.UseWindowsService(o => o.ServiceName = ServiceName);
         var options = builder.AddOpenHisabKitab();
+        // The API port's settings apply at start (spec 4.1). Turning it off applies at once, in ApiGate.
+        ApiSettings api;
+        using (var hostDb = new HostData(options.DataDirectory).OpenHost()) api = ApiSettings.Read(hostDb);
+        builder.Services.AddSingleton<IListenerAccessor>(new KestrelListener(api.Port));
 
         builder.WebHost.ConfigureKestrel((context, kestrel) =>
         {
@@ -25,6 +30,7 @@ public static class HostApp
                 listen.Protocols = HttpProtocols.Http2;
                 listen.UseHttps(certificate);
             });
+            ApiListener.Configure(kestrel, api, certificate);
         });
 
         var app = builder.Build();

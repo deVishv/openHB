@@ -29,7 +29,7 @@ All money is `long` paise wrapped in a `Money` struct. Every report figure comes
 ## Global Constraints
 
 - **Target and build settings.** Target `net10.0`. `Nullable` enabled. `TreatWarningsAsErrors` true.
-- **No em dash or en dash.** U+2014 and U+2013 must not appear in any file in the repository: code, resources, or docs. A test enforces this (Task 1). Write ranges as "1 to 9" and use plain hyphens or colons instead.
+- **No em dash or en dash.** U+2014 and U+2013 must not appear in any file in the repository: code, resources, or docs. A test enforces this (Task 1). Write ranges as "1 to 9" and use plain hyphens or colons instead. *(Rule removed by the owner on 2026-10-29. The scan test was deleted.)*
 - **No floating point in money, tax, or quantity logic.**
   - Money is `long` paise.
   - Quantity is `long` thousandths.

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The stdio bridge for MCP clients that only launch local programs (spec 4.1). It forwards to the host's /mcp and holds no data or rules. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <AssemblyName>ohk-mcp-bridge</AssemblyName>
+    <RootNamespace>OpenHisabKitab.McpBridge</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpenHisabKitab.McpBridge.Tests" />
+  </ItemGroup>
+
+</Project>

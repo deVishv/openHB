@@ -43,6 +43,7 @@ public static class HostSetup
         s.AddSingleton<IRemoteAddressAccessor, HttpRemoteAddress>();
         s.Configure<RouteHandlerOptions>(o => o.ThrowOnBadRequest = true);
         s.ConfigureHttpJsonOptions(o => ApiJson.Strict(o.SerializerOptions));
+        s.AddApiDocument();
         s.AddGrpc(o =>
         {
             o.Interceptors.Add<ErrorInterceptor>();
@@ -56,6 +57,7 @@ public static class HostSetup
     {
         app.UseMiddleware<ApiGate>();
         app.MapRestApi();
+        app.MapOpenApi("/api/v1/openapi.json");
         app.MapGrpcService<SessionEndpoint>();
         app.MapGrpcService<CompaniesEndpoint>();
         app.MapGrpcService<MastersEndpoint>();

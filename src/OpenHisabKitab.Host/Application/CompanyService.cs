@@ -87,6 +87,37 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
 
+    /// <summary>
+    /// Edits the company profile. Name, address, and GSTIN can always change. State and registration cannot change once any
+    /// voucher exists, because editing an old invoice would recalculate its tax under the new profile. The first year never changes.
+    /// </summary>
+    public async Task UpdateAsync(CallContext ctx, int id, CompanyProfile p)
+    {
+        ctx.Require(Permission.ManageCompanies);
+        ctx.RequireCompany(id);
+        var profile = Checked(p);
+        var (before, after) = await hub.WriteAsync(id, tx =>
+        {
+            var c = tx.Connection!;
+            var current = CompanyRepository.GetProfile(c);
+            if (profile.FirstFyStartYear != current.FirstFyStartYear)
+                throw new ServiceException(ServiceError.Invalid, "The first financial year cannot change.");
+            if ((profile.State != current.State || profile.Registration != current.Registration) && VoucherRepository.Any(c))
+                throw new ServiceException(ServiceError.Invalid, "State and registration cannot change after vouchers are entered.");
+            CompanyRepository.UpdateProfile(tx, profile);
+            var (b, a) = (JsonSerializer.Serialize(current), JsonSerializer.Serialize(profile));
+            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "edit", "company", Text.Key(id), b, a));
+            return (b, a);
+        }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null))).ConfigureAwait(false);
+        // The company list in host.db holds only the name, for display; the company file is the record.
+        data.WriteHost(tx =>
+        {
+            CompanyListRepository.Rename(tx, id, profile.Name);
+            AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "edit", "company", Text.Key(id), before, after));
+            return 0;
+        });
+    }
+
     /// <summary>The company layer of settings (spec 7): what is stored, not the defaults.</summary>
     public IReadOnlyDictionary<string, string> ListSettings(CallContext ctx, int id)
     {

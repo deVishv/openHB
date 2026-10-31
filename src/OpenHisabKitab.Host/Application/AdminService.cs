@@ -31,6 +31,14 @@ public sealed class AdminService(HostData data, CompanyHub hub, SessionStore ses
         }, _ => feed.Publish(new ChangeEvent(company, ChangeKind.Lock, null)));
     }
 
+    /// <summary>The date the books are locked up to, or null. Any user who can open the company can read it.</summary>
+    public DateOnly? LockedUpTo(CallContext ctx, int company)
+    {
+        ctx.RequireCompany(company);
+        using var c = hub.Open(company);
+        return LockRepository.LockedUpTo(c);
+    }
+
     public Task UnlockAsync(CallContext ctx, int company)
     {
         ctx.Require(Permission.UnlockPeriod);

@@ -417,4 +417,12 @@ public sealed class AdminServiceTests : IDisposable
         Assert.Equal(AnchorCheck.Matches, v.Anchor);
         Assert.Equal(FileHead(), StoredAnchor());
     }
+    [Fact]
+    public async Task LockedUpTo_reads_the_lock()
+    {
+        Assert.Null(host.Admin.LockedUpTo(owner, company));
+        await host.Admin.LockUpToAsync(owner, company, new DateOnly(2026, 6, 30));
+        var viewer = host.NewUser("viewer", BuiltInRole.Viewer, company).Context;
+        Assert.Equal(new DateOnly(2026, 6, 30), host.Admin.LockedUpTo(viewer, company));
+    }
 }

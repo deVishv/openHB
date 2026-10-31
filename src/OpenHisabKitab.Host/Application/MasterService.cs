@@ -133,6 +133,26 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         return PartyRepository.List(c);
     }
 
+    /// <summary>One page of parties, by ledger id.</summary>
+    public Page<Party> Parties(CallContext ctx, int company, PageRequest page)
+    {
+        ctx.RequireCompany(company);
+        var limit = Paging.Limit(page);
+        var after = Paging.IdCursor(page.After);
+        using var c = hub.Open(company);
+        return Paging.Cut(PartyRepository.Page(c, after, limit + 1), limit, p => Paging.IdCursor(p.Ledger.Value));
+    }
+
+    /// <summary>One page of items, by id.</summary>
+    public Page<Item> Items(CallContext ctx, int company, PageRequest page)
+    {
+        ctx.RequireCompany(company);
+        var limit = Paging.Limit(page);
+        var after = Paging.IdCursor(page.After);
+        using var c = hub.Open(company);
+        return Paging.Cut(ItemRepository.Page(c, after, limit + 1), limit, i => Paging.IdCursor(i.Id));
+    }
+
     /// <summary>Creates an item when Id is 0, otherwise updates it. Returns the item id.</summary>
     public Task<int> SaveItemAsync(CallContext ctx, int company, Item item)
     {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
@@ -85,6 +86,71 @@ public static class VoucherRepository
         if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
         return Load(c, where, [.. args]);
     }
+
+    /// <summary>
+    /// One page in date order: vouchers after the cursor (date, then id), at most limit of them. A createdBy filter limits
+    /// the list to one user's vouchers.
+    /// </summary>
+    public static IReadOnlyList<VoucherRow> ListPage(SqliteConnection c, DateRange range, VoucherType? type, int? createdBy,
+        (DateOnly Date, long Id)? after, int limit)
+    {
+        var where = "date >= $from AND date <= $to";
+        var args = new List<(string, object?)> { ("$from", Dates.Format(range.From)), ("$to", Dates.Format(range.To)), ("$limit", limit) };
+        if (type is { } t) { where += " AND type = $type"; args.Add(("$type", t.ToString())); }
+        if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
+        if (after is { } a)
+        {
+            where += " AND (date > $ad OR (date = $ad AND id > $aid))";
+            args.Add(("$ad", Dates.Format(a.Date)));
+            args.Add(("$aid", a.Id));
+        }
+        return Load(c, $"id IN (SELECT id FROM vouchers WHERE {where} ORDER BY date, id LIMIT $limit)", [.. args]);
+    }
+
+    /// <summary>
+    /// Vouchers matching FIND text, newest first, before the cursor, at most limit of them. A voucher matches when its number
+    /// or narration contains the text, when it names one of the party ledgers (on the invoice or in a posting), or when its
+    /// debit total equals amount.
+    /// </summary>
+    public static IReadOnlyList<VoucherRow> Find(SqliteConnection c, string text, DateRange? range, IReadOnlyCollection<int> partyLedgers,
+        Money? amount, int? createdBy, (DateOnly Date, long Id)? before, int limit)
+    {
+        var match = "instr(lower(display_number), lower($t)) > 0 OR instr(lower(narration), lower($t)) > 0";
+        var args = new List<(string, object?)> { ("$t", text), ("$limit", limit) };
+        if (partyLedgers.Count > 0)
+        {
+            var ids = string.Join(", ", partyLedgers.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            match += $" OR id IN (SELECT voucher_id FROM invoices WHERE party_ledger_id IN ({ids}))"
+                + $" OR id IN (SELECT voucher_id FROM postings WHERE ledger_id IN ({ids}))";
+        }
+        if (amount is { } m)
+        {
+            match += " OR (SELECT sum(amount_paise) FROM postings p WHERE p.voucher_id = vouchers.id AND p.amount_paise > 0) = $amount";
+            args.Add(("$amount", m.Paise));
+        }
+        var where = $"({match})";
+        if (range is { } r)
+        {
+            where += " AND date >= $from AND date <= $to";
+            args.Add(("$from", Dates.Format(r.From)));
+            args.Add(("$to", Dates.Format(r.To)));
+        }
+        if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
+        if (before is { } b)
+        {
+            where += " AND (date < $bd OR (date = $bd AND id < $bid))";
+            args.Add(("$bd", Dates.Format(b.Date)));
+            args.Add(("$bid", b.Id));
+        }
+        var rows = Load(c, $"id IN (SELECT id FROM vouchers WHERE {where} ORDER BY date DESC, id DESC LIMIT $limit)", [.. args]);
+        return [.. rows.Reverse()];
+    }
+
+    public static VoucherRow? GetByNumber(SqliteConnection c, VoucherType type, string displayNumber) =>
+        Load(c, "type = $type AND display_number = $n", ("$type", type.ToString()), ("$n", displayNumber)).SingleOrDefault();
+
+    public static bool Any(SqliteConnection c) =>
+        Sql.Query(c, "SELECT EXISTS(SELECT 1 FROM vouchers)", r => r.GetInt64(0) != 0).Single();
 
     public static IReadOnlyList<PostingRecord> AllPostings(SqliteConnection c) =>
         Sql.Query(c, "SELECT voucher_id, date, ledger_id, amount_paise FROM postings ORDER BY id", MapPosting);

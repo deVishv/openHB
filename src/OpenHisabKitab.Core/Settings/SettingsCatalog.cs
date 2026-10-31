@@ -21,6 +21,7 @@ public static class SettingsCatalog
         new("ui.dateFormat", SettingType.Choice, "\"dd-mm-yyyy\"", "How dates are shown.", MachineOrUser, Choices: ["dd-mm-yyyy", "dd/mm/yyyy", "yyyy-mm-dd"]),
         new("reports.autoReload", SettingType.Boolean, "false", "Reload open reports when data changes.", MachineOrUser),
         new("invoice.roundOff", SettingType.Boolean, "true", "Round invoice totals to the rupee.", SettingScope.Company),
+        new("invoice.pricesIncludeTax", SettingType.Boolean, "false", "New invoice lines take prices with tax included.", SettingScope.Company),
     ];
 
     public static SettingDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);

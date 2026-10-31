@@ -20,6 +20,10 @@ public static class ItemRepository
     public static IReadOnlyList<Item> List(SqliteConnection c) =>
         Sql.Query(c, $"SELECT {Columns} FROM items ORDER BY name", Map);
 
+    /// <summary>Items after the given id, by id, at most limit of them.</summary>
+    public static IReadOnlyList<Item> Page(SqliteConnection c, long? afterId, int limit) =>
+        Sql.Query(c, $"SELECT {Columns} FROM items WHERE id > $a ORDER BY id LIMIT $limit", Map, ("$a", afterId ?? 0), ("$limit", limit));
+
     public static int Insert(SqliteTransaction tx, Item i) =>
         (int)Sql.InsertReturningId(tx, """
             INSERT INTO items(name, hsn_sac, is_service, unit, rate_bp, cess_bp, default_price_paise)

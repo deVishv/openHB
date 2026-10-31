@@ -21,6 +21,11 @@ public static class PartyRepository
     public static IReadOnlyList<Party> List(SqliteConnection c) =>
         Sql.Query(c, $"SELECT {Columns} FROM parties ORDER BY ledger_id", Map);
 
+    /// <summary>Parties after the given ledger id, by ledger id, at most limit of them.</summary>
+    public static IReadOnlyList<Party> Page(SqliteConnection c, long? afterLedger, int limit) =>
+        Sql.Query(c, $"SELECT {Columns} FROM parties WHERE ledger_id > $a ORDER BY ledger_id LIMIT $limit", Map,
+            ("$a", afterLedger ?? 0), ("$limit", limit));
+
     /// <summary>Inserts or updates. The stored row version starts at 1 and goes up by one on each update.</summary>
     public static void Upsert(SqliteTransaction tx, Party p) =>
         Sql.Execute(tx, """

@@ -11,6 +11,7 @@ public sealed class ShellContext
     DateOnly workingDate;
 
     public required HostConnection Host { get; init; }
+    public required MachineFiles Files { get; init; }
     public required SettingsStore Settings { get; init; }
     public required KeybindingStore Keys { get; init; }
     public required TimeProvider Time { get; init; }

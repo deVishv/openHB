@@ -10,10 +10,14 @@ namespace OpenHisabKitab.Client.Model.Shell;
 /// The main window's model (spec 6.1): prompt, tabs, F key row, palette, and status bar, driven by keybindings (spec 6.5).
 /// Enter runs a command in the active tab, Shift+Enter in a new one.
 /// </summary>
-public sealed partial class ShellViewModel : ObservableObject
+public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
 {
     readonly FunctionRouter router;
     readonly IConfirm confirm;
+    readonly SynchronizationContext? ui = SynchronizationContext.Current;
+    readonly ChangeWatcher watcher;
+    readonly CancellationTokenSource stopping = new();
+    Task? watching;
     bool nextRunInNewTab;
 
     public ShellViewModel(ShellContext ctx, FunctionRouter router, IConfirm confirm)
@@ -27,6 +31,47 @@ public sealed partial class ShellViewModel : ObservableObject
         ctx.Keys.Changed += () => FKeys = FKeyRow.From(ctx.Keys.Current);
         ctx.CompanyChanged += () => OnPropertyChanged(nameof(Title));
         ctx.Reported += message => Status.Message = message;
+        Session = new SessionViewModel(ctx, OnLoggedInAsync);
+        watcher = new ChangeWatcher(ctx, Tabs, Post, LoadAsync);
+        ctx.Host.StateChanged += _ => Post(ShowConnection);
+        ctx.Host.Reconnected += () => Post(() =>
+        {
+            // Changes were missed while away, so every tab may be out of date.
+            foreach (var tab in Tabs.Tabs) tab.Changed = true;
+        });
+        ctx.Settings.Changed += ShowWorkingDate;
+        ctx.WorkingDateChanged += ShowWorkingDate;
+        Tabs.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TabsViewModel.Active)) ShowChanged();
+        };
+        Tabs.Tabs.CollectionChanged += (_, e) =>
+        {
+            foreach (TabViewModel tab in e.NewItems ?? Array.Empty<TabViewModel>())
+                tab.PropertyChanged += (_, p) =>
+                {
+                    if (p.PropertyName == nameof(TabViewModel.Changed)) ShowChanged();
+                };
+        };
+        ShowConnection();
+        ShowWorkingDate();
+    }
+
+    public SessionViewModel Session { get; }
+
+    /// <summary>False while a session panel covers the shell: no binding runs and typed letters do not reach the prompt.</summary>
+    public bool AcceptsTyping => Session.Panel == SessionPanel.None;
+
+    /// <summary>Starts following the change stream.</summary>
+    public void Start() => watching ??= watcher.RunAsync(stopping.Token);
+
+    public async ValueTask DisposeAsync()
+    {
+        await stopping.CancelAsync();
+        if (watching is not null)
+            try { await watching; }
+            catch (OperationCanceledException) { }
+        stopping.Dispose();
     }
 
     public ShellContext Context { get; }
@@ -71,6 +116,7 @@ public sealed partial class ShellViewModel : ObservableObject
     /// <summary>True when a binding ran.</summary>
     public async Task<bool> HandleKeyAsync(KeyChord key, IReadOnlySet<string> context)
     {
+        if (!AcceptsTyping) return false;
         var command = Context.Keys.Current.Resolve(key, context);
         if (command is null) return false;
         if (command.StartsWith("run.", StringComparison.Ordinal))
@@ -126,6 +172,46 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         tab.Changed = false;
         await LoadAsync(tab.Screen);
+    }
+
+    /// <summary>After setup or login: the user's layers, then the last company, else CMPY when no tab is open.</summary>
+    async Task OnLoggedInAsync()
+    {
+        try
+        {
+            await Context.Settings.LoadAsync(Context.Company?.Id);
+            await Context.Keys.LoadAsync();
+            if (Context.Company is null && !await CompanyOpener.TryReopenAsync(Context) && Tabs.Tabs.Count == 0)
+                await RunAsync("CMPY", newTab: true);
+        }
+        catch (HostException e) { Status.Message = e.Message; }
+        if (Context.Settings.LoadErrors.Concat(Context.Keys.LoadErrors).FirstOrDefault() is { } error) Status.Message = error;
+        OnPropertyChanged(nameof(AcceptsTyping));
+    }
+
+    void ShowConnection()
+    {
+        Status.Connection = Context.Host.State switch
+        {
+            ConnectionState.Connected => string.Format(CultureInfo.InvariantCulture, Text.ConnectedTo, Context.Host.Address),
+            ConnectionState.Reconnecting => Text.HostUnreachable,
+            ConnectionState.NeedsLogin when Context.Host.Session is not null => Context.Host.Message ?? Text.LogInAgain,
+            _ => "",
+        };
+        OnPropertyChanged(nameof(AcceptsTyping));
+    }
+
+    void ShowWorkingDate() =>
+        Status.WorkingDate = string.Format(CultureInfo.InvariantCulture, Text.WorkingDateStatus,
+            Formatting.DateText.Format(Context.WorkingDate, Context.Settings.Current.Text("ui.dateFormat")));
+
+    void ShowChanged() => Status.Changed = Tabs.Active?.Changed ?? false;
+
+    /// <summary>Runs on the UI thread when there is one; host events arrive on other threads.</summary>
+    void Post(Action action)
+    {
+        if (ui is null || SynchronizationContext.Current == ui) action();
+        else ui.Post(_ => action(), null);
     }
 
     async Task LoadAsync(IScreen screen)

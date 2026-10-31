@@ -5,7 +5,7 @@ using OpenHisabKitab.Core.Commands.Keys;
 
 namespace OpenHisabKitab.Client.Model.Tests.Shell;
 
-public sealed class FakeScreen(string code, bool unsaved = false, string subject = "", bool handlesCancel = false) : IScreen
+public sealed class FakeScreen(string code, bool unsaved = false, string subject = "", bool handlesCancel = false, Func<Task>? onLoad = null) : IScreen
 {
     public string Code { get; } = code;
     public string Subject { get; } = subject;
@@ -18,7 +18,7 @@ public sealed class FakeScreen(string code, bool unsaved = false, string subject
     public Task LoadAsync(CancellationToken ct)
     {
         Loads++;
-        return Task.CompletedTask;
+        return onLoad?.Invoke() ?? Task.CompletedTask;
     }
 
     public bool IsAffectedBy(ChangeEventMsg change) => Affected(change);

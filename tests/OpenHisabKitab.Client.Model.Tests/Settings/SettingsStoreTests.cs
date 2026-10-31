@@ -35,6 +35,25 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task A_form_save_keeps_other_entries_and_never_overwrites_broken_json()
+    {
+        File.WriteAllText(paths.Settings, "{ \"ui.fontSize\": 99, \"ui.fontFamily\": \"Tahoma\" }");
+        var store = new SettingsStore(new MachineFiles(paths), t.Connection());
+        await store.LoadAsync(null);
+        await store.SetAsync("reports.autoReload", "true", SettingLayer.Machine, null);
+        var text = File.ReadAllText(paths.Settings);
+        Assert.Contains("99", text, StringComparison.Ordinal);
+        Assert.Contains("Tahoma", text, StringComparison.Ordinal);
+        Assert.Contains("reports.autoReload", text, StringComparison.Ordinal);
+
+        File.WriteAllText(paths.Settings, "{ \"ui.fontSize\": ");
+        await store.LoadAsync(null);
+        await store.SetAsync("ui.fontSize", "20", SettingLayer.Machine, null);
+        Assert.Equal("{ \"ui.fontSize\": ", File.ReadAllText(paths.Settings));
+        Assert.Equal(20, store.Current.Int("ui.fontSize"));
+    }
+
+    [Fact]
     public async Task Missing_machine_file_gives_defaults_and_no_errors()
     {
         var store = new SettingsStore(new MachineFiles(paths), t.Connection());

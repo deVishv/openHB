@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Settings;
 using OpenHisabKitab.Client.Model.Shell;
+using OpenHisabKitab.Client.Model.Tests.Shell;
 using OpenHisabKitab.Core.Commands;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Host.Application;
@@ -21,6 +22,7 @@ public sealed class ClientTestHost : IDisposable
 
     readonly HostFactory factory = new();
     readonly List<HostConnection> connections = [];
+    readonly List<ShellViewModel> shells = [];
 
     public ClientTestHost()
     {
@@ -72,12 +74,55 @@ public sealed class ClientTestHost : IDisposable
         var files = new MachineFiles(new ClientPaths(ClientFolder));
         var ctx = new ShellContext
         {
-            Host = connection, Settings = new SettingsStore(files, connection), Keys = new KeybindingStore(files, connection), Time = Time,
+            Host = connection, Files = files, Settings = new SettingsStore(files, connection), Keys = new KeybindingStore(files, connection), Time = Time,
             WorkingDate = DateOnly.FromDateTime(Time.GetLocalNow().DateTime),
         };
         ctx.Settings.LoadAsync(null).GetAwaiter().GetResult();
         ctx.Keys.LoadAsync().GetAwaiter().GetResult();
-        return new ShellViewModel(ctx, new FunctionRouter(built), confirm);
+        var shell = new ShellViewModel(ctx, new FunctionRouter(built), confirm);
+        shells.Add(shell);
+        shell.Start();
+        return shell;
+    }
+
+    /// <summary>A shell whose screens are fakes for HELP, CMPY, SETG, DATE; each load makes one host call, as real screens do.</summary>
+    public ShellViewModel Shell(IConfirm? confirm = null)
+    {
+        Func<ParsedCommand, ShellContext, IScreen?> Fake(string code) => (cmd, ctx) =>
+            new FakeScreen(code, subject: string.Join(' ', cmd.Args),
+                onLoad: () => ctx.Host.CallAsync((h, o) => h.Companies.ListAsync(new Contracts.V1.Empty(), o)));
+        return Shell(new[] { "HELP", "CMPY", "SETG", "DATE" }.ToDictionary(c => c, Fake), confirm ?? new FakeConfirm(true));
+    }
+
+    /// <summary>A logged in Owner's shell with tabs open for the codes given, and company "A Traders" open when named.</summary>
+    public async Task<ShellViewModel> LoggedInShellAsync(string[] open, string? company = null,
+        IReadOnlyDictionary<string, Func<ParsedCommand, ShellContext, IScreen?>>? built = null, IConfirm? confirm = null)
+    {
+        var shell = built is null ? Shell(confirm) : Shell(built, confirm ?? new FakeConfirm(true));
+        var feed = factory.Services.GetRequiredService<ChangeFeed>();
+        var watching = feed.SubscriberCount;
+        shell.Session.HostName = Address.Name;
+        shell.Session.Port = Address.Port.ToString(CultureInfo.InvariantCulture);
+        await shell.Session.ConnectAsync();
+        shell.Session.UserName = "owner";
+        if (shell.Context.Host.State == ConnectionState.NeedsSetup) await shell.Session.SetupAsync(Password, Password);
+        else await shell.Session.LoginAsync(Password);
+        while (shell.Tabs.Tabs.Count > 0) await shell.Tabs.CloseActiveAsync(new FakeConfirm(true));
+        if (company is not null)
+        {
+            var id = await NewCompanyAsync(shell.Context.Host, company);
+            await CompanyOpener.OpenAsync(shell.Context, new Contracts.V1.CompanyEntry { Id = id, Name = company });
+        }
+        foreach (var code in open) await shell.RunAsync(code, newTab: true);
+        await Eventually(() => feed.SubscriberCount > watching);   // the change stream is live
+        return shell;
+    }
+
+    /// <summary>Waits for something the change stream delivers in the background.</summary>
+    public async Task Eventually(Func<bool> condition)
+    {
+        for (var i = 0; i < 500 && !condition(); i++) await Task.Delay(10);
+        Assert.True(condition(), "The expected change did not arrive.");
     }
 
     /// <summary>Ends every session, as a host restart does.</summary>
@@ -104,6 +149,7 @@ public sealed class ClientTestHost : IDisposable
 
     public void Dispose()
     {
+        foreach (var s in shells) s.DisposeAsync().AsTask().GetAwaiter().GetResult();
         foreach (var c in connections) c.DisposeAsync().AsTask().GetAwaiter().GetResult();
         factory.Dispose();
         try { Directory.Delete(ClientFolder, recursive: true); }

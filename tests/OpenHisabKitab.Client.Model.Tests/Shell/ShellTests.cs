@@ -12,10 +12,13 @@ public sealed class ShellTests : IDisposable
 
     public void Dispose() => t.Dispose();
 
-    ShellViewModel Shell(string[] built, FakeConfirm? confirm = null, bool unsaved = false, string? machineKeys = null)
+    /// <summary>A logged in shell whose screens are fakes for the codes given.</summary>
+    async Task<ShellViewModel> Shell(string[] built, FakeConfirm? confirm = null, bool unsaved = false, string? machineKeys = null)
     {
         if (machineKeys is not null) File.WriteAllText(Path.Combine(t.ClientFolder, "keybindings.json"), machineKeys);
-        return t.Shell(Fakes(made, unsaved, built), confirm ?? new FakeConfirm(true));
+        var shell = await t.LoggedInShellAsync([], built: Fakes(made, unsaved, built), confirm: confirm ?? new FakeConfirm(true));
+        made.Clear();
+        return shell;
     }
 
     [Theory]
@@ -26,7 +29,7 @@ public sealed class ShellTests : IDisposable
     [InlineData("TRLB fy", "TRLB is not in this version yet.")]
     public async Task Unbuilt_or_unknown_codes_show_one_line_and_open_nothing(string input, string status)
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         await shell.RunAsync(input, newTab: false);
         Assert.Equal(status, shell.Status.Message);
         Assert.Empty(shell.Tabs.Tabs);
@@ -35,7 +38,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Enter_replaces_the_active_tab_and_shift_enter_opens_another()
     {
-        var shell = Shell(built: ["HELP", "DATE"]);
+        var shell = await Shell(built: ["HELP", "DATE"]);
         await shell.RunAsync("help", false);
         await shell.RunAsync("date", false);
         await shell.RunAsync("help", true);
@@ -50,7 +53,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task A_run_loads_the_screen_clears_the_prompt_and_the_last_message()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         await shell.RunAsync("xyzq", false);
         shell.Prompt.Text = "help trlb";
         await shell.HandleKeyAsync(Chord("enter"), InPrompt);
@@ -63,7 +66,7 @@ public sealed class ShellTests : IDisposable
     public async Task Closing_unsaved_tab_asks_once_and_no_keeps_it()
     {
         var confirm = new FakeConfirm(answer: false);
-        var shell = Shell(built: ["SETG"], confirm: confirm, unsaved: true);
+        var shell = await Shell(built: ["SETG"], confirm: confirm, unsaved: true);
         await shell.RunAsync("setg", false);
         Assert.True(await shell.HandleKeyAsync(Chord("ctrl+w"), NoContext));
         Assert.Equal((1, 1), (confirm.Asked, shell.Tabs.Tabs.Count));
@@ -73,7 +76,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Replacing_an_unsaved_screen_asks_first()
     {
-        var shell = Shell(built: ["SETG", "HELP"], confirm: new FakeConfirm(false), unsaved: true);
+        var shell = await Shell(built: ["SETG", "HELP"], confirm: new FakeConfirm(false), unsaved: true);
         await shell.RunAsync("setg", false);
         await shell.RunAsync("help", false);
         Assert.Equal("1 SETG", shell.Tabs.Active!.Title);
@@ -82,7 +85,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Removed_binding_is_not_handled_and_rebound_f6_relabels()
     {
-        var shell = Shell(built: ["HELP"], machineKeys: """[ {"key":"ctrl+l","command":"-prompt.focus"}, {"key":"f6","command":"run.PURC"} ]""");
+        var shell = await Shell(built: ["HELP"], machineKeys: """[ {"key":"ctrl+l","command":"-prompt.focus"}, {"key":"f6","command":"run.PURC"} ]""");
         var focused = 0;
         shell.FocusPromptRequested += () => focused++;
         Assert.False(await shell.HandleKeyAsync(Chord("ctrl+l"), NoContext));
@@ -95,7 +98,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task F1_runs_help_and_ctrl_l_focuses_the_prompt()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         var focused = 0;
         shell.FocusPromptRequested += () => focused++;
         Assert.True(await shell.HandleKeyAsync(Chord("f1"), NoContext));
@@ -107,7 +110,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Tab_numbers_close_up_after_a_close()
     {
-        var shell = Shell(built: ["HELP", "DATE", "CMPY"]);
+        var shell = await Shell(built: ["HELP", "DATE", "CMPY"]);
         await shell.RunAsync("help", true);
         await shell.RunAsync("date", true);
         await shell.RunAsync("cmpy", true);
@@ -124,7 +127,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Ctrl_t_then_enter_opens_a_new_tab_and_esc_in_the_prompt_forgets_it()
     {
-        var shell = Shell(built: ["HELP", "DATE"]);
+        var shell = await Shell(built: ["HELP", "DATE"]);
         await shell.RunAsync("help", false);
         await shell.HandleKeyAsync(Chord("ctrl+t"), NoContext);
         await shell.RunAsync("date", false);
@@ -138,7 +141,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Ctrl_digit_and_ctrl_tab_move_between_tabs()
     {
-        var shell = Shell(built: ["HELP", "DATE"]);
+        var shell = await Shell(built: ["HELP", "DATE"]);
         await shell.RunAsync("help", true);
         await shell.RunAsync("date", true);
         await shell.HandleKeyAsync(Chord("ctrl+1"), NoContext);
@@ -156,7 +159,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Esc_goes_back_when_the_screen_does_not_handle_it()
     {
-        var shell = Shell(built: ["HELP", "DATE"]);
+        var shell = await Shell(built: ["HELP", "DATE"]);
         await shell.RunAsync("help", false);
         await shell.RunAsync("date", false);
         await shell.HandleKeyAsync(Chord("escape"), NoContext);
@@ -170,7 +173,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Ctrl_s_and_ctrl_f_go_to_the_active_screen()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         await shell.RunAsync("help", false);
         await shell.HandleKeyAsync(Chord("ctrl+s"), NoContext);
         await shell.HandleKeyAsync(Chord("ctrl+f"), NoContext);
@@ -180,7 +183,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Rfsh_reloads_the_active_tab_and_clears_changed()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         await shell.RunAsync("help", false);
         shell.Tabs.Active!.Changed = true;
         await shell.RunAsync("rfsh", false);
@@ -192,15 +195,15 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Rfsh_with_no_tab_says_nothing_to_refresh()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         await shell.RunAsync("rfsh", false);
         Assert.Equal("Nothing to refresh.", shell.Status.Message);
     }
 
     [Fact]
-    public void Suggestions_follow_typing_and_stop_after_a_space()
+    public async Task Suggestions_follow_typing_and_stop_after_a_space()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         Assert.Empty(shell.Prompt.Suggestions);
         shell.Prompt.Text = "tr";
         Assert.Equal("TRLB", shell.Prompt.Suggestions[0].Code);
@@ -211,9 +214,9 @@ public sealed class ShellTests : IDisposable
     }
 
     [Fact]
-    public void Complete_puts_the_selected_code()
+    public async Task Complete_puts_the_selected_code()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         shell.Prompt.Text = "bal";
         shell.Prompt.SelectedSuggestion = 1;
         shell.Prompt.Complete();
@@ -226,7 +229,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Palette_finds_settings_and_opens_setg_for_one()
     {
-        var shell = Shell(built: ["SETG"]);
+        var shell = await Shell(built: ["SETG"]);
         await shell.HandleKeyAsync(Chord("ctrl+shift+p"), NoContext);
         Assert.True(shell.Palette.IsOpen);
         shell.Palette.Text = "font";
@@ -240,7 +243,7 @@ public sealed class ShellTests : IDisposable
     [Fact]
     public async Task Palette_runs_a_function_and_esc_closes_it()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         shell.Palette.Open();
         shell.Palette.Text = "help";
         Assert.Equal("HELP  Help", shell.Palette.Items[0].Label);
@@ -254,9 +257,9 @@ public sealed class ShellTests : IDisposable
     }
 
     [Fact]
-    public void Title_follows_the_open_company()
+    public async Task Title_follows_the_open_company()
     {
-        var shell = Shell(built: ["HELP"]);
+        var shell = await Shell(built: ["HELP"]);
         Assert.Equal("Open Hisab Kitab", shell.Title);
         var changed = new List<string?>();
         shell.PropertyChanged += (_, e) => changed.Add(e.PropertyName);

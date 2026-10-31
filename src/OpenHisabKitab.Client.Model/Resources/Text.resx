@@ -16,4 +16,8 @@
   <data name="DiscardChanges" xml:space="preserve"><value>Discard unsaved changes?</value></data>
   <data name="TitleNoCompany" xml:space="preserve"><value>Open Hisab Kitab</value></data>
   <data name="TitleWithCompany" xml:space="preserve"><value>Open Hisab Kitab: {0} FY {1}</value></data>
+  <data name="PasswordsDiffer" xml:space="preserve"><value>The passwords differ.</value></data>
+  <data name="ConnectedTo" xml:space="preserve"><value>Connected to {0}</value></data>
+  <data name="LogInAgain" xml:space="preserve"><value>Log in again.</value></data>
+  <data name="WorkingDateStatus" xml:space="preserve"><value>Date {0}</value></data>
 </root>

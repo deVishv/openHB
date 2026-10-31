@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Settings;
@@ -41,7 +43,7 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
         {
             case SettingLayer.Machine:
                 machine[key] = json;
-                files.SaveSettings(machine);
+                EditMachineFile(o => o[key] = JsonNode.Parse(json));
                 break;
             case SettingLayer.User:
                 await host.CallAsync((h, o) => h.UserSettings.SetAsync(new SettingValue { Key = key, Json = json }, o));
@@ -61,7 +63,7 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
         switch (layer)
         {
             case SettingLayer.Machine:
-                if (machine.Remove(key)) files.SaveSettings(machine);
+                if (machine.Remove(key)) EditMachineFile(o => o.Remove(key));
                 break;
             case SettingLayer.User:
                 await host.CallAsync((h, o) => h.UserSettings.ResetAsync(new SettingKey { Key = key }, o));
@@ -104,6 +106,26 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
         foreach (var key in stored.Keys.Where(k => !load.Values.ContainsKey(k)).ToList())
             await ResetAsync(key, layer, company);
         return [];
+    }
+
+    /// <summary>
+    /// Changes one key in this PC's file and keeps every other entry, including ones with errors, so the user still sees
+    /// and fixes them. A file that is not valid JSON is left alone; the value applies until the client closes.
+    /// </summary>
+    void EditMachineFile(Action<JsonObject> change)
+    {
+        JsonObject? file;
+        try
+        {
+            file = JsonNode.Parse(files.ReadSettingsText(), documentOptions: new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true,
+            }) as JsonObject;
+        }
+        catch (JsonException) { file = null; }
+        if (file is null) return;
+        change(file);
+        files.WriteSettingsText(file.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
     }
 
     void Rebuild()

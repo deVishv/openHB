@@ -127,6 +127,10 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
         }
     }
 
+    /// <summary>The change stream (spec 4, Transport). It runs until cancelled or the link drops.</summary>
+    public AsyncServerStreamingCall<ChangeEventMsg> Watch(CancellationToken ct) =>
+        (clients ?? throw new InvalidOperationException("Connect first.")).Changes.Watch(new Empty(), StreamOptions(ct));
+
     /// <summary>Headers for a server stream such as Changes.Watch: no deadline.</summary>
     public CallOptions StreamOptions(CancellationToken ct) => new(Headers(token: true, machine: false), cancellationToken: ct);
 

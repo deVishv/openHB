@@ -41,8 +41,7 @@ public sealed class CertificateStore(string dataDirectory, TimeProvider time, IL
     }
 
     /// <summary>SHA-256 of the certificate, as upper case hex pairs separated by colons.</summary>
-    public static string Fingerprint(X509Certificate cert) =>
-        string.Join(':', SHA256.HashData(cert.GetRawCertData()).Select(b => b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+    public static string Fingerprint(X509Certificate cert) => Contracts.CertificateFingerprint.Of(cert);
 
     X509Certificate2 Create()
     {

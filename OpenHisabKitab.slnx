@@ -1,5 +1,7 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/OpenHisabKitab.Client/OpenHisabKitab.Client.csproj" />
+    <Project Path="src/OpenHisabKitab.Client.Model/OpenHisabKitab.Client.Model.csproj" />
     <Project Path="src/OpenHisabKitab.Contracts/OpenHisabKitab.Contracts.csproj" />
     <Project Path="src/OpenHisabKitab.Core/OpenHisabKitab.Core.csproj" />
     <Project Path="src/OpenHisabKitab.Data/OpenHisabKitab.Data.csproj" />
@@ -7,6 +9,8 @@
     <Project Path="src/OpenHisabKitab.McpBridge/OpenHisabKitab.McpBridge.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/OpenHisabKitab.Client.Model.Tests/OpenHisabKitab.Client.Model.Tests.csproj" />
+    <Project Path="tests/OpenHisabKitab.Client.UiTests/OpenHisabKitab.Client.UiTests.csproj" />
     <Project Path="tests/OpenHisabKitab.Core.Tests/OpenHisabKitab.Core.Tests.csproj" />
     <Project Path="tests/OpenHisabKitab.Data.Tests/OpenHisabKitab.Data.Tests.csproj" />
     <Project Path="tests/OpenHisabKitab.Host.Tests/OpenHisabKitab.Host.Tests.csproj" />

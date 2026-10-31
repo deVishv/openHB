@@ -5,5 +5,7 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Client and host must run the same version (spec 13, Version match); both read it from ProductVersion. -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 </Project>

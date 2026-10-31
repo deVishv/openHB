@@ -97,22 +97,19 @@ public sealed partial class VoucherService
         return (postings, header);
     }
 
-    // Zero tax: exports under LUT and SEZ supplies without payment, a composition company's bills of supply, and every
-    // document of an unregistered company. Composition and unregistered companies cannot take input credit, but a
-    // composition company still pays reverse charge at the normal rates (CGST Act section 9(3) and 9(4)).
-    static bool TaxFree(GstRegistration registration, InvoiceInput input)
-    {
-        if (input.Kind is InvoiceKind.ExportUnderLut or InvoiceKind.SezWithoutTax) return true;
-        if (registration == GstRegistration.Regular) return false;
-        // A business liable to pay reverse charge must register (CGST Act section 24), so the flag means a wrong profile.
-        if (registration == GstRegistration.Unregistered && input.ReverseCharge)
-            throw new ServiceException(ServiceError.Invalid, "An unregistered company cannot pay reverse charge. Register for GST first.");
-        if (registration == GstRegistration.Composition && input.Direction == TradeDirection.Inward && input.ReverseCharge) return false;
-        if (input.Direction == TradeDirection.Inward && input.Lines.Any(l => l.Rate.BasisPoints != 0 || l.CessRate.BasisPoints != 0))
-            throw new ServiceException(ServiceError.Invalid,
-                "This company cannot take input tax credit. Enter the purchase with rate 0 and the full amount.");
-        return true;
-    }
+    // The rule lives in Core (TaxMode), so the client's live totals follow it too.
+    static bool TaxFree(GstRegistration registration, InvoiceInput input) =>
+        TaxMode.Decide(registration, input.Kind, input.Direction, input.ReverseCharge,
+            input.Lines.Any(l => l.Rate.BasisPoints != 0 || l.CessRate.BasisPoints != 0)) switch
+        {
+            TaxDecision.Taxed => false,
+            TaxDecision.TaxFree => true,
+            TaxDecision.RefuseUnregisteredReverseCharge =>
+                throw new ServiceException(ServiceError.Invalid, "An unregistered company cannot pay reverse charge. Register for GST first."),
+            TaxDecision.RefuseInputTax => throw new ServiceException(ServiceError.Invalid,
+                "This company cannot take input tax credit. Enter the purchase with rate 0 and the full amount."),
+            var d => throw new ArgumentOutOfRangeException(nameof(registration), d, null),
+        };
 
     // Outward lines go to income ledgers. Inward lines go to expense ledgers, or asset ledgers other than cash and bank.
     // Tax, round off, and other required ledgers, and party ledgers, are never invoice lines.

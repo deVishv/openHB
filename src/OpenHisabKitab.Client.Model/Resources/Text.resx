@@ -313,4 +313,14 @@
   <data name="DiscountColumn" xml:space="preserve"><value>Discount</value></data>
   <data name="CessColumn" xml:space="preserve"><value>Cess</value></data>
   <data name="TaxIncludedColumn" xml:space="preserve"><value>With tax</value></data>
+  <data name="NoVouchersMatch" xml:space="preserve"><value>No vouchers match {0}.</value></data>
+  <data name="FindLabel" xml:space="preserve"><value>_Find</value></data>
+  <data name="SearchButton" xml:space="preserve"><value>_Search</value></data>
+  <data name="MoreButton" xml:space="preserve"><value>_More</value></data>
+  <data name="TypeColumn" xml:space="preserve"><value>Type</value></data>
+  <data name="NumberColumn" xml:space="preserve"><value>Number</value></data>
+  <data name="PartyColumn" xml:space="preserve"><value>Party</value></data>
+  <data name="NarrationColumn" xml:space="preserve"><value>Narration</value></data>
+  <data name="StatusColumn" xml:space="preserve"><value>Status</value></data>
+  <data name="FoundHeading" xml:space="preserve"><value>Vouchers found</value></data>
 </root>

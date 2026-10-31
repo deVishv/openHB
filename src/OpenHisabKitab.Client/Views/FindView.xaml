@@ -1,0 +1,42 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.FindView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="2">
+            <Label DockPanel.Dock="Left" Content="{t:Txt FindLabel}" Target="{Binding ElementName=Query}" />
+            <Button DockPanel.Dock="Right" Content="{t:Txt SearchButton}" AutomationProperties.Name="{t:Name SearchButton}" Click="OnSearch" />
+            <TextBox x:Name="Query" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name FindLabel}" KeyDown="OnQueryKeyDown" />
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="2" Content="{t:Txt MoreButton}" AutomationProperties.Name="{t:Name MoreButton}"
+                Click="OnMore" Visibility="{Binding HasMore, Converter={StaticResource Bool}}" />
+        <ListView x:Name="Results" ItemsSource="{Binding Rows}" AutomationProperties.Name="{t:Name FoundHeading}" PreviewKeyDown="OnResultsKeyDown"
+                  MouseDoubleClick="OnDoubleClick" VirtualizingPanel.IsVirtualizing="True">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Number}" /></Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="{t:Txt DateColumn}" DisplayMemberBinding="{Binding Date}" Width="90" />
+                    <GridViewColumn Header="{t:Txt TypeColumn}" DisplayMemberBinding="{Binding Code}" Width="60" />
+                    <GridViewColumn Header="{t:Txt NumberColumn}" DisplayMemberBinding="{Binding Number}" Width="150" />
+                    <GridViewColumn Header="{t:Txt PartyColumn}" DisplayMemberBinding="{Binding Party}" Width="180" />
+                    <GridViewColumn Header="{t:Txt AmountColumn}" Width="120">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate><TextBlock Text="{Binding Amount}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" /></DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="{t:Txt NarrationColumn}" DisplayMemberBinding="{Binding Narration}" Width="220" />
+                    <GridViewColumn Header="{t:Txt StatusColumn}" DisplayMemberBinding="{Binding Status}" Width="80" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</UserControl>

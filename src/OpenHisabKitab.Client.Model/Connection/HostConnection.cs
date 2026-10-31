@@ -14,7 +14,6 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
     : IAsyncDisposable
 {
     static readonly TimeSpan[] RetryDelays = [.. new[] { 1, 2, 4, 8, 15, 30 }.Select(s => TimeSpan.FromSeconds(s))];
-    static readonly TimeSpan CallDeadline = TimeSpan.FromSeconds(30);
 
     readonly CancellationTokenSource stopping = new();
     readonly Lock gate = new();
@@ -43,6 +42,9 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
     /// <summary>The one line explaining <see cref="State"/>, or null.</summary>
     public string? Message { get; private set; }
 
+    /// <summary>How long a unary call may take. Tests shorten it.</summary>
+    internal TimeSpan CallDeadline { get; set; } = TimeSpan.FromSeconds(30);
+
     /// <summary>True while retry work is running rather than waiting on the clock. Tests wait for it to settle.</summary>
     internal bool Busy
     {
@@ -55,13 +57,15 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
     public async Task<ConnectionState> ConnectAsync(HostAddress host, CancellationToken ct = default)
     {
         StopRetry();
+        // Connecting again from a session, as after accepting a changed certificate, misses changes like a lost session.
+        var hadSession = Session is not null || sessionLost;
         opening?.Dispose();
         Address = host;
         PinnedFingerprint = known.Fingerprint(host);
         opening = channels.Open(host, PinnedFingerprint);
         clients = new HostClients(opening.Channel.CreateCallInvoker());
         Session = null;
-        sessionLost = false;
+        sessionLost = hadSession;
         Set(ConnectionState.Connecting, null);
 
         HostInfo info;
@@ -82,11 +86,14 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
         return State;
     }
 
-    /// <summary>Pins the certificate the host showed, then connects again.</summary>
-    public Task<ConnectionState> TrustSeenCertificateAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Pins the certificate the user was shown, then connects again. If the host now shows another one, nothing is
+    /// pinned and the connect shows the new one for the user to check.
+    /// </summary>
+    public Task<ConnectionState> TrustSeenCertificateAsync(string shownFingerprint, CancellationToken ct = default)
     {
-        if (Address is null || SeenFingerprint is not { } seen) throw new InvalidOperationException("No certificate has been seen.");
-        known.Trust(Address, seen);
+        if (Address is null || SeenFingerprint is null) throw new InvalidOperationException("No certificate has been seen.");
+        if (shownFingerprint == SeenFingerprint) known.Trust(Address, shownFingerprint);
         return ConnectAsync(Address, ct);
     }
 

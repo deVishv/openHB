@@ -19,6 +19,7 @@ public sealed partial class SessionViewModel : ObservableObject
     readonly Func<Task> loggedIn;
     bool changingHost;
     string? ownMessage;
+    string? shownFingerprint;
 
     public SessionViewModel(ShellContext ctx, Func<Task> loggedIn)
     {
@@ -88,7 +89,7 @@ public sealed partial class SessionViewModel : ObservableObject
     public async Task TrustAsync()
     {
         ownMessage = null;
-        await ctx.Host.TrustSeenCertificateAsync();
+        await ctx.Host.TrustSeenCertificateAsync(shownFingerprint ?? "");
         Refresh();
     }
 
@@ -130,6 +131,7 @@ public sealed partial class SessionViewModel : ObservableObject
 
     void Refresh()
     {
+        shownFingerprint = ctx.Host.SeenFingerprint;
         OnPropertyChanged(nameof(Panel));
         OnPropertyChanged(nameof(Message));
         OnPropertyChanged(nameof(SeenFingerprint));

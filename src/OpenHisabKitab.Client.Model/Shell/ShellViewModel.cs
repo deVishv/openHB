@@ -19,6 +19,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     readonly CancellationTokenSource stopping = new();
     Task? watching;
     bool nextRunInNewTab;
+    bool routing;
     string? lastUser;
 
     public ShellViewModel(ShellContext ctx, FunctionRouter router, IConfirm confirm)
@@ -27,7 +28,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
         ctx.Confirm = confirm;
         this.router = router;
         this.confirm = confirm;
-        Tabs = new TabsViewModel(async command => (await router.RouteAsync(command, ctx)).Screen, LoadAsync, confirm);
+        Tabs = new TabsViewModel(ReplayAsync, LoadAsync, confirm);
         Palette = new PaletteViewModel(command => RunAsync(command, newTab: false));
         FKeys = FKeyRow.From(ctx.Keys.Current);
         ctx.Keys.Changed += () => FKeys = FKeyRow.From(ctx.Keys.Current);
@@ -101,21 +102,39 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     public async Task RunAsync(string input, bool newTab)
     {
-        Status.Message = null;
-        var route = await router.RouteAsync(input, Context);
-        var inNewTab = newTab || nextRunInNewTab;
-        nextRunInNewTab = false;
-        Prompt.Text = "";
-        if (route.Status is { } status) Status.Message = status;
-        if (route.Refresh)
+        // Enter pressed again while a command is still asking the host routes nothing more.
+        if (routing) return;
+        routing = true;
+        try
         {
-            await RefreshAsync();
-            return;
+            Status.Message = null;
+            var route = await router.RouteAsync(input, Context);
+            var inNewTab = newTab || nextRunInNewTab;
+            if (route.Screen is { } kept && !inNewTab && Tabs.Active is { Screen.HasUnsavedEdits: true } && !await confirm.AskAsync(Text.DiscardChanges))
+            {
+                (kept as IDisposable)?.Dispose();
+                return;   // the typed command stays in the prompt
+            }
+            nextRunInNewTab = false;
+            Prompt.Text = "";
+            if (route.Status is { } status) Status.Message = status;
+            if (route.Refresh)
+            {
+                await RefreshAsync();
+                return;
+            }
+            if (route.Screen is not { } screen) return;
+            Tabs.Show(screen, route.Command!, inNewTab);
+            await LoadAsync(screen);
         }
-        if (route.Screen is not { } screen) return;
-        if (!inNewTab && Tabs.Active is { Screen.HasUnsavedEdits: true } && !await confirm.AskAsync(Text.DiscardChanges)) return;
-        Tabs.Show(screen, route.Command!, inNewTab);
-        await LoadAsync(screen);
+        finally { routing = false; }
+    }
+
+    async Task<IScreen?> ReplayAsync(string command)
+    {
+        Context.Replaying = true;
+        try { return (await router.RouteAsync(command, Context)).Screen; }
+        finally { Context.Replaying = false; }
     }
 
     /// <summary>True when a binding ran.</summary>
@@ -128,7 +147,13 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
             return true;
         }
         var command = Context.Keys.Current.Resolve(key, context);
-        if (command is null) return false;
+        return command is not null && await RunCommandAsync(command, context);
+    }
+
+    /// <summary>Runs a command by its id, as a key or a menu item does. True when the id is known.</summary>
+    public async Task<bool> RunCommandAsync(string command, IReadOnlySet<string>? context = null)
+    {
+        context ??= new HashSet<string>();
         if (command.StartsWith("run.", StringComparison.Ordinal))
         {
             await RunAsync(command[4..], newTab: false);

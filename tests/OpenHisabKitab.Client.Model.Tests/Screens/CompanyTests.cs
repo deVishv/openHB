@@ -157,6 +157,21 @@ public sealed class CompanyTests : IDisposable
     }
 
     [Fact]
+    public async Task Enter_twice_while_a_lookup_runs_routes_once()
+    {
+        var shell = await t.LoggedInShellAsync(open: [], built: ScreenCatalog.Built());
+        await t.NewCompanyAsync(shell.Context.Host, "A Traders");
+        t.HoldCompanyList = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = shell.RunAsync("cmpy ravi", newTab: true);
+        var second = shell.RunAsync("cmpy ravi", newTab: true);
+        await second;
+        t.HoldCompanyList.SetResult();
+        t.HoldCompanyList = null;
+        await first;
+        Assert.Single(shell.Tabs.Tabs);
+    }
+
+    [Fact]
     public async Task Reloads_on_settings_and_restore_only()
     {
         var shell = await t.LoggedInShellAsync(open: []);

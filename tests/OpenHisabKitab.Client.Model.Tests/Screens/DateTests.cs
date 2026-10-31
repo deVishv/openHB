@@ -87,6 +87,22 @@ public sealed class DateTests : IDisposable
     }
 
     [Fact]
+    public async Task Back_to_a_date_screen_opens_it_and_sets_nothing()
+    {
+        var shell = await t.LoggedInShellAsync(open: [], company: "A Traders", built: ScreenCatalog.Built());
+        var ctx = shell.Context;
+        await shell.RunAsync("date 01-01-2028", newTab: true);      // no year holds it yet: the screen opens
+        Assert.Equal("1 DATE", shell.Tabs.Active!.Title.Split(' ')[0] + " " + shell.Tabs.Active.Screen.Code);
+        var before = ctx.WorkingDate;
+        await ctx.Host.CallAsync((h, o) => h.Companies.AddYearAsync(new CompanyRef { Company = ctx.Company!.Id }, o));
+        await CompanyOpener.OpenAsync(ctx, ctx.Company!);              // 2027 now exists, so 1-1-2028 is in a year
+        await shell.RunAsync("help", newTab: false);
+        await shell.Tabs.BackAsync();
+        Assert.Equal("DATE", shell.Tabs.Active!.Screen.Code);
+        Assert.Equal(before, ctx.WorkingDate);
+    }
+
+    [Fact]
     public async Task Dates_show_in_the_chosen_format()
     {
         await ctx.Settings.SetAsync("ui.dateFormat", "\"yyyy-mm-dd\"", Core.Settings.SettingLayer.Machine, null);

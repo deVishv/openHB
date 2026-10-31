@@ -67,7 +67,7 @@
   <data name="Purpose_HELP" xml:space="preserve"><value>Lists all functions and shortcuts. HELP CODE shows one function.</value></data>
   <data name="Purpose_SETG" xml:space="preserve"><value>Searchable settings, as a form or as JSON.</value></data>
   <data name="Purpose_KEYS" xml:space="preserve"><value>Searchable keybindings, as a form or as JSON.</value></data>
-  <data name="Purpose_CMPY" xml:space="preserve"><value>Create, select, and edit companies and financial years.</value></data>
+  <data name="Purpose_CMPY" xml:space="preserve"><value>Create and open companies, and add financial years.</value></data>
   <data name="Purpose_USER" xml:space="preserve"><value>Users, roles, and permissions.</value></data>
   <data name="Purpose_AUDT" xml:space="preserve"><value>Filter and view the log, and verify the chain.</value></data>
   <data name="Purpose_LOCK" xml:space="preserve"><value>Lock or unlock the books up to a date.</value></data>
@@ -206,4 +206,6 @@
   <data name="MoreSettingsErrors" xml:space="preserve"><value>{0} (and {1} more. See SETG.)</value></data>
   <data name="MoreKeyErrors" xml:space="preserve"><value>{0} (and {1} more. See KEYS.)</value></data>
   <data name="LayerNotRead" xml:space="preserve"><value>Your settings could not be read from the host yet. Try again when connected.</value></data>
+  <data name="HostTooSlow" xml:space="preserve"><value>The host took too long to answer. Try again.</value></data>
+  <data name="FileLine" xml:space="preserve"><value>{0} line {1}: {2}</value></data>
 </root>

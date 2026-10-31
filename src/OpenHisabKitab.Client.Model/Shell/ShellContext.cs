@@ -48,6 +48,9 @@ public sealed class ShellContext
         }
     }
 
+    /// <summary>True while Back or Forward re-runs a command: factories then open their screen and never act.</summary>
+    public bool Replaying { get; internal set; }
+
     public event Action? CompanyChanged;
 
     public event Action? WorkingDateChanged;

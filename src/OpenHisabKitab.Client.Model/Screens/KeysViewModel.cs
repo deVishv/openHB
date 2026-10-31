@@ -18,7 +18,7 @@ public sealed record KeyRow(KeyChord Chord, string Key, string Command, string C
 /// KEYS: every keybinding, searchable, changed by pressing the new key or edited as JSON per layer (spec 6.5). A change
 /// is written VS Code style: the old key unbound, the new key bound.
 /// </summary>
-public sealed partial class KeysViewModel : ScreenViewModel, IKeyRecorder
+public sealed partial class KeysViewModel : ScreenViewModel, IKeyRecorder, IDisposable
 {
     IReadOnlyList<KeyRow> all = [];
 
@@ -30,6 +30,8 @@ public sealed partial class KeysViewModel : ScreenViewModel, IKeyRecorder
     }
 
     public static IScreen? Create(ParsedCommand cmd, ShellContext ctx) => new KeysViewModel(ctx) { Filter = string.Join(' ', cmd.Args) };
+
+    public void Dispose() => Ctx.Keys.Changed -= Rebuild;
 
     public override string Code => "KEYS";
 

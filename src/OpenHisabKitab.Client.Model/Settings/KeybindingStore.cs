@@ -35,7 +35,7 @@ public sealed class KeybindingStore(MachineFiles files, HostConnection host)
         var load = files.LoadKeybindings();
         machine = load.Entries;
         machineErrors = load.Errors;
-        LoadErrors = [.. load.Errors.Select(e => string.Create(CultureInfo.InvariantCulture, $"keybindings.json line {e.Line}: {e.Message}"))];
+        LoadErrors = [.. load.Errors.Select(e => string.Format(CultureInfo.InvariantCulture, Resources.Text.FileLine, "keybindings.json", e.Line, e.Message))];
         if (host.Session is null) (userText, userRead) = (null, false);
         else if (host.State == ConnectionState.Connected)
             try

@@ -102,6 +102,13 @@ public static class BillRepository
         new(Sql.Query(c, $"SELECT coalesce(sum(amount_paise), 0) FROM allocations WHERE {Column(bill.Source)} = $id",
             r => r.GetInt64(0), ("$id", bill.Id)).Single());
 
+    /// <summary>The party and number of any bill, cancelled or not, or null when there is no such bill.</summary>
+    public static (LedgerId Party, string Number)? Describe(SqliteConnection c, BillRef bill) =>
+        Sql.Query(c, bill.Source == BillSource.Opening
+                ? "SELECT party_ledger_id, number FROM opening_bills WHERE id = $id"
+                : "SELECT i.party_ledger_id, v.display_number FROM vouchers v JOIN invoices i ON i.voucher_id = v.id WHERE v.id = $id",
+            r => ((LedgerId Party, string Number)?)(new LedgerId(r.GetInt32(0)), r.GetString(1)), ("$id", bill.Id)).SingleOrDefault();
+
     public static long? VoucherByRequestId(SqliteConnection c, string requestId) =>
         Sql.Query(c, "SELECT id FROM vouchers WHERE request_id = $r", r => (long?)r.GetInt64(0), ("$r", requestId)).SingleOrDefault();
 

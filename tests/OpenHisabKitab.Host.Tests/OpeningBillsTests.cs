@@ -114,6 +114,18 @@ public sealed class OpeningBillsTests : IDisposable
         await Refused(ServiceError.PermissionDenied, () => host.Masters.SetOpeningBillsAsync(clerk, company, party, 1, [Bill("OB-1", "100.00")]));
     }
 
-    [Fact(Skip = "Task 5")]
-    public Task Removing_a_settled_opening_bill_is_refused() => Task.CompletedTask;
+    [Fact]
+    public async Task Removing_a_settled_opening_bill_is_refused()
+    {
+        await Set(Bill("OB-1", "500.00"));
+        var stored = host.Masters.OpeningBills(owner, company, party).Bills.Single();
+        var cash = host.Masters.Chart(owner, company).Required(RequiredLedger.Cash);
+        await host.Vouchers.SaveJournalAsync(owner, company, new JournalInput(VoucherType.Receipt, new DateOnly(2026, 5, 1), "",
+            [new PostingLine(cash, Money.Parse("200.00")), new PostingLine(party, Money.Parse("-200.00"))],
+            [new AllocationRow(party, new BillRef(BillSource.Opening, stored.Id), Money.Parse("200.00"))]));
+        Assert.Equal("Bill OB-1 has 200.00 settled. Change those vouchers first.", await Refused(ServiceError.Invalid, () => Set()));
+        Assert.Equal("Bill OB-1 has 200.00 settled. Change those vouchers first.",
+            await Refused(ServiceError.Invalid, () => Set(stored with { Amount = Money.Parse("199.99") })));
+        await Set(stored with { Amount = Money.Parse("200.00") });
+    }
 }

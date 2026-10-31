@@ -15,13 +15,15 @@ public sealed partial class VoucherService
     public Task<SavedVoucher> SaveInvoiceAsync(CallContext ctx, int company, InvoiceInput input)
     {
         CheckDocumentType(input);
-        return SaveAsync(ctx, company, input.Type, input.Date, input.Narration, (tx, chart) => Calculated(tx, chart, input));
+        return SaveAsync(ctx, company, input.Type, input.Date, input.Narration, (tx, chart) => Calculated(tx, chart, input),
+            input.Allocations ?? [], input.RequestId);
     }
 
     public Task<SavedVoucher> EditInvoiceAsync(CallContext ctx, int company, long id, long rowVersion, InvoiceInput input)
     {
         CheckDocumentType(input);
-        return EditAsync(ctx, company, id, rowVersion, input.Type, input.Date, input.Narration, (tx, chart) => Calculated(tx, chart, input));
+        return EditAsync(ctx, company, id, rowVersion, input.Type, input.Date, input.Narration, (tx, chart) => Calculated(tx, chart, input),
+            input.Allocations ?? []);
     }
 
     static void CheckDocumentType(InvoiceInput input)
@@ -93,7 +95,8 @@ public sealed partial class VoucherService
             l.PriceIncludesTax, result.Lines[i].Taxable, result.Lines[i].Cgst, result.Lines[i].Sgst, result.Lines[i].Utgst,
             result.Lines[i].Igst, result.Lines[i].Cess)).ToList();
         var header = new InvoiceHeader(input.Party, input.Direction, input.Kind, input.PlaceOfSupply, input.ReverseCharge,
-            input.PartyDocNumber?.Trim(), input.PartyDocDate, input.OriginalNumber?.Trim(), input.OriginalDate, result.RoundOff, rows);
+            input.PartyDocNumber?.Trim(), input.PartyDocDate, input.OriginalNumber?.Trim(), input.OriginalDate, result.RoundOff, rows,
+            CheckedExport(input.Kind, input.Export));
         return (postings, header);
     }
 

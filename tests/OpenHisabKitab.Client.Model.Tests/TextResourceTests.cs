@@ -20,7 +20,7 @@ public sealed partial class TextResourceTests
         return files;
     }
 
-    [GeneratedRegex(@"\{t:Txt\s+(\w+)\s*\}")]
+    [GeneratedRegex(@"\{t:(?:Txt|Name)\s+(\w+)\s*\}")]
     private static partial Regex TxtKey();
 
     [GeneratedRegex(@"\s(Text|Content|Header|Title|ToolTip|AutomationProperties\.Name)=""([^""]*)""")]
@@ -41,7 +41,7 @@ public sealed partial class TextResourceTests
         foreach (var file in XamlFiles())
             foreach (Match m in TextAttribute().Matches(File.ReadAllText(file)))
             {
-                var value = m.Groups[2].Value;
+                var value = System.Net.WebUtility.HtmlDecode(m.Groups[2].Value);
                 Assert.False(value.Any(char.IsLetter) && !value.StartsWith('{'),
                     $"{Path.GetFileName(file)}: {m.Groups[1].Value}=\"{value}\" is literal text");
             }

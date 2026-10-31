@@ -20,4 +20,48 @@
   <data name="ConnectedTo" xml:space="preserve"><value>Connected to {0}</value></data>
   <data name="LogInAgain" xml:space="preserve"><value>Log in again.</value></data>
   <data name="WorkingDateStatus" xml:space="preserve"><value>Date {0}</value></data>
+  <data name="MenuFile" xml:space="preserve"><value>_File</value></data>
+  <data name="MenuLogOut" xml:space="preserve"><value>_Log out</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>E_xit</value></data>
+  <data name="MenuEdit" xml:space="preserve"><value>_Edit</value></data>
+  <data name="MenuFind" xml:space="preserve"><value>_Find</value></data>
+  <data name="MenuSave" xml:space="preserve"><value>_Save</value></data>
+  <data name="MenuView" xml:space="preserve"><value>_View</value></data>
+  <data name="MenuPalette" xml:space="preserve"><value>Command _palette</value></data>
+  <data name="MenuNextTab" xml:space="preserve"><value>_Next tab</value></data>
+  <data name="MenuPreviousTab" xml:space="preserve"><value>_Previous tab</value></data>
+  <data name="MenuHelp" xml:space="preserve"><value>_Help</value></data>
+  <data name="MenuFunctions" xml:space="preserve"><value>_Functions</value></data>
+  <data name="MenuKeybindings" xml:space="preserve"><value>_Keybindings</value></data>
+  <data name="PromptName" xml:space="preserve"><value>Command prompt</value></data>
+  <data name="Suggestions" xml:space="preserve"><value>Matching functions</value></data>
+  <data name="TabStrip" xml:space="preserve"><value>Tabs</value></data>
+  <data name="FKeys" xml:space="preserve"><value>Function keys</value></data>
+  <data name="StatusBar" xml:space="preserve"><value>Status</value></data>
+  <data name="Content" xml:space="preserve"><value>Function screen</value></data>
+  <data name="Palette" xml:space="preserve"><value>Command palette</value></data>
+  <data name="PaletteSearch" xml:space="preserve"><value>Search functions and settings</value></data>
+  <data name="PaletteItems" xml:space="preserve"><value>Matches</value></data>
+  <data name="HostLabel" xml:space="preserve"><value>_Host</value></data>
+  <data name="PortLabel" xml:space="preserve"><value>P_ort</value></data>
+  <data name="ConnectButton" xml:space="preserve"><value>_Connect</value></data>
+  <data name="ChangeHostButton" xml:space="preserve"><value>C_hange host</value></data>
+  <data name="TrustHeading" xml:space="preserve"><value>New host. Compare this fingerprint with the one on the host PC.</value></data>
+  <data name="FingerprintLabel" xml:space="preserve"><value>Fingerprint</value></data>
+  <data name="TrustButton" xml:space="preserve"><value>_Trust</value></data>
+  <data name="ChangedHeading" xml:space="preserve"><value>The host certificate changed. Accept it only if the host was reinstalled.</value></data>
+  <data name="WasLabel" xml:space="preserve"><value>Was</value></data>
+  <data name="NowLabel" xml:space="preserve"><value>Now</value></data>
+  <data name="AcceptButton" xml:space="preserve"><value>_Accept</value></data>
+  <data name="SetupHeading" xml:space="preserve"><value>Set up the Owner.</value></data>
+  <data name="UserLabel" xml:space="preserve"><value>_User</value></data>
+  <data name="PasswordLabel" xml:space="preserve"><value>_Password</value></data>
+  <data name="ConfirmPasswordLabel" xml:space="preserve"><value>C_onfirm password</value></data>
+  <data name="SetupButton" xml:space="preserve"><value>_Set up</value></data>
+  <data name="LoginButton" xml:space="preserve"><value>_Log in</value></data>
+  <data name="YesButton" xml:space="preserve"><value>_Yes</value></data>
+  <data name="NoButton" xml:space="preserve"><value>_No</value></data>
+  <data name="ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="SessionPanel" xml:space="preserve"><value>Connection</value></data>
+  <data name="ChangedMarker" xml:space="preserve"><value>Changed</value></data>
 </root>

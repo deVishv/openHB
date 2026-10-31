@@ -3,7 +3,11 @@ using OpenHisabKitab.Core.Commands.Keys;
 namespace OpenHisabKitab.Client.Model.Shell;
 
 /// <summary>One F key button: "F6" and the code it runs, or no code when the key runs no function.</summary>
-public sealed record FKeyLabel(string Key, string? Code);
+public sealed record FKeyLabel(string Key, string? Code)
+{
+    /// <summary>"F6 SALE", or "F6" alone.</summary>
+    public string Text => Code is null ? Key : $"{Key} {Code}";
+}
 
 /// <summary>The twelve F key buttons (spec 6.1), labelled from the keybindings in force so a rebound key relabels.</summary>
 public static class FKeyRow

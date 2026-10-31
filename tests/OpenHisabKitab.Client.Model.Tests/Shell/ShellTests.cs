@@ -83,6 +83,40 @@ public sealed class ShellTests : IDisposable
     }
 
     [Fact]
+    public async Task Keeping_unsaved_edits_keeps_the_typed_command()
+    {
+        var shell = await Shell(built: ["SETG", "HELP"], confirm: new FakeConfirm(false), unsaved: true);
+        await shell.RunAsync("setg", false);
+        shell.Prompt.Text = "help trlb";
+        await shell.HandleKeyAsync(Chord("enter"), InPrompt);
+        Assert.Equal(("1 SETG", "help trlb"), (shell.Tabs.Active!.Title, shell.Prompt.Text));
+    }
+
+    [Fact]
+    public async Task Commands_run_by_id_whatever_the_keys()
+    {
+        var shell = await Shell(built: ["HELP"], machineKeys: """[ {"key":"ctrl+shift+p","command":"-palette.open"} ]""");
+        await shell.RunCommandAsync("palette.open");
+        Assert.True(shell.Palette.IsOpen);
+        shell.Palette.Close();
+        await shell.RunCommandAsync("run.HELP");
+        Assert.Equal("1 HELP", shell.Tabs.Active!.Title);
+    }
+
+    [Fact]
+    public async Task A_closed_or_replaced_screen_is_let_go()
+    {
+        var shell = await Shell(built: ["HELP", "DATE"]);
+        await shell.RunAsync("help", false);
+        var first = (FakeScreen)shell.Tabs.Active!.Screen;
+        await shell.RunAsync("date", false);
+        Assert.True(first.Disposed);
+        var second = (FakeScreen)shell.Tabs.Active!.Screen;
+        await shell.HandleKeyAsync(Chord("ctrl+w"), NoContext);
+        Assert.True(second.Disposed);
+    }
+
+    [Fact]
     public async Task Removed_binding_is_not_handled_and_rebound_f6_relabels()
     {
         var shell = await Shell(built: ["HELP"], machineKeys: """[ {"key":"ctrl+l","command":"-prompt.focus"}, {"key":"f6","command":"run.PURC"} ]""");

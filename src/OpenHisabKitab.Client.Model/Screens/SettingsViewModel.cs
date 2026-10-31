@@ -43,7 +43,7 @@ public sealed record HostSettingRow(string Key, string Description, string Allow
 /// SETG: every setting, searchable, as a form or as JSON per layer (spec 7). The Owner also sees the host settings, and
 /// is told when a change waits for a host restart.
 /// </summary>
-public sealed partial class SettingsViewModel : ScreenViewModel
+public sealed partial class SettingsViewModel : ScreenViewModel, IDisposable
 {
     IReadOnlyList<SettingRow> all = [];
 
@@ -54,6 +54,8 @@ public sealed partial class SettingsViewModel : ScreenViewModel
     }
 
     public static IScreen? Create(ParsedCommand cmd, ShellContext ctx) => new SettingsViewModel(ctx, string.Join(' ', cmd.Args));
+
+    public void Dispose() => Ctx.Settings.Changed -= Rebuild;
 
     public override string Code => "SETG";
 

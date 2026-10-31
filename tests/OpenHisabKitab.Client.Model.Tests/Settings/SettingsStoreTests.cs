@@ -114,6 +114,22 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task A_failure_partway_through_a_json_save_puts_the_layer_back()
+    {
+        var (store, connection) = await LoggedInStore();
+        await store.LoadAsync(null);
+        await store.SetAsync("ui.fontSize", "20", SettingLayer.User, null);
+        t.FailRequest = ("UserSettings/Set", 2);
+        await Assert.ThrowsAsync<HostException>(() => store.SaveLayerTextAsync(SettingLayer.User, "{ \"ui.fontSize\": 22, \"ui.fontFamily\": \"Tahoma\" }", null));
+        t.FailRequest = null;
+        await t.Settle(connection);
+        t.Time.Advance(TimeSpan.FromSeconds(1));
+        await t.Settle(connection);
+        var stored = await connection.CallAsync((h, o) => h.UserSettings.ListAsync(new V1Empty(), o));
+        Assert.Equal([("ui.fontSize", "20")], stored.Values.Select(v => (v.Key, v.Json)));
+    }
+
+    [Fact]
     public async Task Removed_key_in_user_json_is_reset_on_the_host()
     {
         var (store, connection) = await LoggedInStore();

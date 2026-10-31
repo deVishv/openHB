@@ -48,6 +48,7 @@ public sealed partial class CompanyViewModel : ScreenViewModel
                 if (screen.CanCreate) screen.NewName = name;
                 return screen;
             case MatchKind.Ambiguous:
+            case not MatchKind.None when ctx.Replaying:
                 screen.candidates = match.Candidates;
                 return screen;
             default:

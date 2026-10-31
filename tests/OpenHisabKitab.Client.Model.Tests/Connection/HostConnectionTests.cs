@@ -127,6 +127,31 @@ public sealed class HostConnectionTests
     }
 
     [Fact]
+    public async Task Connecting_again_from_a_session_counts_as_a_lost_session()
+    {
+        using var t = new ClientTestHost();
+        var c = await t.LoggedInOwnerAsync();
+        var reconnected = 0;
+        c.Reconnected += () => reconnected++;
+        Assert.Equal(ConnectionState.NeedsLogin, await c.ConnectAsync(t.Address));   // as after accepting a changed certificate
+        await c.LoginAsync("owner", ClientTestHost.Password);
+        Assert.Equal(1, reconnected);
+    }
+
+    [Fact]
+    public async Task A_slow_call_says_so_and_does_not_reconnect()
+    {
+        using var t = new ClientTestHost();
+        var c = await t.LoggedInOwnerAsync();
+        c.CallDeadline = TimeSpan.FromMilliseconds(300);
+        t.HoldCompanyList = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var ex = await Assert.ThrowsAsync<HostException>(() => Companies(c));
+        t.HoldCompanyList.SetResult();
+        t.HoldCompanyList = null;
+        Assert.Equal((HostErrorKind.TimedOut, "The host took too long to answer. Try again.", ConnectionState.Connected), (ex.Kind, ex.Message, c.State));
+    }
+
+    [Fact]
     public async Task Conflict_carries_the_current_party()
     {
         using var t = new ClientTestHost();

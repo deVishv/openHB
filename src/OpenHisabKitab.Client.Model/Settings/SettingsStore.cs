@@ -37,7 +37,7 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
         var load = files.LoadSettings();
         machine = new Dictionary<string, string>(load.Values, StringComparer.Ordinal);
         machineErrors = load.Errors;
-        LoadErrors = [.. load.Errors.Select(e => string.Create(CultureInfo.InvariantCulture, $"settings.json line {e.Line}: {e.Message}"))];
+        LoadErrors = [.. load.Errors.Select(e => string.Format(CultureInfo.InvariantCulture, Resources.Text.FileLine, "settings.json", e.Line, e.Message))];
         if (host.Session is null)
         {
             (user, userRead) = (new Dictionary<string, string>(), false);
@@ -132,10 +132,34 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
             return [];
         }
         var stored = layer == SettingLayer.User ? user : this.company;
-        foreach (var (key, json) in load.Values.Where(p => stored.GetValueOrDefault(p.Key) != p.Value))
-            await SetAsync(key, json, layer, company);
-        foreach (var key in stored.Keys.Where(k => !load.Values.ContainsKey(k)).ToList())
-            await ResetAsync(key, layer, company);
+        // The host takes one key at a time, so a failure partway puts back the keys already changed.
+        var done = new List<(string Key, string? Before)>();
+        try
+        {
+            foreach (var (key, json) in load.Values.Where(p => stored.GetValueOrDefault(p.Key) != p.Value).ToList())
+            {
+                var before = stored.GetValueOrDefault(key);
+                await SetAsync(key, json, layer, company);
+                done.Add((key, before));
+            }
+            foreach (var key in stored.Keys.Where(k => !load.Values.ContainsKey(k)).ToList())
+            {
+                var before = stored[key];
+                await ResetAsync(key, layer, company);
+                done.Add((key, before));
+            }
+        }
+        catch (HostException)
+        {
+            foreach (var (key, before) in Enumerable.Reverse(done))
+                try
+                {
+                    if (before is null) await ResetAsync(key, layer, company);
+                    else await SetAsync(key, before, layer, company);
+                }
+                catch (HostException) { }   // the host is gone too; the next load shows what it holds
+            throw;
+        }
         return [];
     }
 

@@ -19,4 +19,15 @@ public sealed class UserServiceTests : IDisposable
         var ex = Assert.Throws<ServiceException>(() => h.Users.Companies(other.Context, clerk.Context.UserId));
         Assert.Equal(ServiceError.PermissionDenied, ex.Error);
     }
+
+    [Fact]
+    public void Users_list_with_their_companies_in_one_read()
+    {
+        var a = h.NewCompany();
+        var clerk = h.NewUser("clerk", BuiltInRole.DataEntry, a);
+        var list = h.Users.ListWithCompanies(h.Owner.Context);
+        Assert.Equal([a], list.Single(u => u.User.Name == "clerk").Companies);
+        Assert.All(list, u => Assert.Equal("", u.User.PasswordHash));
+        Assert.Throws<ServiceException>(() => h.Users.ListWithCompanies(clerk.Context));
+    }
 }

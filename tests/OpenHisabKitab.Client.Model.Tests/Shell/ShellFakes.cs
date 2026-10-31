@@ -5,8 +5,12 @@ using OpenHisabKitab.Core.Commands.Keys;
 
 namespace OpenHisabKitab.Client.Model.Tests.Shell;
 
-public sealed class FakeScreen(string code, bool unsaved = false, string subject = "", bool handlesCancel = false, Func<Task>? onLoad = null) : IScreen
+public sealed class FakeScreen(string code, bool unsaved = false, string subject = "", bool handlesCancel = false, Func<Task>? onLoad = null) : IScreen, IDisposable
 {
+    public bool Disposed { get; private set; }
+
+    public void Dispose() => Disposed = true;
+
     public string Code { get; } = code;
     public string Subject { get; } = subject;
     public bool HasUnsavedEdits { get; set; } = unsaved;

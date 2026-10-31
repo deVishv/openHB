@@ -45,6 +45,11 @@ public sealed class ClientTestHost : IDisposable
 
     public ConcurrentQueue<Request> Requests { get; } = new();
 
+    /// <summary>When set, the Nth request (1-based) whose path ends with the text fails as a dropped link does.</summary>
+    public (string Path, int Nth)? FailRequest { get; set; }
+
+    int failCount;
+
     /// <summary>While set, Companies.List requests wait for it, so a test can act while one is in flight.</summary>
     public TaskCompletionSource? HoldCompanyList { get; set; }
 
@@ -197,6 +202,9 @@ public sealed class ClientTestHost : IDisposable
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (owner.FailRequest is { } fail && request.RequestUri!.AbsolutePath.EndsWith(fail.Path, StringComparison.Ordinal)
+                && Interlocked.Increment(ref owner.failCount) == fail.Nth)
+                throw new HttpRequestException("Dropped.", new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionReset));
             if (owner.Offline)
                 throw new HttpRequestException("The host is offline.", new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
             owner.Requests.Enqueue(new Request(request.RequestUri!.AbsolutePath, Header(request, "ohk-version"), Header(request, "ohk-machine"),

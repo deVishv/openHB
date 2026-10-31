@@ -277,10 +277,9 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users, HostS
     public override Task<UserList> ListUsers(V1Empty request, ServerCallContext context)
     {
         var list = new UserList();
-        var caller = context.Caller();
-        list.Users.AddRange(users.List(caller).Select(u => new UserMsg
+        list.Users.AddRange(users.ListWithCompanies(context.Caller()).Select(x => new UserMsg
         {
-            Id = u.Id, Name = u.Name, Role = u.Role.ToString(), Active = u.Active, Companies = { users.Companies(caller, u.Id) },
+            Id = x.User.Id, Name = x.User.Name, Role = x.User.Role.ToString(), Active = x.User.Active, Companies = { x.Companies },
         }));
         return Task.FromResult(list);
     }

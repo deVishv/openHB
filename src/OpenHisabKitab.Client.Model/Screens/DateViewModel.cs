@@ -18,6 +18,7 @@ public sealed partial class DateViewModel : ScreenViewModel
 
     public static IScreen? Create(ParsedCommand cmd, ShellContext ctx)
     {
+        if (ctx.Replaying) return new DateViewModel(ctx) { Input = string.Join(' ', cmd.Args) };
         if (cmd.Args.Count == 1 && Apply(ctx, cmd.Args[0]) is { Problem: null, Done: var done })
         {
             ctx.Report(done);

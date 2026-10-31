@@ -49,6 +49,14 @@ public sealed class UserService(HostData data, SessionStore sessions, TimeProvid
         return [.. UserRepository.List(c).Select(u => u with { PasswordHash = "" })];
     }
 
+    /// <summary>Every user with the companies each can open, read on one connection for USER.</summary>
+    public IReadOnlyList<(UserRecord User, IReadOnlyList<int> Companies)> ListWithCompanies(CallContext ctx)
+    {
+        ctx.Require(Permission.ManageUsers);
+        using var c = data.OpenHost();
+        return [.. UserRepository.List(c).Select(u => (u with { PasswordHash = "" }, UserRepository.Companies(c, u.Id)))];
+    }
+
     /// <summary>The companies a user can open, so USER can show them checked.</summary>
     public IReadOnlyList<int> Companies(CallContext ctx, int userId)
     {

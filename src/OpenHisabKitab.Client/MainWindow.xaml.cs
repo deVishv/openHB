@@ -115,13 +115,7 @@ public partial class MainWindow : Window
         }
     }
 
-    async void OnCommand(object sender, RoutedEventArgs e)
-    {
-        var command = (string)((FrameworkElement)sender).Tag;
-        if (shell.Context.Keys.Current.KeyFor(command) is { } chord) await shell.HandleKeyAsync(chord, new HashSet<string>());
-        else if (command.StartsWith("run.", StringComparison.Ordinal)) await shell.RunAsync(command[4..], newTab: false);
-        else if (command == "palette.open") shell.Palette.Open();
-    }
+    async void OnCommand(object sender, RoutedEventArgs e) => await shell.RunCommandAsync((string)((FrameworkElement)sender).Tag);
 
     async void OnFKey(object sender, RoutedEventArgs e)
     {

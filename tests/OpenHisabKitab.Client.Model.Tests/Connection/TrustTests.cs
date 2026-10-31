@@ -48,8 +48,17 @@ public sealed class TrustTests : IAsyncLifetime
         Assert.Null(connection.PinnedFingerprint);
         await Assert.ThrowsAsync<InvalidOperationException>(() => connection.LoginAsync("owner", "x"));
         await Assert.ThrowsAsync<InvalidOperationException>(() => connection.SetupOwnerAsync("owner", "owner-password-1"));
-        Assert.Equal(ConnectionState.NeedsSetup, await connection.TrustSeenCertificateAsync());
+        Assert.Equal(ConnectionState.NeedsSetup, await connection.TrustSeenCertificateAsync(connection.SeenFingerprint!));
         Assert.Equal(Expected, known.Fingerprint(address));
+    }
+
+    [Fact]
+    public async Task Trust_pins_only_the_fingerprint_that_was_shown()
+    {
+        Assert.Equal(ConnectionState.NeedsTrust, await connection.ConnectAsync(address));
+        Assert.Equal(ConnectionState.NeedsTrust, await connection.TrustSeenCertificateAsync("00:11"));
+        Assert.Null(known.Fingerprint(address));
+        Assert.Equal(ConnectionState.NeedsSetup, await connection.TrustSeenCertificateAsync(connection.SeenFingerprint!));
     }
 
     [Fact]
@@ -68,7 +77,7 @@ public sealed class TrustTests : IAsyncLifetime
         Assert.Equal(ConnectionState.CertificateChanged, await connection.ConnectAsync(address));
         Assert.Equal(("00:11", Expected), (connection.PinnedFingerprint, connection.SeenFingerprint));
         await Assert.ThrowsAsync<InvalidOperationException>(() => connection.LoginAsync("owner", "x"));
-        Assert.Equal(ConnectionState.NeedsSetup, await connection.TrustSeenCertificateAsync());
+        Assert.Equal(ConnectionState.NeedsSetup, await connection.TrustSeenCertificateAsync(connection.SeenFingerprint!));
         Assert.Equal(Expected, known.Fingerprint(address));
     }
 

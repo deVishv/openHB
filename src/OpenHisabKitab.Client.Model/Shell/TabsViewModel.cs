@@ -24,8 +24,16 @@ public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate,
             Renumber();
             Active = tab;
         }
-        else Active.Replace(screen, command);
+        else
+        {
+            var old = Active.Screen;
+            Active.Replace(screen, command);
+            Release(old);
+        }
     }
+
+    /// <summary>A screen leaving the strip lets go of what it listens to.</summary>
+    static void Release(IScreen screen) => (screen as IDisposable)?.Dispose();
 
     /// <summary>False when there is no tab, or the user keeps unsaved edits.</summary>
     public async Task<bool> CloseActiveAsync(IConfirm confirm)
@@ -34,6 +42,7 @@ public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate,
         if (tab.Screen.HasUnsavedEdits && !await confirm.AskAsync(Text.DiscardChanges)) return false;
         var index = Tabs.IndexOf(tab);
         Tabs.RemoveAt(index);
+        Release(tab.Screen);
         Renumber();
         Active = Tabs.Count == 0 ? null : Tabs[Math.Min(index, Tabs.Count - 1)];
         return true;
@@ -43,6 +52,7 @@ public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate,
     public void CloseAll()
     {
         Active = null;
+        foreach (var tab in Tabs) Release(tab.Screen);
         Tabs.Clear();
     }
 
@@ -65,7 +75,9 @@ public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate,
         if (Active is not { } tab) return;
         if (!(tab.Screen.HasUnsavedEdits ? await confirm.AskAsync(Text.DiscardChanges) : true)) return;
         if (pop(tab) is not { } command || await recreate(command) is not { } screen) return;
+        var old = tab.Screen;
         show(tab, screen, command);
+        Release(old);
         await load(screen);
     }
 

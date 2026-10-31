@@ -31,6 +31,28 @@ public class MigratorTests
         Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM user_settings"));
     }
 
+    [Fact]
+    public void Version_1_company_file_migrates_to_2_keeping_its_vouchers()
+    {
+        using var db = new TempDb();
+        using var c = db.Open();
+        Migrator.Migrate(c, Schema.Company);
+        // Back to version 1: undo what 0002 adds.
+        Exec(c, """
+            DROP TABLE allocations; DROP TABLE opening_bills; DROP INDEX vouchers_request_id; DROP INDEX invoices_party;
+            ALTER TABLE vouchers DROP COLUMN request_id; ALTER TABLE parties DROP COLUMN opening_bills_version;
+            ALTER TABLE invoices DROP COLUMN port_code; ALTER TABLE invoices DROP COLUMN shipping_bill_number;
+            ALTER TABLE invoices DROP COLUMN shipping_bill_date;
+            INSERT INTO vouchers(type, series, fy_start, number, display_number, date, narration, created_by)
+                VALUES ('Receipt', 'Main', 2026, 1, 'RCT/26-27/00001', '2026-05-10', 'kept', 1);
+            PRAGMA user_version = 1;
+            """);
+        Assert.Equal(new MigrationResult(1, Migrator.Latest(Schema.Company)), Migrator.Migrate(c, Schema.Company));
+        Assert.Equal("kept", Scalar(c, "SELECT narration FROM vouchers WHERE number = 1"));
+        Assert.Null(Scalar(c, "SELECT request_id FROM vouchers WHERE number = 1") is DBNull ? null : "set");
+        Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM allocations"));
+    }
+
     static void Exec(SqliteConnection c, string sql)
     {
         using var cmd = c.CreateCommand();

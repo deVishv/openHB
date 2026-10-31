@@ -183,4 +183,59 @@ public sealed class VoucherRepositoryTests : IDisposable
         Write(tx => LockRepository.Set(tx, null));
         Assert.Null(LockRepository.LockedUpTo(c));
     }
+    (LedgerId Party, VoucherRow Sale) Sale(long number, string total = "1180.00")
+    {
+        var (c1, party) = chart.AddLedger($"Party {number}", chart.Group(GroupKind.TradeReceivables));
+        Write(tx => ChartRepository.SaveLedger(tx, c1.Ledger(party)));
+        Write(tx => PartyRepository.Upsert(tx, new Party(party, null, new StateCode("27"), 30, "", 0)));
+        var invoice = new InvoiceHeader(party, TradeDirection.Outward, InvoiceKind.ExportUnderLut, new StateCode("96"), false,
+            null, null, null, null, Money.Zero, [], new ExportDetails("INNSA1", "1234567", new DateOnly(2026, 6, 2)));
+        return (party, new VoucherRow(0, VoucherType.Sale, "Main", 2026, number, $"INV/26-27/{number:D5}", new DateOnly(2026, 6, 1), "",
+            false, 1, 0, [new PostingLine(party, Money.Parse(total)), new PostingLine(sales, -Money.Parse(total))], invoice));
+    }
+
+    [Fact]
+    public void Allocations_and_export_details_round_trip()
+    {
+        var (party, sale) = Sale(1);
+        var saleId = Write(tx => VoucherRepository.Insert(tx, sale));
+        var receipt = Receipt(1, new DateOnly(2026, 6, 5), 500) with
+        {
+            Postings = [new PostingLine(cash, Money.FromRupees(500)), new PostingLine(party, Money.FromRupees(-500))],
+            Allocations = [new AllocationRow(party, new BillRef(BillSource.Voucher, saleId), Money.FromRupees(500))],
+            RequestId = "abc",
+        };
+        var id = Write(tx => VoucherRepository.Insert(tx, receipt));
+        Assert.Equivalent(receipt with { Id = id, RowVersion = 1 }, VoucherRepository.Get(c, id), strict: true);
+        Assert.Equivalent(sale with { Id = saleId, RowVersion = 1 }, VoucherRepository.Get(c, saleId), strict: true);
+        Assert.Equal(id, BillRepository.VoucherByRequestId(c, "abc"));
+        Assert.Null(BillRepository.VoucherByRequestId(c, "other"));
+    }
+
+    [Fact]
+    public void Cancel_removes_the_vouchers_own_allocations()
+    {
+        var (party, sale) = Sale(1);
+        var saleId = Write(tx => VoucherRepository.Insert(tx, sale));
+        var bill = new BillRef(BillSource.Voucher, saleId);
+        var receipt = Receipt(1, new DateOnly(2026, 6, 5), 500) with
+        {
+            Postings = [new PostingLine(cash, Money.FromRupees(500)), new PostingLine(party, Money.FromRupees(-500))],
+            Allocations = [new AllocationRow(party, bill, Money.FromRupees(500))],
+        };
+        var id = Write(tx => VoucherRepository.Insert(tx, receipt));
+        Assert.Equal(Money.FromRupees(500), BillRepository.SettledAgainst(c, bill));
+        Assert.True(Write(tx => VoucherRepository.Cancel(tx, id, 1)));
+        Assert.Empty(VoucherRepository.Get(c, id)!.Allocations);
+        Assert.Equal(Money.Zero, BillRepository.SettledAgainst(c, bill));
+    }
+
+    [Fact]
+    public void Request_id_is_unique()
+    {
+        Write(tx => VoucherRepository.Insert(tx, Receipt(1, new DateOnly(2026, 5, 10), 500) with { RequestId = "same" }));
+        var e = Assert.Throws<SqliteException>(() =>
+            Write(tx => VoucherRepository.Insert(tx, Receipt(2, new DateOnly(2026, 5, 10), 500) with { RequestId = "same" })));
+        Assert.Equal(19, e.SqliteErrorCode);
+    }
 }

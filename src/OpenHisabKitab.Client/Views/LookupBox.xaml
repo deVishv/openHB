@@ -1,0 +1,17 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.LookupBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root" Focusable="True" IsTabStop="False">
+    <!-- A name field (spec 6.2, Names): typing lists matches below; Down moves into them; Enter or Tab commits. -->
+    <Grid>
+        <TextBox x:Name="Input" Text="{Binding Text, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="{Binding AutomationName, ElementName=Root}"
+                 PreviewKeyDown="OnInputKeyDown" LostKeyboardFocus="OnInputLostFocus" />
+        <Popup x:Name="Suggest" PlacementTarget="{Binding ElementName=Input}" Placement="Bottom" StaysOpen="False" AllowsTransparency="False"
+               IsOpen="False">
+            <ListBox x:Name="Choices" ItemsSource="{Binding Suggestions}" MinWidth="{Binding ActualWidth, ElementName=Input}" MaxHeight="240"
+                     AutomationProperties.Name="{Binding AutomationName, ElementName=Root}" PreviewKeyDown="OnChoicesKeyDown"
+                     MouseDoubleClick="OnChoicesDoubleClick" />
+        </Popup>
+    </Grid>
+</UserControl>

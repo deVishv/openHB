@@ -1,0 +1,70 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.AccountsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <v:DepthIndent x:Key="Indent" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" TextWrapping="Wrap"
+                   Visibility="{Binding Message, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Assertive" />
+        <!-- Spec 13, Opening balances: the difference blocks saving vouchers until it is zero. -->
+        <TextBlock DockPanel.Dock="Bottom" Text="{Binding OpeningDifference}" Margin="2" FontWeight="Bold" FontFamily="{DynamicResource NumberFont}"
+                   Visibility="{Binding OpeningDifference, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Polite" />
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+
+            <DockPanel Margin="2">
+                <Label DockPanel.Dock="Top" Content="{t:Txt AccountsHeading}" Target="{Binding ElementName=ChartList}" FontWeight="Bold" />
+                <ListBox x:Name="ChartList" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name AccountsHeading}"
+                         VirtualizingPanel.IsVirtualizing="True" KeyDown="OnListKeyDown">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <DockPanel Margin="{Binding Depth, Converter={StaticResource Indent}}">
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Opening}" FontFamily="{DynamicResource NumberFont}" Margin="8,0,0,0" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Required}" Margin="8,0,0,0" FontStyle="Italic" />
+                                <TextBlock Text="{Binding Name}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsGroup}" Value="True"><Setter Property="FontWeight" Value="Bold" /></DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+
+            <!-- The form: the selected group or ledger, or a new one after record.new. Ctrl+S saves. -->
+            <StackPanel Grid.Column="1" Margin="6,2,2,2">
+                <CheckBox Content="{t:Txt IsGroupLabel}" IsChecked="{Binding FormIsGroup}" AutomationProperties.Name="{t:Name IsGroupLabel}" Margin="0,2" />
+                <Label Content="{t:Txt NameLabel}" Target="{Binding ElementName=FormName}" />
+                <TextBox x:Name="FormName" Text="{Binding FormName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name NameLabel}" />
+                <Label Content="{t:Txt UnderGroupLabel}" Target="{Binding ElementName=FormParent}" />
+                <v:LookupBox x:Name="FormParent" DataContext="{Binding FormParent}" AutomationName="{t:Name UnderGroupLabel}" />
+                <Label Content="{t:Txt OpeningLabel}" Target="{Binding ElementName=FormOpening}" />
+                <DockPanel IsEnabled="{Binding CanEditOpenings}">
+                    <ComboBox DockPanel.Dock="Right" Width="60" ItemsSource="{Binding Sides}" SelectedItem="{Binding FormSide}"
+                              AutomationProperties.Name="{t:Name SideLabel}" />
+                    <TextBox x:Name="FormOpening" Text="{Binding FormOpening, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                             TextAlignment="Right" AutomationProperties.Name="{t:Name OpeningLabel}" />
+                </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
+                    <Button Content="{t:Txt NewButton}" AutomationProperties.Name="{t:Name NewButton}" Click="OnNew" Margin="4,0,0,0" />
+                    <Button Content="{t:Txt DeleteButton}" AutomationProperties.Name="{t:Name DeleteButton}" Click="OnDelete" Margin="4,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

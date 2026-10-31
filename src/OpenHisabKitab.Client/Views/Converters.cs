@@ -35,3 +35,12 @@ public sealed class LayerName : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
+
+/// <summary>A left margin of 16 px per level, for indented lists such as the chart of accounts.</summary>
+public sealed class DepthIndent : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        new Thickness(value is int depth ? depth * 16 : 0, 0, 0, 0);
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}

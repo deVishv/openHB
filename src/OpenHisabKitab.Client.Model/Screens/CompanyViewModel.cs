@@ -11,7 +11,12 @@ using OpenHisabKitab.Core.Time;
 namespace OpenHisabKitab.Client.Model.Screens;
 
 /// <summary>One line of the state list: "27 Maharashtra".</summary>
-public sealed record StateOption(string Code, string Label);
+public sealed record StateOption(string Code, string Label)
+{
+    /// <summary>Every state and union territory in the GST data, by code.</summary>
+    public static IReadOnlyList<StateOption> All { get; } =
+        [.. GstData.LoadEmbedded().States.OrderBy(s => s.Code.Value, StringComparer.Ordinal).Select(s => new StateOption(s.Code.Value, $"{s.Code.Value} {s.Name}"))];
+}
 
 /// <summary>
 /// CMPY: list, open, and create companies, and add financial years (spec 6.3). "CMPY name" opens a single match at once,
@@ -19,8 +24,6 @@ public sealed record StateOption(string Code, string Label);
 /// </summary>
 public sealed partial class CompanyViewModel : ScreenViewModel
 {
-    static readonly IReadOnlyList<StateOption> AllStates =
-        [.. GstData.LoadEmbedded().States.OrderBy(s => s.Code.Value, StringComparer.Ordinal).Select(s => new StateOption(s.Code.Value, $"{s.Code.Value} {s.Name}"))];
 
     IReadOnlyList<string>? candidates;
 
@@ -65,7 +68,7 @@ public sealed partial class CompanyViewModel : ScreenViewModel
 
     public bool CanAddYear => Ctx.Has("ManageCompanies") && Selected is not null;
 
-    public IReadOnlyList<StateOption> States => AllStates;
+    public IReadOnlyList<StateOption> States => StateOption.All;
 
     public IReadOnlyList<string> Registrations { get; } = [nameof(GstRegistration.Regular), nameof(GstRegistration.Composition), nameof(GstRegistration.Unregistered)];
 

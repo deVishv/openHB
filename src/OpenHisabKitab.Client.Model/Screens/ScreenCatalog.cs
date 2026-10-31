@@ -15,6 +15,8 @@ public static class ScreenCatalog
         ["KEYS"] = Now(KeysViewModel.Create),
         ["USER"] = Now(UsersViewModel.Create),
         ["ACCT"] = Now(AccountsViewModel.Create),
+        ["ITEM"] = Now(ItemsViewModel.Create),
+        ["PRTY"] = Now((cmd, ctx) => PartiesViewModel.Create(cmd, ctx)),
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

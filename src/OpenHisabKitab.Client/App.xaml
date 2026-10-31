@@ -17,6 +17,8 @@
             <DataTemplate DataType="{x:Type s:KeysViewModel}"><v:KeysView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:UsersViewModel}"><v:UsersView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:AccountsViewModel}"><v:AccountsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:ItemsViewModel}"><v:ItemsView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:PartiesViewModel}"><v:PartiesView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -34,7 +34,7 @@ public static class KeyInput
             case TextBox { Name: "Prompt" }: context.Add("promptFocus"); break;
             case TextBoxBase or PasswordBox or ComboBox: context.Add("inputFocus"); break;
         }
-        if (focused is DependencyObject d && Ancestor<DataGrid>(d) is not null) context.Add("gridFocus");
+        if (focused is DependencyObject d && (Ancestor<DataGrid>(d) is not null || Views.EntryGrid.Owner(d) is not null)) context.Add("gridFocus");
         return context;
     }
 

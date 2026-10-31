@@ -1,0 +1,58 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.ItemsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" TextWrapping="Wrap"
+                   Visibility="{Binding Message, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Assertive" />
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+            <DockPanel Margin="2">
+                <DockPanel DockPanel.Dock="Top">
+                    <Label Content="{t:Txt FilterLabel}" Target="{Binding ElementName=Filter}" />
+                    <TextBox x:Name="Filter" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name FilterLabel}" />
+                </DockPanel>
+                <ListView x:Name="ItemList" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name ItemsHeading}"
+                          KeyDown="OnListKeyDown">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Name}" /></Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{t:Txt NameColumn}" DisplayMemberBinding="{Binding Name}" Width="220" />
+                            <GridViewColumn Header="{t:Txt HsnColumn}" DisplayMemberBinding="{Binding HsnSac}" Width="100" />
+                            <GridViewColumn Header="{t:Txt UnitLabel}" DisplayMemberBinding="{Binding Unit}" Width="60" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+            <StackPanel Grid.Column="1" Margin="6,2,2,2">
+                <Label Content="{t:Txt NameLabel}" Target="{Binding ElementName=FormName}" />
+                <TextBox x:Name="FormName" Text="{Binding FormName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name NameLabel}" />
+                <Label Content="{t:Txt HsnSacLabel}" Target="{Binding ElementName=FormHsn}" />
+                <TextBox x:Name="FormHsn" Text="{Binding FormHsnSac, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                         AutomationProperties.Name="{t:Name HsnSacLabel}" />
+                <CheckBox Content="{t:Txt IsServiceLabel}" IsChecked="{Binding FormIsService}" AutomationProperties.Name="{t:Name IsServiceLabel}" Margin="0,4" />
+                <Label Content="{t:Txt UnitLabel}" Target="{Binding ElementName=FormUnit}" />
+                <TextBox x:Name="FormUnit" Text="{Binding FormUnit, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name UnitLabel}" />
+                <Label Content="{t:Txt RateLabel}" Target="{Binding ElementName=FormRate}" />
+                <ComboBox x:Name="FormRate" ItemsSource="{Binding Rates}" SelectedItem="{Binding FormRate}" DisplayMemberPath="Label"
+                          AutomationProperties.Name="{t:Name RateLabel}" />
+                <Label Content="{t:Txt CessLabel}" Target="{Binding ElementName=FormCess}" />
+                <TextBox x:Name="FormCess" Text="{Binding FormCessRate, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                         AutomationProperties.Name="{t:Name CessLabel}" />
+                <Label Content="{t:Txt DefaultPriceLabel}" Target="{Binding ElementName=FormPrice}" />
+                <TextBox x:Name="FormPrice" Text="{Binding FormDefaultPrice, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                         TextAlignment="Right" AutomationProperties.Name="{t:Name DefaultPriceLabel}" />
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
+                    <Button Content="{t:Txt NewButton}" AutomationProperties.Name="{t:Name NewButton}" Click="OnNew" Margin="4,0,0,0" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

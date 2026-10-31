@@ -223,4 +223,31 @@
   <data name="NewButton" xml:space="preserve"><value>_New</value></data>
   <data name="DeleteButton" xml:space="preserve"><value>_Delete</value></data>
   <data name="SaveRecordButton" xml:space="preserve"><value>_Save</value></data>
+  <data name="RateInvalid" xml:space="preserve"><value>Enter a rate like 18 or 0.25.</value></data>
+  <data name="DiscardParty" xml:space="preserve"><value>Discard this party?</value></data>
+  <data name="CreditDaysInvalid" xml:space="preserve"><value>Enter credit days as a whole number, 0 to 3650.</value></data>
+  <data name="OpeningBillsSummary" xml:space="preserve"><value>Opening balance {0}; bills {1}; on account {2}</value></data>
+  <data name="LineDateInvalid" xml:space="preserve"><value>Line {0}: enter the date as dd-mm-yyyy.</value></data>
+  <data name="LineAmountInvalid" xml:space="preserve"><value>Line {0}: enter an amount like 12,345.60.</value></data>
+  <data name="ItemsHeading" xml:space="preserve"><value>Items</value></data>
+  <data name="PartiesHeading" xml:space="preserve"><value>Parties</value></data>
+  <data name="FilterLabel" xml:space="preserve"><value>_Filter</value></data>
+  <data name="HsnSacLabel" xml:space="preserve"><value>_HSN or SAC</value></data>
+  <data name="IsServiceLabel" xml:space="preserve"><value>Ser_vice</value></data>
+  <data name="UnitLabel" xml:space="preserve"><value>U_nit</value></data>
+  <data name="RateLabel" xml:space="preserve"><value>GST _rate</value></data>
+  <data name="CessLabel" xml:space="preserve"><value>C_ess rate</value></data>
+  <data name="DefaultPriceLabel" xml:space="preserve"><value>Default _price</value></data>
+  <data name="PartyGroupLabel" xml:space="preserve"><value>_Group</value></data>
+  <data name="CreditDaysLabel" xml:space="preserve"><value>Credit _days</value></data>
+  <data name="OpeningBillsHeading" xml:space="preserve"><value>Opening bills</value></data>
+  <data name="BillNumberColumn" xml:space="preserve"><value>Number</value></data>
+  <data name="DateColumn" xml:space="preserve"><value>Date</value></data>
+  <data name="DueDateColumn" xml:space="preserve"><value>Due date</value></data>
+  <data name="AmountColumn" xml:space="preserve"><value>Amount</value></data>
+  <data name="AddLineButton" xml:space="preserve"><value>Add _line</value></data>
+  <data name="HsnColumn" xml:space="preserve"><value>HSN or SAC</value></data>
+  <data name="RateColumn" xml:space="preserve"><value>Rate</value></data>
+  <data name="GstinColumn" xml:space="preserve"><value>GSTIN</value></data>
+  <data name="GroupColumn" xml:space="preserve"><value>Group</value></data>
 </root>

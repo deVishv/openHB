@@ -51,6 +51,13 @@ public static class CompanyRepository
         Sql.Execute(tx, "INSERT INTO company_settings(key, value) VALUES ($key, $value) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             ("$key", key), ("$value", json));
 
+    public static IReadOnlyDictionary<string, string> ListSettings(SqliteConnection c) =>
+        Sql.Query(c, "SELECT key, value FROM company_settings ORDER BY key", r => (r.GetString(0), r.GetString(1)))
+            .ToDictionary(p => p.Item1, p => p.Item2, StringComparer.Ordinal);
+
+    public static bool RemoveSetting(SqliteTransaction tx, string key) =>
+        Sql.Execute(tx, "DELETE FROM company_settings WHERE key = $key", ("$key", key)) > 0;
+
     static (string, object?)[] ProfileArgs(CompanyProfile p) =>
     [
         ("$name", p.Name), ("$state", p.State.Value), ("$reg", p.Registration.ToString()), ("$gstin", p.Gstin?.Value),

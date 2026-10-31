@@ -25,6 +25,7 @@ public sealed class TestHost : IDisposable
         Admin = new AdminService(Data, Hub, Sessions, Feed, Books, Time);
         Tokens = new ApiTokenService(Data, Time);
         HostSettings = new HostSettingsService(Data, new OpenHisabKitab.Host.OpenHisabKitabOptions(), Time);
+        UserSettings = new UserSettingsService(Data, Time);
         Scheduler = new BackupScheduler(Admin, Data, Time, Microsoft.Extensions.Logging.Abstractions.NullLogger<BackupScheduler>.Instance);
     }
 
@@ -43,6 +44,7 @@ public sealed class TestHost : IDisposable
     public BackupScheduler Scheduler { get; }
     public ApiTokenService Tokens { get; }
     public HostSettingsService HostSettings { get; }
+    public UserSettingsService UserSettings { get; }
     public RecordingObserver Observer { get; }
     public CompanyBooks Books { get; }
     public ReportService Reports { get; }

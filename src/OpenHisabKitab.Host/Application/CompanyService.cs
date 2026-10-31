@@ -87,6 +87,30 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
 
+    /// <summary>The company layer of settings (spec 7): what is stored, not the defaults.</summary>
+    public IReadOnlyDictionary<string, string> ListSettings(CallContext ctx, int id)
+    {
+        ctx.RequireCompany(id);
+        using var c = hub.Open(id);
+        return CompanyRepository.ListSettings(c);
+    }
+
+    /// <summary>Back to the default. Resetting a key that holds nothing changes and audits nothing.</summary>
+    public Task ResetSettingAsync(CallContext ctx, int id, string key)
+    {
+        ctx.Require(Permission.ManageCompanies);
+        ctx.RequireCompany(id);
+        if (SettingsCatalog.Find(key) is null) throw new ServiceException(ServiceError.Invalid, $"No setting named {key}.");
+        return hub.WriteAsync(id, tx =>
+        {
+            var before = CompanyRepository.GetSetting(tx.Connection!, key);
+            if (before is null) return false;
+            CompanyRepository.RemoveSetting(tx, key);
+            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "reset", "setting", key, before, null));
+            return true;
+        }, changed => { if (changed) feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)); });
+    }
+
     public Task SetSettingAsync(CallContext ctx, int id, string key, string json)
     {
         ctx.Require(Permission.ManageCompanies);

@@ -171,6 +171,21 @@ public sealed class CompanyServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task List_settings_returns_stored_values_and_viewer_cannot_reset()
+    {
+        var id = host.NewCompany();
+        var viewer = host.NewUser("viewer", BuiltInRole.Viewer, id);
+        Assert.Empty(host.Companies.ListSettings(viewer.Context, id));
+        await host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.roundOff", "false");
+        Assert.Equal(new Dictionary<string, string> { ["invoice.roundOff"] = "false" }, host.Companies.ListSettings(viewer.Context, id));
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Companies.ResetSettingAsync(viewer.Context, id, "invoice.roundOff"));
+        await host.Companies.ResetSettingAsync(host.Owner.Context, id, "invoice.roundOff");
+        Assert.Empty(host.Companies.ListSettings(host.Owner.Context, id));
+        var other = host.NewCompany(TestHost.Profile("B Traders"));
+        Fails(ServiceError.PermissionDenied, () => host.Companies.ListSettings(viewer.Context, other));
+    }
+
+    [Fact]
     public async Task Unknown_and_non_company_settings_are_refused()
     {
         var id = host.NewCompany();

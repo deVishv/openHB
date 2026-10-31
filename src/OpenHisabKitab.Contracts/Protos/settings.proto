@@ -1,0 +1,17 @@
+syntax = "proto3";
+package ohk.v1;
+option csharp_namespace = "OpenHisabKitab.Contracts.V1";
+
+import "common.proto";
+
+// The user layer of settings (spec 7). A user reads and changes only their own settings. Values are JSON text.
+// The key "keybindings" holds the user's keybindings.json array.
+service UserSettings {
+  rpc List (Empty) returns (SettingValues);
+  rpc Set (SettingValue) returns (Empty);
+  rpc Reset (SettingKey) returns (Empty);
+}
+
+message SettingValue { string key = 1; string json = 2; }
+message SettingValues { repeated SettingValue values = 1; }
+message SettingKey { string key = 1; }

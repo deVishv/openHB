@@ -82,6 +82,33 @@ internal sealed class CompaniesEndpoint(CompanyService companies) : Companies.Co
         await companies.SetSettingAsync(context.Caller(), request.Company, request.Key, request.Json);
         return new V1Empty();
     }
+
+    public override Task<SettingValues> ListSettings(CompanyRef request, ServerCallContext context) =>
+        Task.FromResult(Wire.ToMsg(companies.ListSettings(context.Caller(), request.Company)));
+
+    public override async Task<V1Empty> ResetSetting(CompanySettingKey request, ServerCallContext context)
+    {
+        await companies.ResetSettingAsync(context.Caller(), request.Company, request.Key);
+        return new V1Empty();
+    }
+}
+
+internal sealed class UserSettingsEndpoint(UserSettingsService settings) : UserSettings.UserSettingsBase
+{
+    public override Task<SettingValues> List(V1Empty request, ServerCallContext context) =>
+        Task.FromResult(Wire.ToMsg(settings.List(context.Caller())));
+
+    public override Task<V1Empty> Set(SettingValue request, ServerCallContext context)
+    {
+        settings.Set(context.Caller(), request.Key, request.Json);
+        return Task.FromResult(new V1Empty());
+    }
+
+    public override Task<V1Empty> Reset(SettingKey request, ServerCallContext context)
+    {
+        settings.Reset(context.Caller(), request.Key);
+        return Task.FromResult(new V1Empty());
+    }
 }
 
 internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBase

@@ -39,6 +39,7 @@ public static class HostSetup
         s.AddSingleton<AdminService>();
         s.AddSingleton<ApiTokenService>();
         s.AddSingleton<HostSettingsService>();
+        s.AddSingleton<UserSettingsService>();
         s.AddHostedService<BackupScheduler>();
         s.AddHostedService<AnchorFlushOnStop>();
         s.AddSingleton<IRemoteAddressAccessor, HttpRemoteAddress>();
@@ -72,6 +73,7 @@ public static class HostSetup
         app.MapGrpcService<ReportsEndpoint>();
         app.MapGrpcService<AdminEndpoint>();
         app.MapGrpcService<TokensEndpoint>();
+        app.MapGrpcService<UserSettingsEndpoint>();
         app.MapGrpcService<ChangesEndpoint>();
         return app;
     }

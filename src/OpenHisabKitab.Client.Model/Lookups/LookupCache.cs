@@ -24,6 +24,8 @@ public sealed class LookupCache(HostConnection host)
     // A reload is running; changes that arrive meanwhile ask for one more, so a burst of changes costs two reloads, not one each.
     Task? reloading;
     bool mastersAgain, settingsAgain;
+    // Moves on every Load and Clear, so a reload started for an earlier company or session stops and changes nothing.
+    int generation;
 
     public int? Company { get; private set; }
     public CompanyProfileMsg? Profile { get; private set; }
@@ -36,9 +38,11 @@ public sealed class LookupCache(HostConnection host)
     public event Action? Changed;
 
     /// <summary>Chart, profile, company settings, and every page of parties and items.</summary>
+    /// <summary>The previous company's lookups go first, so a failed load leaves the cache empty, never showing them.</summary>
     public async Task LoadAsync(int company, CancellationToken ct = default)
     {
-        Company = company;
+        Reset(company);
+        Changed?.Invoke();
         await LoadMastersAsync(company, ct);
         await LoadSettingsAsync(company, ct);
         Changed?.Invoke();
@@ -46,14 +50,21 @@ public sealed class LookupCache(HostConnection host)
 
     public void Clear()
     {
-        Company = null;
+        Reset(null);
+        Changed?.Invoke();
+    }
+
+    void Reset(int? company)
+    {
+        generation++;
+        (mastersAgain, settingsAgain, reloading) = (false, false, null);
+        Company = company;
         Profile = null;
         Chart = new ChartMsg();
         Parties = new Dictionary<int, PartyMsg>();
         Items = [];
         CompanySettings = new Dictionary<string, string>();
         ledgers = [];
-        Changed?.Invoke();
     }
 
     public IReadOnlyList<LedgerOption> Ledgers(LedgerUse use) => use switch
@@ -78,27 +89,44 @@ public sealed class LookupCache(HostConnection host)
         if (change.Kind is "Masters" or "Restore") mastersAgain = true;
         if (change.Kind is "Settings" or "Restore") settingsAgain = true;
         if (!mastersAgain && !settingsAgain) return Task.CompletedTask;
-        return reloading ??= ReloadAsync(company);
+        if (reloading is { IsCompleted: false } running) return running;
+        // A reload that ends before this line returns must not be kept, or every later change would get its old result.
+        var task = ReloadAsync(company, generation);
+        reloading = task.IsCompleted ? null : task;
+        return task;
     }
 
-    async Task ReloadAsync(int company)
+    async Task ReloadAsync(int company, int started)
     {
         try
         {
-            while (mastersAgain || settingsAgain)
+            while ((mastersAgain || settingsAgain) && generation == started)
             {
                 var (masters, settings) = (mastersAgain, settingsAgain);
                 (mastersAgain, settingsAgain) = (false, false);
-                if (masters) await LoadMastersAsync(company, default);
-                if (settings) await LoadSettingsAsync(company, default);
-                Changed?.Invoke();
+                try
+                {
+                    if (masters) await LoadMastersAsync(company, default);
+                    if (settings) await LoadSettingsAsync(company, default);
+                }
+                catch when (generation == started)
+                {
+                    // Keep what is still out of date, so the next change loads it again.
+                    (mastersAgain, settingsAgain) = (mastersAgain || masters, settingsAgain || settings);
+                    throw;
+                }
+                if (generation == started) Changed?.Invoke();
             }
         }
-        finally { reloading = null; }
+        finally
+        {
+            if (generation == started) reloading = null;
+        }
     }
 
     async Task LoadMastersAsync(int company, CancellationToken ct)
     {
+        var started = generation;
         var chart = await host.CallAsync((h, o) => h.Masters.GetChartAsync(new CompanyRef { Company = company }, o), ct);
         var parties = new Dictionary<int, PartyMsg>();
         var after = "";
@@ -115,28 +143,31 @@ public sealed class LookupCache(HostConnection host)
             items.AddRange(page.Items);
             after = page.Next;
         } while (after.Length > 0);
-        if (Company != company) return;
+        if (Company != company || generation != started) return;
         (Chart, Parties, Items) = (chart, parties, [.. items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)]);
         ledgers = Options(chart, parties);
     }
 
     async Task LoadSettingsAsync(int company, CancellationToken ct)
     {
+        var started = generation;
         var profile = await host.CallAsync((h, o) => h.Companies.GetAsync(new CompanyRef { Company = company }, o), ct);
         var settings = await host.CallAsync((h, o) => h.Companies.ListSettingsAsync(new CompanyRef { Company = company }, o), ct);
-        if (Company != company) return;
+        if (Company != company || generation != started) return;
         Profile = profile;
         CompanySettings = settings.Values.ToDictionary(v => v.Key, v => v.Json, StringComparer.Ordinal);
     }
 
     static ListRequest Request(int company, string after) => new() { Company = company, Page = new PageMsg { Limit = PageSize, After = after } };
 
-    static List<LedgerOption> Options(ChartMsg chart, IReadOnlyDictionary<int, PartyMsg> parties)
+    internal static List<LedgerOption> Options(ChartMsg chart, IReadOnlyDictionary<int, PartyMsg> parties)
     {
         var groups = chart.Groups.ToDictionary(g => g.Id);
+        // The host never stores a cycle, but a walk up the tree stops at one rather than loop forever.
         bool UnderCash(int id)
         {
-            for (var g = id; groups.TryGetValue(g, out var group); g = group.Parent)
+            var seen = new HashSet<int>();
+            for (var g = id; seen.Add(g) && groups.TryGetValue(g, out var group); g = group.Parent)
                 if (CashKinds.Contains(group.Kind)) return true;
             return false;
         }

@@ -1,5 +1,6 @@
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Lookups;
+using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
 
 namespace OpenHisabKitab.Client.Model.Tests.Lookups;
@@ -112,5 +113,88 @@ public sealed class LookupCacheTests : IDisposable
         await shell.LogOutAsync();
         Assert.Null(shell.Context.Lookups.Company);
         Assert.Empty(shell.Context.Lookups.Chart.Ledgers);
+    }
+    [Fact]
+    public async Task A_failed_load_never_shows_the_previous_companys_lookups()
+    {
+        var connection = await t.LoggedInOwnerAsync();
+        var a = await t.NewCompanyAsync(connection, "A Traders");
+        var b = await t.NewCompanyAsync(connection, "B Traders");
+        var other = t.OtherOwnerClient();
+        var chart = await other.Masters.GetChartAsync(new CompanyRef { Company = a }, t.Headers());
+        await AddParty(other, t.Headers(), a, "Only In A", Group(chart, "TradeReceivables"));
+        var cache = new LookupCache(connection);
+        await cache.LoadAsync(a);
+        Assert.NotEmpty(cache.Parties);
+
+        t.FailRequest = ("ListParties", 1);
+        await Assert.ThrowsAsync<HostException>(() => cache.LoadAsync(b));
+        Assert.Equal(b, cache.Company);
+        Assert.Empty(cache.Parties);
+        Assert.Empty(cache.Chart.Ledgers);
+        Assert.Empty(cache.Ledgers(LedgerUse.Any));
+        Assert.Null(cache.Profile);
+        await t.Settle(connection);
+    }
+
+    [Fact]
+    public async Task Opening_a_company_whose_lookups_fail_leaves_an_empty_cache()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        Assert.NotEmpty(shell.Context.Lookups.Chart.Ledgers);
+        var b = await t.NewCompanyAsync(shell.Context.Host, "B Traders");
+        t.FailRequest = ("GetChart", 1);
+        await CompanyOpener.OpenAsync(shell.Context, new CompanyEntry { Id = b, Name = "B Traders" });
+        Assert.Equal(b, shell.Context.Company!.Id);
+        Assert.Empty(shell.Context.Lookups.Chart.Ledgers);
+        await t.Settle(shell.Context.Host);
+    }
+
+    [Fact]
+    public async Task A_failed_reload_is_tried_again_on_the_next_change()
+    {
+        var connection = await t.LoggedInOwnerAsync();
+        var company = await t.NewCompanyAsync(connection);
+        var cache = new LookupCache(connection);
+        await cache.LoadAsync(company);
+        t.FailRequest = ("GetChart", 1);
+        await Assert.ThrowsAsync<HostException>(() => cache.OnChangeAsync(new ChangeEventMsg { Company = company, Kind = "Masters" }));
+        t.FailRequest = null;
+        for (var i = 0; i < 6 && connection.State != ConnectionState.Connected; i++)
+        {
+            await t.Settle(connection);
+            t.Time.Advance(TimeSpan.FromSeconds(2));
+            await t.Settle(connection);
+        }
+        Assert.Equal(ConnectionState.Connected, connection.State);
+        var before = t.Requests.Count(r => r.Path.EndsWith("GetChart", StringComparison.Ordinal));
+        await cache.OnChangeAsync(new ChangeEventMsg { Company = company, Kind = "Settings" });
+        Assert.Equal(before + 1, t.Requests.Count(r => r.Path.EndsWith("GetChart", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task Clear_drops_a_pending_reload()
+    {
+        var connection = await t.LoggedInOwnerAsync();
+        var company = await t.NewCompanyAsync(connection);
+        var cache = new LookupCache(connection);
+        await cache.LoadAsync(company);
+        var reload = cache.OnChangeAsync(new ChangeEventMsg { Company = company, Kind = "Masters" });
+        cache.Clear();
+        await reload;
+        Assert.Null(cache.Company);
+        Assert.Empty(cache.Chart.Ledgers);
+    }
+
+    [Fact]
+    public void A_group_cycle_does_not_hang()
+    {
+        var chart = new ChartMsg
+        {
+            Groups = { new GroupMsg { Id = 1, Name = "A", Parent = 2, Kind = "None", Nature = "Asset" }, new GroupMsg { Id = 2, Name = "B", Parent = 1, Kind = "None", Nature = "Asset" } },
+            Ledgers = { new LedgerMsg { Id = 9, Name = "Loop", Group = 1 } },
+        };
+        var options = LookupCache.Options(chart, new Dictionary<int, PartyMsg>());
+        Assert.False(options.Single().IsCashOrBank);
     }
 }

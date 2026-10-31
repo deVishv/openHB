@@ -71,6 +71,8 @@ public sealed class ShellContext
 
     public void OpenCompany(CompanyEntry company, FinancialYear year, IReadOnlyList<FinancialYear>? years = null)
     {
+        // Another company's lookups must never show under this one, even for a moment.
+        if (Company?.Id != company.Id) Lookups.Clear();
         Company = company;
         Years = years ?? [year];
         Year = year;

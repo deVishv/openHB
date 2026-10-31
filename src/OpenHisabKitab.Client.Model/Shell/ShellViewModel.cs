@@ -23,6 +23,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     public ShellViewModel(ShellContext ctx, FunctionRouter router, IConfirm confirm)
     {
         Context = ctx;
+        ctx.Confirm = confirm;
         this.router = router;
         this.confirm = confirm;
         Tabs = new TabsViewModel(async command => (await router.RouteAsync(command, ctx)).Screen, LoadAsync, confirm);

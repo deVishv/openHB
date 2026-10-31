@@ -1,0 +1,106 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.UsersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+        <Style TargetType="TextBlock" x:Key="Heading">
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Margin" Value="2,8,2,2" />
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+        <StackPanel>
+            <TextBlock Text="{Binding Message}" Margin="2" TextWrapping="Wrap" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                       AutomationProperties.LiveSetting="Assertive" />
+
+            <!-- Your password. -->
+            <TextBlock Text="{t:Txt PasswordHeading}" Style="{StaticResource Heading}" />
+            <Grid HorizontalAlignment="Left" MinWidth="420">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <Label Content="{t:Txt CurrentPasswordLabel}" Target="{Binding ElementName=CurrentPassword}" />
+                <PasswordBox x:Name="CurrentPassword" Grid.Column="1" AutomationProperties.Name="{t:Name CurrentPasswordLabel}" />
+                <Label Grid.Row="1" Content="{t:Txt NewPasswordLabel}" Target="{Binding ElementName=NewPassword}" />
+                <PasswordBox x:Name="NewPassword" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="{t:Name NewPasswordLabel}" />
+                <Label Grid.Row="2" Content="{t:Txt ConfirmNewPasswordLabel}" Target="{Binding ElementName=ConfirmPassword}" />
+                <PasswordBox x:Name="ConfirmPassword" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="{t:Name ConfirmNewPasswordLabel}" />
+                <Button Grid.Row="3" Grid.Column="1" HorizontalAlignment="Right" Content="{t:Txt ChangePasswordButton}"
+                        AutomationProperties.Name="{t:Name ChangePasswordButton}" Click="OnChangePassword" />
+            </Grid>
+
+            <!-- Your API tokens (spec 4.1). A new token is shown once. -->
+            <TextBlock Text="{t:Txt TokensHeading}" Style="{StaticResource Heading}" />
+            <DockPanel HorizontalAlignment="Left">
+                <Label Content="{t:Txt TokenNameLabel}" Target="{Binding ElementName=TokenName}" />
+                <TextBox x:Name="TokenName" MinWidth="200" Text="{Binding NewTokenName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name TokenNameLabel}" />
+                <CheckBox Content="{t:Txt ReadWriteLabel}" IsChecked="{Binding NewTokenReadWrite}" VerticalAlignment="Center" AutomationProperties.Name="{t:Name ReadWriteLabel}" />
+                <Button Content="{t:Txt CreateTokenButton}" AutomationProperties.Name="{t:Name CreateTokenButton}" Click="OnCreateToken" />
+            </DockPanel>
+            <DockPanel Visibility="{Binding CreatedToken, Converter={StaticResource Present}}">
+                <Label Content="{t:Txt NewTokenLabel}" Target="{Binding ElementName=CreatedToken}" />
+                <TextBox x:Name="CreatedToken" Text="{Binding CreatedToken, Mode=OneWay}" IsReadOnly="True" FontFamily="{DynamicResource NumberFont}"
+                         AutomationProperties.Name="{t:Name NewTokenLabel}" />
+            </DockPanel>
+            <DockPanel>
+                <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Content="{t:Txt RevokeButton}" AutomationProperties.Name="{t:Name RevokeButton}" Click="OnRevoke" />
+                <ListView x:Name="TokenList" ItemsSource="{Binding Tokens}" MaxHeight="200" AutomationProperties.Name="{t:Name TokensHeading}">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Name}" /></Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{t:Txt NameColumn}" DisplayMemberBinding="{Binding Name}" Width="160" />
+                            <GridViewColumn Header="{t:Txt AccessColumn}" DisplayMemberBinding="{Binding Access}" Width="120" />
+                            <GridViewColumn Header="{t:Txt CreatedColumn}" DisplayMemberBinding="{Binding Created}" Width="100" />
+                            <GridViewColumn Header="{t:Txt LastUsedColumn}" DisplayMemberBinding="{Binding LastUsed}" Width="100" />
+                            <GridViewColumn Header="{t:Txt RevokedColumn}" DisplayMemberBinding="{Binding Revoked}" Width="100" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+
+            <!-- Users: the Owner only (spec 8). -->
+            <StackPanel Visibility="{Binding CanManageUsers, Converter={StaticResource Bool}}">
+                <TextBlock Text="{t:Txt UsersHeading}" Style="{StaticResource Heading}" />
+                <DockPanel HorizontalAlignment="Left">
+                    <Label Content="{t:Txt UserNameLabel}" Target="{Binding ElementName=UserName}" />
+                    <TextBox x:Name="UserName" MinWidth="140" Text="{Binding NewUserName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name UserNameLabel}" />
+                    <Label Content="{t:Txt RoleLabel}" Target="{Binding ElementName=RoleBox}" />
+                    <ComboBox x:Name="RoleBox" ItemsSource="{Binding Roles}" SelectedItem="{Binding NewUserRole}" MinWidth="110" AutomationProperties.Name="{t:Name RoleLabel}" />
+                    <Label Content="{t:Txt NewUserPasswordLabel}" Target="{Binding ElementName=UserPassword}" />
+                    <PasswordBox x:Name="UserPassword" MinWidth="140" AutomationProperties.Name="{t:Name NewUserPasswordLabel}" />
+                    <Button Content="{t:Txt CreateUserButton}" AutomationProperties.Name="{t:Name CreateUserButton}" Click="OnCreateUser" />
+                </DockPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <ListView ItemsSource="{Binding Users}" SelectedItem="{Binding SelectedUser}" MaxHeight="220" AutomationProperties.Name="{t:Name UsersHeading}">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Name}" /></Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="{t:Txt NameColumn}" DisplayMemberBinding="{Binding Name}" Width="140" />
+                                <GridViewColumn Header="{t:Txt RoleColumn}" DisplayMemberBinding="{Binding Role}" Width="110" />
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <DockPanel Grid.Column="1" Margin="4,0,0,0">
+                        <Label DockPanel.Dock="Top" Content="{t:Txt CompaniesForUser}" Target="{Binding ElementName=ChoiceList}" />
+                        <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Content="{t:Txt SaveCompaniesButton}" AutomationProperties.Name="{t:Name SaveCompaniesButton}"
+                                Click="OnSaveCompanies" />
+                        <ItemsControl x:Name="ChoiceList" ItemsSource="{Binding CompanyChoices}" AutomationProperties.Name="{t:Name CompaniesForUser}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding Name}" IsChecked="{Binding Checked}" AutomationProperties.Name="{Binding Name}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </DockPanel>
+                </Grid>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

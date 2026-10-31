@@ -13,6 +13,7 @@ public static class ScreenCatalog
         ["CMPY"] = CompanyViewModel.CreateAsync,
         ["SETG"] = Now(SettingsViewModel.Create),
         ["KEYS"] = Now(KeysViewModel.Create),
+        ["USER"] = Now(UsersViewModel.Create),
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

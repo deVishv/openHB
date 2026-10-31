@@ -170,4 +170,36 @@
   <data name="ValueLabel" xml:space="preserve"><value>_Value</value></data>
   <data name="HostValueLabel" xml:space="preserve"><value>Host _value</value></data>
   <data name="Errors" xml:space="preserve"><value>Errors</value></data>
+  <data name="TokenShownOnce" xml:space="preserve"><value>Copy this token now. It is not shown again.</value></data>
+  <data name="Never" xml:space="preserve"><value>Never</value></data>
+  <data name="ReadOnlyAccess" xml:space="preserve"><value>Read only</value></data>
+  <data name="ReadWriteAccess" xml:space="preserve"><value>Read and write</value></data>
+  <data name="RevokeQuestion" xml:space="preserve"><value>Revoke {0}?</value></data>
+  <data name="NewPasswordsDiffer" xml:space="preserve"><value>The new passwords differ.</value></data>
+  <data name="PasswordChanged" xml:space="preserve"><value>Password changed.</value></data>
+  <data name="UserCreated" xml:space="preserve"><value>User created.</value></data>
+  <data name="PasswordHeading" xml:space="preserve"><value>Your password</value></data>
+  <data name="CurrentPasswordLabel" xml:space="preserve"><value>C_urrent password</value></data>
+  <data name="NewPasswordLabel" xml:space="preserve"><value>_New password</value></data>
+  <data name="ConfirmNewPasswordLabel" xml:space="preserve"><value>Con_firm new password</value></data>
+  <data name="ChangePasswordButton" xml:space="preserve"><value>Change _password</value></data>
+  <data name="TokensHeading" xml:space="preserve"><value>Your API tokens</value></data>
+  <data name="TokenNameLabel" xml:space="preserve"><value>Token _name</value></data>
+  <data name="ReadWriteLabel" xml:space="preserve"><value>Read and _write</value></data>
+  <data name="CreateTokenButton" xml:space="preserve"><value>Create _token</value></data>
+  <data name="RevokeButton" xml:space="preserve"><value>Re_voke</value></data>
+  <data name="NewTokenLabel" xml:space="preserve"><value>New token</value></data>
+  <data name="AccessColumn" xml:space="preserve"><value>Access</value></data>
+  <data name="CreatedColumn" xml:space="preserve"><value>Created</value></data>
+  <data name="LastUsedColumn" xml:space="preserve"><value>Last used</value></data>
+  <data name="RevokedColumn" xml:space="preserve"><value>Revoked</value></data>
+  <data name="UsersHeading" xml:space="preserve"><value>Users</value></data>
+  <data name="UserNameLabel" xml:space="preserve"><value>User na_me</value></data>
+  <data name="RoleLabel" xml:space="preserve"><value>R_ole</value></data>
+  <data name="NewUserPasswordLabel" xml:space="preserve"><value>Pass_word</value></data>
+  <data name="CreateUserButton" xml:space="preserve"><value>Create _user</value></data>
+  <data name="CompaniesForUser" xml:space="preserve"><value>Compan_ies for the selected user</value></data>
+  <data name="SaveCompaniesButton" xml:space="preserve"><value>Save compan_ies</value></data>
+  <data name="RoleColumn" xml:space="preserve"><value>Role</value></data>
+  <data name="ActiveColumn" xml:space="preserve"><value>Active</value></data>
 </root>

@@ -46,7 +46,8 @@ message BackupList { repeated BackupMsg backups = 1; }
 message RestoreRequest { int32 company = 1; string path = 2; }
 message CreateUserRequest { string name = 1; string password = 2; string role = 3; }
 message SetUserCompaniesRequest { int32 user_id = 1; repeated int32 companies = 2; }
-message UserMsg { int32 id = 1; string name = 2; string role = 3; bool active = 4; }
+// companies: the ids the user can open; the Owner opens every company whatever this holds.
+message UserMsg { int32 id = 1; string name = 2; string role = 3; bool active = 4; repeated int32 companies = 5; }
 message UserList { repeated UserMsg users = 1; }
 // Host settings (spec 7). Values are JSON text.
 message HostSettingMsg { string key = 1; string type = 2; string default_json = 3; string description = 4; string allowed_values = 5; string json = 6; }

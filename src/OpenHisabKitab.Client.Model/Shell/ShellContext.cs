@@ -16,6 +16,9 @@ public sealed class ShellContext
     public required KeybindingStore Keys { get; init; }
     public required TimeProvider Time { get; init; }
 
+    /// <summary>The keyboard Yes/No box, for screens that ask before a change such as revoking a token. The shell sets it.</summary>
+    public IConfirm Confirm { get; set; } = null!;
+
     public CompanyEntry? Company { get; private set; }
 
     FinancialYear? year;

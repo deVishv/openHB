@@ -140,6 +140,9 @@ public sealed class ClientTestHost : IDisposable
         Assert.True(condition(), "The expected change did not arrive.");
     }
 
+    /// <summary>The host's token service, to prove a token made in USER works on the API.</summary>
+    public ApiTokenService ApiTokens => factory.Services.GetRequiredService<ApiTokenService>();
+
     /// <summary>Ends every session, as a host restart does.</summary>
     public void EndAllSessions() => factory.Services.GetRequiredService<SessionStore>().RemoveAll();
 

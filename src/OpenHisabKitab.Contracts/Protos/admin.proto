@@ -7,6 +7,7 @@ import "common.proto";
 service Admin {
   rpc LockUpTo (LockRequest) returns (Empty);
   rpc Unlock (CompanyRef) returns (Empty);
+  rpc GetLock (CompanyRef) returns (LockMsg);
   rpc VerifyAudit (AuditTarget) returns (AuditVerificationMsg);
   rpc ListAudit (ListAuditRequest) returns (AuditList);
   rpc BackupNow (AuditTarget) returns (BackupMsg);
@@ -20,6 +21,8 @@ service Admin {
 }
 
 message LockRequest { int32 company = 1; string date = 2; }
+// locked_up_to is empty when the books are not locked.
+message LockMsg { string locked_up_to = 1; }
 // company 0 means host.db.
 message AuditTarget { int32 company = 1; }
 // first_bad_seq is 0 when the chain is whole.

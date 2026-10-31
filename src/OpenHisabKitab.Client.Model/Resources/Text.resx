@@ -250,4 +250,35 @@
   <data name="RateColumn" xml:space="preserve"><value>Rate</value></data>
   <data name="GstinColumn" xml:space="preserve"><value>GSTIN</value></data>
   <data name="GroupColumn" xml:space="preserve"><value>Group</value></data>
+  <data name="SavedVoucher" xml:space="preserve"><value>Saved {0}.</value></data>
+  <data name="AlreadySavedShowing" xml:space="preserve"><value>Already saved as {0}. Showing the saved version.</value></data>
+  <data name="DiscardVoucher" xml:space="preserve"><value>Discard this voucher?</value></data>
+  <data name="CancelVoucherQuestion" xml:space="preserve"><value>Cancel voucher {0}?</value></data>
+  <data name="CancelledVoucher" xml:space="preserve"><value>Cancelled {0}.</value></data>
+  <data name="CancelledMarker" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="DebitCreditTotals" xml:space="preserve"><value>Debit {0}  Credit {1}</value></data>
+  <data name="DifferenceLine" xml:space="preserve"><value>Difference {0}</value></data>
+  <data name="TotalLine" xml:space="preserve"><value>Total {0}</value></data>
+  <data name="OnAccountLower" xml:space="preserve"><value>on account {0}</value></data>
+  <data name="OnAccountLine" xml:space="preserve"><value>On account {0}</value></data>
+  <data name="BillsHeading" xml:space="preserve"><value>Bills of {0}</value></data>
+  <data name="AllocationNotPositive" xml:space="preserve"><value>Enter an allocation more than zero.</value></data>
+  <data name="AllocationDuplicate" xml:space="preserve"><value>Bill {0} is allocated twice.</value></data>
+  <data name="AllocationMoreThanOpen" xml:space="preserve"><value>Bill {0} has only {1} open.</value></data>
+  <data name="AllocationMoreThanSettlement" xml:space="preserve"><value>Allocations are more than the {0} this voucher settles for {1}.</value></data>
+  <data name="VoucherDateInvalid" xml:space="preserve"><value>Enter the date as dd-mm-yyyy.</value></data>
+  <data name="LineChooseLedger" xml:space="preserve"><value>Line {0}: choose a ledger.</value></data>
+  <data name="ChooseReceivedIn" xml:space="preserve"><value>Choose the cash or bank account received in.</value></data>
+  <data name="ChoosePaidFrom" xml:space="preserve"><value>Choose the cash or bank account paid from.</value></data>
+  <data name="ReceivedInLabel" xml:space="preserve"><value>Received _in</value></data>
+  <data name="PaidFromLabel" xml:space="preserve"><value>Paid _from</value></data>
+  <data name="NarrationLabel" xml:space="preserve"><value>_Narration</value></data>
+  <data name="VoucherDateLabel" xml:space="preserve"><value>_Date</value></data>
+  <data name="LedgerColumn" xml:space="preserve"><value>Ledger</value></data>
+  <data name="DebitColumn" xml:space="preserve"><value>Debit</value></data>
+  <data name="CreditColumn" xml:space="preserve"><value>Credit</value></data>
+  <data name="AllocateColumn" xml:space="preserve"><value>Allocate</value></data>
+  <data name="OpenColumn" xml:space="preserve"><value>Open</value></data>
+  <data name="CancelVoucherButton" xml:space="preserve"><value>Cancel _voucher</value></data>
+  <data name="BillsButton" xml:space="preserve"><value>_Bills</value></data>
 </root>

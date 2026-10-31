@@ -44,3 +44,13 @@ public sealed class DepthIndent : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
+
+/// <summary>Not: true becomes false, for enabling a control while a flag is off.</summary>
+public sealed class Negate : IValueConverter
+{
+    public static Negate Instance { get; } = new();
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
+}

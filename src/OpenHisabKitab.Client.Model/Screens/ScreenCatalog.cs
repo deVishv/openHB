@@ -17,6 +17,10 @@ public static class ScreenCatalog
         ["ACCT"] = Now(AccountsViewModel.Create),
         ["ITEM"] = Now(ItemsViewModel.Create),
         ["PRTY"] = Now((cmd, ctx) => PartiesViewModel.Create(cmd, ctx)),
+        ["RCPT"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["PYMT"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["JRNL"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["CNTR"] = Entry.JournalEntryViewModel.CreateAsync,
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

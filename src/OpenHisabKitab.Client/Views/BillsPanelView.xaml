@@ -1,0 +1,39 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.BillsPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+    </UserControl.Resources>
+    <!-- Bills of one party (spec 13): type the amount to allocate to each; Esc closes and keeps it. -->
+    <Border BorderThickness="2" BorderBrush="{DynamicResource DarkShadowBrush}" Background="{DynamicResource FaceBrush}" Padding="6">
+        <StackPanel>
+            <TextBlock Text="{Binding Heading}" FontWeight="Bold" />
+            <Grid Margin="0,4,0,2">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <TextBlock Text="{t:Txt BillNumberColumn}" />
+                <TextBlock Grid.Column="1" Text="{t:Txt DateColumn}" />
+                <TextBlock Grid.Column="2" Text="{t:Txt OpenColumn}" TextAlignment="Right" />
+                <TextBlock Grid.Column="3" Text="{t:Txt AllocateColumn}" TextAlignment="Right" />
+            </Grid>
+            <ItemsControl x:Name="Rows" ItemsSource="{Binding Rows}" Focusable="False" AutomationProperties.Name="{Binding Heading}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Bill.Number}" FontFamily="{DynamicResource NumberFont}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding Date}" FontFamily="{DynamicResource NumberFont}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding Open}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="3" Text="{Binding Allocate, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                                     TextAlignment="Right" AutomationProperties.Name="{Binding Bill.Number}" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding OnAccount}" FontFamily="{DynamicResource NumberFont}" Margin="0,4,0,0" />
+            <TextBlock Text="{Binding Problem}" Visibility="{Binding Problem, Converter={StaticResource Present}}" FontWeight="Bold"
+                       AutomationProperties.LiveSetting="Assertive" />
+        </StackPanel>
+    </Border>
+</UserControl>

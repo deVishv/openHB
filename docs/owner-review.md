@@ -2,10 +2,6 @@
 
 Major decisions and data checks that need the owner. Smaller decisions are the builder's, recorded in each plan. Newest plan first. Mark an item done by deleting it or writing "OK" after it.
 
-## Plan 4: Client shell
-
-1. **Scope.** Plan 4 builds the shell and the system screens `HELP`, `DATE`, `RFSH`, `CMPY`, `SETG`, `KEYS`, and `USER`. Every other code shows `{CODE} is not in this version yet.` The screens for masters, vouchers, and reports come next, followed by `AUDT`, `LOCK`, `BKUP`, `FIND`, and `PRNT`. Cost if wrong: later plans are reordered. Cheapest to change before Task 7 is built.
-
 ## Plan 1: Foundation and accounting core
 
 ### Check before the first public release

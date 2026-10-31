@@ -171,6 +171,16 @@ public sealed class CompanyServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Unknown_and_non_company_settings_are_refused()
+    {
+        var id = host.NewCompany();
+        var ex = await FailsAsync(ServiceError.Invalid, () => host.Companies.SetSettingAsync(host.Owner.Context, id, "invoice.rounding", "true"));
+        Assert.Equal("No setting named invoice.rounding.", ex.Message);
+        ex = await FailsAsync(ServiceError.Invalid, () => host.Companies.SetSettingAsync(host.Owner.Context, id, "ui.fontSize", "16"));
+        Assert.Equal("Setting ui.fontSize cannot be set for a company.", ex.Message);
+    }
+
+    [Fact]
     public void A_company_file_from_a_newer_version_gives_the_message()
     {
         var id = host.NewCompany();

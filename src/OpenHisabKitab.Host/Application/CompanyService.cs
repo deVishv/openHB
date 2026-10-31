@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Gst;
+using OpenHisabKitab.Core.Settings;
 using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
@@ -90,15 +91,7 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
     {
         ctx.Require(Permission.ManageCompanies);
         ctx.RequireCompany(id);
-        JsonValueKind kind;
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            kind = doc.RootElement.ValueKind;
-        }
-        catch (JsonException) { throw new ServiceException(ServiceError.Invalid, $"Setting {key} needs a JSON value."); }
-        if (BooleanSettings.Contains(key) && kind is not (JsonValueKind.True or JsonValueKind.False))
-            throw new ServiceException(ServiceError.Invalid, $"Setting {key} must be true or false.");
+        if (SettingsCatalog.Validate(key, json, SettingLayer.Company) is { } problem) throw new ServiceException(ServiceError.Invalid, problem);
         return hub.WriteAsync(id, tx =>
         {
             var before = CompanyRepository.GetSetting(tx.Connection!, key);
@@ -107,9 +100,6 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             return 0;
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
-
-    // Company settings the host reads, with their types. The full settings list arrives with SETG in Plan 4.
-    static readonly HashSet<string> BooleanSettings = ["invoice.roundOff"];
 
     static CompanyProfile Checked(CompanyProfile p)
     {

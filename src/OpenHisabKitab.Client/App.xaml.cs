@@ -45,7 +45,7 @@ public partial class App : Application
         MainWindow = window;
         window.Show();
         shell.Start();
-        if (ctx.Settings.LoadErrors.Concat(ctx.Keys.LoadErrors).FirstOrDefault() is { } error) shell.Status.Message = error;
+        shell.ShowLoadErrors();
         // A host typed before is tried at once; the connect panel shows if it does not answer.
         if (ctx.Settings.Current.Text("connection.host").Length > 0) await shell.Session.ConnectAsync();
     }

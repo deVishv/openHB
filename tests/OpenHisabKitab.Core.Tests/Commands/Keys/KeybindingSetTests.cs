@@ -72,6 +72,31 @@ public sealed class KeybindingSetTests
     public void Bad_files_and_entries_name_the_problem(string json, string message) =>
         Assert.Equal(message, KeybindingFile.Parse(json).Errors.Single().Message);
 
+    [Theory]
+    [InlineData("a", "Cannot bind a: it is needed for typing.")]
+    [InlineData("shift+a", "Cannot bind shift+a: it is needed for typing.")]
+    [InlineData("tab", "Cannot bind tab: it is needed for typing.")]
+    [InlineData("backspace", "Cannot bind backspace: it is needed for typing.")]
+    [InlineData("left", "Cannot bind left: it is needed for typing.")]
+    [InlineData("alt+h", "Cannot bind alt+h: Alt with a letter opens the menus.")]
+    public void Keys_needed_for_typing_or_menus_are_refused(string key, string message)
+    {
+        Assert.Equal(message, KeybindingRules.Problem(Chord(key)));
+        Assert.Equal(message, KeybindingFile.Parse("[ {\"key\":\"" + key + "\",\"command\":\"run.HELP\"} ]").Errors.Single().Message);
+    }
+
+    [Theory]
+    [InlineData("f6")]
+    [InlineData("ctrl+q")]
+    [InlineData("alt+left")]
+    [InlineData("ctrl+shift+a")]
+    [InlineData("insert")]
+    public void Other_keys_can_be_bound(string key) => Assert.Null(KeybindingRules.Problem(Chord(key)));
+
+    [Fact]
+    public void Removing_a_binding_from_a_typing_key_is_allowed() =>
+        Assert.Empty(KeybindingFile.Parse("""[ {"key":"backspace","command":"-prompt.run"} ]""").Errors);
+
     [Fact]
     public void Later_entry_in_one_layer_wins()
     {

@@ -1,4 +1,5 @@
 using OpenHisabKitab.Client.Model.Connection;
+using OpenHisabKitab.Client.Model.Tests;
 using OpenHisabKitab.Contracts.V1;
 using V1Empty = OpenHisabKitab.Contracts.V1.Empty;
 
@@ -98,6 +99,31 @@ public sealed class HostConnectionTests
         t.Time.Advance(TimeSpan.FromSeconds(1));
         await t.Settle(c);
         Assert.Equal(ConnectionState.NeedsLogin, c.State);
+    }
+
+    [Fact]
+    public async Task A_retry_in_flight_during_logout_changes_nothing_after_it()
+    {
+        using var t = new ClientTestHost();
+        var c = await t.LoggedInOwnerAsync();
+        var reconnected = 0;
+        c.Reconnected += () => reconnected++;
+        t.Offline = true;
+        await Assert.ThrowsAsync<HostException>(() => Companies(c));
+        await t.Settle(c);
+        t.Offline = false;
+        t.HoldCompanyList = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        t.Time.Advance(TimeSpan.FromSeconds(1));                     // the retry sends GetInfo, then Companies.List, which waits
+        await ClientTestHost.Until(() => t.Requests.Count(r => r.Path.EndsWith("Companies/List", StringComparison.Ordinal)) >= 1);
+        await c.LogoutAsync();
+        var hold = t.HoldCompanyList;
+        t.HoldCompanyList = null;
+        hold.SetResult();                                             // the old attempt now finishes with the old token
+        await ClientTestHost.Until(() => !c.Busy);
+        await Task.Delay(200);
+        Assert.Equal((ConnectionState.NeedsLogin, null, 0), (c.State, c.Message, reconnected));
+        await c.LoginAsync("owner", ClientTestHost.Password);
+        Assert.Equal(0, reconnected);                                 // a plain login, not a lost session
     }
 
     [Fact]

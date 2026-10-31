@@ -89,6 +89,11 @@ public sealed partial class KeysViewModel : ScreenViewModel, IKeyRecorder
         Recording = false;
         Message = null;
         if (key == new KeyChord(KeyModifiers.None, "escape") || Selected is not { } row) return;
+        if (KeybindingRules.Problem(key) is { } refused)
+        {
+            Message = refused;
+            return;
+        }
         List<KeybindingEntry> entries =
         [
             .. LayerEntries(TargetLayer),
@@ -142,7 +147,9 @@ public sealed partial class KeysViewModel : ScreenViewModel, IKeyRecorder
     partial void OnJsonLayerChanged(SettingLayer value)
     {
         JsonText = Ctx.Keys.LayerText(value);
-        JsonErrors = [];
+        JsonErrors = value == SettingLayer.Machine
+            ? [.. Ctx.Keys.MachineErrors.Select(e => string.Format(CultureInfo.InvariantCulture, Text.JsonLine, e.Line, e.Message))]
+            : [];
     }
 
     IReadOnlyList<KeybindingEntry> LayerEntries(SettingLayer layer) => KeybindingFile.Parse(Ctx.Keys.LayerText(layer)).Entries;

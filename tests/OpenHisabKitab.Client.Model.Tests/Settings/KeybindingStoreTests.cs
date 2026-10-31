@@ -24,11 +24,35 @@ public sealed class KeybindingStoreTests : IDisposable
         var c = await t.LoggedInOwnerAsync();
         File.WriteAllText(paths.Keybindings, """[ {"key":"f6","command":"run.PURC"} ]""");
         var store = new KeybindingStore(new MachineFiles(paths), c);
+        await store.LoadAsync();
         Assert.Empty(await store.SaveLayerTextAsync(SettingLayer.User, """[ {"key":"f6","command":"run.RCPT"} ]"""));
         var again = new KeybindingStore(new MachineFiles(paths), c);
         await again.LoadAsync();
         Assert.Equal("run.RCPT", again.Current.Resolve(Chord("f6"), NoContext));
         Assert.Equal("""[ {"key":"f6","command":"run.RCPT"} ]""", again.LayerText(SettingLayer.User));
+    }
+
+    [Fact]
+    public async Task An_unreadable_user_layer_is_kept_and_never_written_over()
+    {
+        var c = await t.LoggedInOwnerAsync();
+        var store = new KeybindingStore(new MachineFiles(paths), c);
+        await store.LoadAsync();
+        Assert.Empty(await store.SaveLayerTextAsync(SettingLayer.User, """[ {"key":"f6","command":"run.RCPT"} ]"""));
+        t.Offline = true;
+        await Assert.ThrowsAsync<HostException>(() => c.CallAsync((h, o) => h.Companies.ListAsync(new Contracts.V1.Empty(), o)));
+        var fresh = new KeybindingStore(new MachineFiles(paths), c);
+        await fresh.LoadAsync();                                   // reconnecting: the user layer cannot be read
+        await store.LoadAsync();
+        Assert.Equal("run.RCPT", store.Current.Resolve(Chord("f6"), NoContext));
+        t.Offline = false;                                         // reachable again, but not yet reconnected
+        await Assert.ThrowsAsync<HostException>(() => fresh.SetEntriesAsync(SettingLayer.User,
+            [new KeybindingEntry(Chord("f7"), "run.SALE", WhenClause.Always, false)]));
+        await t.Settle(c);
+        t.Time.Advance(TimeSpan.FromSeconds(1));
+        await t.Settle(c);
+        await fresh.LoadAsync();
+        Assert.Equal("run.RCPT", fresh.Current.Resolve(Chord("f6"), NoContext));
     }
 
     [Fact]

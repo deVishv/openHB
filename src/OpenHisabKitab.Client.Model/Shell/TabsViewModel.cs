@@ -39,6 +39,13 @@ public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate,
         return true;
     }
 
+    /// <summary>Closes every tab without asking; the caller has asked about unsaved edits.</summary>
+    public void CloseAll()
+    {
+        Active = null;
+        Tabs.Clear();
+    }
+
     public void Next() => Move(+1);
 
     public void Previous() => Move(-1);

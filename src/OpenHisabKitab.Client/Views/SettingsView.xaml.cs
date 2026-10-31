@@ -20,8 +20,16 @@ public partial class SettingsView : UserControl
 
     void FocusFilter() => FilterBox.Focus();
 
-    void OnSelected(object sender, SelectionChangedEventArgs e) =>
-        ValueBox.Text = SettingList.SelectedItem is SettingRow row ? row.ValueText : "";
+    string? shownKey;
+
+    /// <summary>A reload reselects the same setting; the value being typed stays until another setting is chosen.</summary>
+    void OnSelected(object sender, SelectionChangedEventArgs e)
+    {
+        var row = SettingList.SelectedItem as SettingRow;
+        if (row?.Key == shownKey || row is null && e.AddedItems.Count == 0 && shownKey is not null) return;
+        shownKey = row?.Key;
+        ValueBox.Text = row?.ValueText ?? "";
+    }
 
     void OnHostSelected(object sender, SelectionChangedEventArgs e) =>
         HostValue.Text = HostList.SelectedItem is HostSettingRow row ? row.Value : "";

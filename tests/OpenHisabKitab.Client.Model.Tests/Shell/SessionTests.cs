@@ -94,6 +94,60 @@ public sealed class SessionTests
     }
 
     [Fact]
+    public async Task Log_out_clears_tabs_company_and_the_user_layer()
+    {
+        using var t = new ClientTestHost();
+        var shell = await t.LoggedInShellAsync(open: ["HELP", "CMPY"], company: "A Traders");
+        await shell.Context.Settings.SetAsync("ui.fontSize", "20", Core.Settings.SettingLayer.User, null);
+        Assert.True(await shell.LogOutAsync());
+        Assert.Empty(shell.Tabs.Tabs);
+        Assert.Null(shell.Context.Company);
+        Assert.Equal("Open Hisab Kitab", shell.Title);
+        Assert.Equal(14, shell.Context.Settings.Current.Int("ui.fontSize"));
+        Assert.Equal(SessionPanel.Login, shell.Session.Panel);
+    }
+
+    [Fact]
+    public async Task Log_out_with_unsaved_edits_asks_and_no_keeps_everything()
+    {
+        using var t = new ClientTestHost();
+        var confirm = new FakeConfirm(answer: false);
+        var made = new List<FakeScreen>();
+        var shell = await t.LoggedInShellAsync(open: [], built: Fakes(made, true, "SETG", "CMPY"), confirm: confirm);
+        await shell.RunAsync("setg", true);
+        Assert.False(await shell.LogOutAsync());
+        Assert.Equal((1, ConnectionState.Connected), (shell.Tabs.Tabs.Count, shell.Context.Host.State));
+    }
+
+    [Fact]
+    public async Task Another_user_after_a_lost_session_gets_a_clean_shell()
+    {
+        using var t = new ClientTestHost();
+        var shell = await t.LoggedInShellAsync(open: ["HELP"], company: "A Traders");
+        var id = shell.Context.Company!.Id;
+        var admin = t.OtherOwnerClient().Admin;
+        var asha = (int)(await admin.CreateUserAsync(new CreateUserRequest { Name = "asha", Password = ClientTestHost.Password, Role = "Viewer" }, t.Headers())).Id;
+        await admin.SetUserCompaniesAsync(new SetUserCompaniesRequest { UserId = asha, Companies = { id } }, t.Headers());
+        t.EndAllSessions();
+        await shell.RunAsync("rfsh", false);
+        Assert.Equal(SessionPanel.Login, shell.Session.Panel);
+        shell.Session.UserName = "asha";
+        await shell.Session.LoginAsync(ClientTestHost.Password);
+        Assert.Equal(SessionPanel.None, shell.Session.Panel);
+        Assert.DoesNotContain(shell.Tabs.Tabs, tab => tab.Title == "1 HELP");
+        Assert.Equal("asha", shell.Context.Host.Session!.UserName);
+    }
+
+    [Fact]
+    public async Task Several_load_errors_say_how_many_more()
+    {
+        using var t = new ClientTestHost();
+        File.WriteAllText(Path.Combine(t.ClientFolder, "settings.json"), "{ \"ui.fontSize\": 99, \"ui.zoom\": 1, \"ui.fontFamily\": \"Arial\" }");
+        var shell = await t.LoggedInShellAsync(open: []);
+        Assert.EndsWith("(and 2 more. See SETG.)", shell.Status.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Settings_change_marks_an_affected_tab()
     {
         using var t = new ClientTestHost();

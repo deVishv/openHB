@@ -65,4 +65,12 @@ public sealed class ShellContext
     }
 
     public void Report(string message) => Reported?.Invoke(message);
+
+    /// <summary>No company open, as after logging out.</summary>
+    public void CloseCompany()
+    {
+        Company = null;
+        Years = [];
+        Year = null;
+    }
 }

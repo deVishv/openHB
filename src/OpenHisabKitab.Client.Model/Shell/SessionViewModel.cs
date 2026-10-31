@@ -26,10 +26,17 @@ public sealed partial class SessionViewModel : ObservableObject
         this.loggedIn = loggedIn;
         HostName = ctx.Settings.Current.Text("connection.host");
         Port = ctx.Settings.Current.Int("connection.port").ToString(CultureInfo.InvariantCulture);
+        var ui = SynchronizationContext.Current;
         ctx.Host.StateChanged += _ =>
         {
-            if (ctx.Host.Session is { } s) UserName = s.UserName;
-            Refresh();
+            // The retry loop reports from a pool thread; the panel and the user name box belong to the UI thread.
+            void Show()
+            {
+                if (ctx.Host.Session is { } s && string.IsNullOrEmpty(UserName)) UserName = s.UserName;
+                Refresh();
+            }
+            if (ui is null || SynchronizationContext.Current == ui) Show();
+            else ui.Post(_ => Show(), null);
         };
     }
 

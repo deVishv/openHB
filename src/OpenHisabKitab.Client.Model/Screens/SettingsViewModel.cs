@@ -68,6 +68,10 @@ public sealed partial class SettingsViewModel : ScreenViewModel
     [ObservableProperty]
     public partial IReadOnlyList<HostSettingRow> HostRows { get; private set; } = [];
 
+    /// <summary>The row being edited. A reload keeps it, and keeps each row's chosen layer.</summary>
+    [ObservableProperty]
+    public partial SettingRow? Selected { get; set; }
+
     public bool CanSeeHost => Ctx.Has("ManageHostSettings");
 
     [ObservableProperty]
@@ -104,6 +108,7 @@ public sealed partial class SettingsViewModel : ScreenViewModel
         });
         JsonLayer = JsonLayers[^1];
         JsonText = Ctx.Settings.LayerText(JsonLayer);
+        JsonErrors = JsonLayer == SettingLayer.Machine ? Lines(Ctx.Settings.MachineErrors) : [];
         Rebuild();
     }
 
@@ -171,8 +176,11 @@ public sealed partial class SettingsViewModel : ScreenViewModel
     partial void OnJsonLayerChanged(SettingLayer value)
     {
         JsonText = Ctx.Settings.LayerText(value);
-        JsonErrors = [];
+        JsonErrors = value == SettingLayer.Machine ? Lines(Ctx.Settings.MachineErrors) : [];
     }
+
+    static IReadOnlyList<string> Lines(IReadOnlyList<SettingError> errors) =>
+        [.. errors.Select(e => string.Format(CultureInfo.InvariantCulture, Text.JsonLine, e.Line, e.Message))];
 
     public static string LayerName(SettingLayer layer) => Text.ResourceManager.GetString("Layer_" + layer, Text.Culture)!;
 
@@ -184,16 +192,21 @@ public sealed partial class SettingsViewModel : ScreenViewModel
 
     void Rebuild()
     {
+        var targets = all.ToDictionary(r => r.Key, r => r.TargetLayer);
+        var selected = Selected?.Key;
         var current = Ctx.Settings.Current;
         all =
         [
             .. SettingsCatalog.All.OrderBy(d => d.Category, StringComparer.Ordinal).Select(d =>
             {
                 var (json, from) = current.Value(d.Key);
-                return new SettingRow(d, json, from, current.IsModified(d.Key), Writable(d.Scope));
+                var row = new SettingRow(d, json, from, current.IsModified(d.Key), Writable(d.Scope));
+                if (targets.TryGetValue(d.Key, out var target) && row.Layers.Contains(target)) row.TargetLayer = target;
+                return row;
             }),
         ];
         Apply();
+        Selected = Rows.FirstOrDefault(r => r.Key == selected);
     }
 
     void Apply()

@@ -164,6 +164,29 @@ public sealed class SettingsScreenTests : IDisposable
     }
 
     [Fact]
+    public async Task Selection_and_target_survive_a_change_from_elsewhere()
+    {
+        var shell = await t.LoggedInShellAsync(open: []);
+        var s = await Setg(shell.Context);
+        s.Selected = Row(s, "ui.fontSize");
+        s.Selected.TargetLayer = SettingLayer.Machine;
+        await shell.Context.Settings.SetAsync("reports.autoReload", "true", SettingLayer.User, null);
+        Assert.Equal(("ui.fontSize", SettingLayer.Machine), (s.Selected!.Key, s.Selected.TargetLayer));
+    }
+
+    [Fact]
+    public async Task Json_editor_lists_the_machine_file_errors_when_it_opens()
+    {
+        File.WriteAllText(Path.Combine(t.ClientFolder, "settings.json"), "{ \"ui.fontSize\": 99, \"ui.zoom\": 1 }");
+        var shell = await t.LoggedInShellAsync(open: []);
+        var s = await Setg(shell.Context);
+        s.JsonMode = true;
+        s.JsonLayer = SettingLayer.Machine;
+        Assert.Equal(2, s.JsonErrors.Count);
+        Assert.StartsWith("line ", s.JsonErrors[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Connection_change_applies_at_the_next_connect()
     {
         var shell = await t.LoggedInShellAsync(open: []);

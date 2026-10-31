@@ -128,7 +128,7 @@ public partial class MainWindow : Window
         if (((FrameworkElement)sender).DataContext is FKeyLabel { Code: { } code }) await shell.RunAsync(code, newTab: false);
     }
 
-    async void OnLogOut(object sender, RoutedEventArgs e) => await shell.Context.Host.LogoutAsync();
+    async void OnLogOut(object sender, RoutedEventArgs e) => await shell.LogOutAsync();
 
     void OnExit(object sender, RoutedEventArgs e) => Close();
 

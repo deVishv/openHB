@@ -19,6 +19,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     readonly CancellationTokenSource stopping = new();
     Task? watching;
     bool nextRunInNewTab;
+    string? lastUser;
 
     public ShellViewModel(ShellContext ctx, FunctionRouter router, IConfirm confirm)
     {
@@ -183,9 +184,34 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
         await LoadAsync(tab.Screen);
     }
 
+    /// <summary>
+    /// Logs out and leaves nothing of this user on screen: no tabs, no company, none of their own settings. False when
+    /// the user keeps unsaved edits.
+    /// </summary>
+    public async Task<bool> LogOutAsync()
+    {
+        if (Tabs.Tabs.Any(t => t.Screen.HasUnsavedEdits) && !await confirm.AskAsync(Text.DiscardChanges)) return false;
+        Clear();
+        lastUser = null;
+        await Context.Host.LogoutAsync();
+        await Context.Settings.LoadAsync(null);
+        await Context.Keys.LoadAsync();
+        return true;
+    }
+
+    void Clear()
+    {
+        Tabs.CloseAll();
+        Context.CloseCompany();
+    }
+
     /// <summary>After setup or login: the user's layers, then the last company, else CMPY when no tab is open.</summary>
     async Task OnLoggedInAsync()
     {
+        // Another person logging in over a lost session must not see the last user's tabs or company.
+        var user = Context.Host.Session?.UserName;
+        if (lastUser is not null && !string.Equals(lastUser, user, StringComparison.OrdinalIgnoreCase)) Clear();
+        lastUser = user;
         try
         {
             await Context.Settings.LoadAsync(Context.Company?.Id);
@@ -194,8 +220,19 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
                 await RunAsync("CMPY", newTab: true);
         }
         catch (HostException e) { Status.Message = e.Message; }
-        if (Context.Settings.LoadErrors.Concat(Context.Keys.LoadErrors).FirstOrDefault() is { } error) Status.Message = error;
+        ShowLoadErrors();
         OnPropertyChanged(nameof(AcceptsTyping));
+    }
+
+    /// <summary>The first problem in this PC's files, and how many more there are and where to see them (spec 7).</summary>
+    public void ShowLoadErrors()
+    {
+        var settings = Context.Settings.LoadErrors;
+        var keys = Context.Keys.LoadErrors;
+        var all = settings.Concat(keys).ToList();
+        if (all.Count == 0) return;
+        Status.Message = all.Count == 1 ? all[0]
+            : string.Format(CultureInfo.InvariantCulture, settings.Count > 0 ? Text.MoreSettingsErrors : Text.MoreKeyErrors, all[0], all.Count - 1);
     }
 
     void ShowConnection()

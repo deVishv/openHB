@@ -123,6 +123,19 @@ public sealed class ShellSmokeTests
             var r = e.BoundingRectangle;
             Assert.True(!r.IsEmpty && area.Contains(r), $"{e.Name} at {r} is outside the window {area}.");
         }
+        foreach (var key in fkeys)
+            foreach (var text in key.FindAllDescendants(cf => cf.ByControlType(ControlType.Text)))
+                Assert.True(key.BoundingRectangle.Contains(text.BoundingRectangle) && text.BoundingRectangle.Width > 0,
+                    $"\"{text.Name}\" at {text.BoundingRectangle} does not fit in its button {key.BoundingRectangle}.");
+        var bar = parts[2].BoundingRectangle;
+        var texts = parts[2].FindAllDescendants(cf => cf.ByControlType(ControlType.Text))
+            .Where(e => !e.IsOffscreen && !string.IsNullOrEmpty(e.Name)).ToList();
+        Assert.NotEmpty(texts);
+        foreach (var text in texts) Assert.True(bar.Contains(text.BoundingRectangle), $"\"{text.Name}\" is outside the status bar.");
+        for (var i = 0; i < texts.Count; i++)
+            for (var j = i + 1; j < texts.Count; j++)
+                Assert.False(System.Drawing.Rectangle.Intersect(texts[i].BoundingRectangle, texts[j].BoundingRectangle) is { Width: > 1, Height: > 1 },
+                    $"\"{texts[i].Name}\" overlaps \"{texts[j].Name}\".");
         for (var i = 0; i < fkeys.Count; i++)
             for (var j = i + 1; j < fkeys.Count; j++)
                 Assert.False(fkeys[i].BoundingRectangle.IntersectsWith(fkeys[j].BoundingRectangle) &&

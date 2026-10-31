@@ -1370,7 +1370,7 @@ public void Classic_theme_meets_wcag_aa(string fore, string back, double minimum
 
 ## Builder decisions
 
-Only item 1 needs the owner, and it is in `docs/owner-review.md`. The rest are the builder's calls, kept here for the record.
+Only item 1 needed the owner, who approved it on 2026-10-30. The rest are the builder's calls, kept here for the record.
 
 1. **Plan 4 builds the shell and the system screens `HELP`, `DATE`, `RFSH`, `CMPY`, `SETG`, `KEYS`, and `USER`.** Other codes show `{CODE} is not in this version yet.` Masters, vouchers, and reports screens are next. `AUDT`, `LOCK`, `BKUP`, `FIND`, and `PRNT` follow with them. Cost if wrong: reorder later plans.
 2. **Product version 0.1.0,** shared by client and host. Cost if wrong: one property.

@@ -203,4 +203,7 @@
   <data name="RoleColumn" xml:space="preserve"><value>Role</value></data>
   <data name="ActiveColumn" xml:space="preserve"><value>Active</value></data>
   <data name="MenuBar" xml:space="preserve"><value>Menu</value></data>
+  <data name="MoreSettingsErrors" xml:space="preserve"><value>{0} (and {1} more. See SETG.)</value></data>
+  <data name="MoreKeyErrors" xml:space="preserve"><value>{0} (and {1} more. See KEYS.)</value></data>
+  <data name="LayerNotRead" xml:space="preserve"><value>Your settings could not be read from the host yet. Try again when connected.</value></data>
 </root>

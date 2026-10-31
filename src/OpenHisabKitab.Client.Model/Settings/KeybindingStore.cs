@@ -17,6 +17,11 @@ public sealed class KeybindingStore(MachineFiles files, HostConnection host)
     IReadOnlyList<KeybindingEntry> machine = [];
     IReadOnlyList<KeybindingEntry> user = [];
     string? userText;
+    bool userRead;
+    IReadOnlyList<SettingError> machineErrors = [];
+
+    /// <summary>The problems in this PC's keybindings.json, by line, for the JSON editor.</summary>
+    public IReadOnlyList<SettingError> MachineErrors => machineErrors;
 
     public KeybindingSet Current { get; private set; } = KeybindingSet.Build([], []);
 
@@ -29,15 +34,16 @@ public sealed class KeybindingStore(MachineFiles files, HostConnection host)
     {
         var load = files.LoadKeybindings();
         machine = load.Entries;
+        machineErrors = load.Errors;
         LoadErrors = [.. load.Errors.Select(e => string.Create(CultureInfo.InvariantCulture, $"keybindings.json line {e.Line}: {e.Message}"))];
-        userText = null;
-        if (host.State == ConnectionState.Connected)
+        if (host.Session is null) (userText, userRead) = (null, false);
+        else if (host.State == ConnectionState.Connected)
             try
             {
                 var values = await host.CallAsync((h, o) => h.UserSettings.ListAsync(new Empty(), o), ct);
-                userText = values.Values.FirstOrDefault(v => v.Key == UserKey)?.Json;
+                (userText, userRead) = (values.Values.FirstOrDefault(v => v.Key == UserKey)?.Json, true);
             }
-            catch (HostException) { }
+            catch (HostException) { }   // keeps what was last read
         user = userText is null ? [] : KeybindingFile.Parse(userText).Entries;
         Rebuild();
     }
@@ -60,8 +66,11 @@ public sealed class KeybindingStore(MachineFiles files, HostConnection host)
                 files.WriteKeybindingsText(text);
                 machine = load.Entries;
                 LoadErrors = [];
+                machineErrors = [];
                 break;
             case SettingLayer.User:
+                // An unread layer is never written: the save would replace the user's keybindings on the host.
+                if (!userRead) throw new HostException(HostErrorKind.Unreachable, Resources.Text.LayerNotRead, new Grpc.Core.Metadata());
                 await host.CallAsync((h, o) => h.UserSettings.SetAsync(new SettingValue { Key = UserKey, Json = text }, o));
                 userText = text;
                 user = load.Entries;

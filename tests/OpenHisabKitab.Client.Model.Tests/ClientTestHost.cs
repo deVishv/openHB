@@ -45,6 +45,9 @@ public sealed class ClientTestHost : IDisposable
 
     public ConcurrentQueue<Request> Requests { get; } = new();
 
+    /// <summary>While set, Companies.List requests wait for it, so a test can act while one is in flight.</summary>
+    public TaskCompletionSource? HoldCompanyList { get; set; }
+
     public HostConnection Connection(string? clientVersion = null)
     {
         var c = new HostConnection(Channels, Known, Time, clientVersion ?? ProductVersion.Current, Machine);
@@ -133,6 +136,12 @@ public sealed class ClientTestHost : IDisposable
         return shell;
     }
 
+    public static async Task Until(Func<bool> condition)
+    {
+        for (var i = 0; i < 500 && !condition(); i++) await Task.Delay(10);
+        Assert.True(condition(), "The expected state did not arrive.");
+    }
+
     /// <summary>Waits for something the change stream delivers in the background.</summary>
     public async Task Eventually(Func<bool> condition)
     {
@@ -192,7 +201,15 @@ public sealed class ClientTestHost : IDisposable
                 throw new HttpRequestException("The host is offline.", new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
             owner.Requests.Enqueue(new Request(request.RequestUri!.AbsolutePath, Header(request, "ohk-version"), Header(request, "ohk-machine"),
                 request.Headers.Contains("authorization")));
-            return base.SendAsync(request, cancellationToken);
+            return request.RequestUri.AbsolutePath.EndsWith("Companies/List", StringComparison.Ordinal) && owner.HoldCompanyList is { } hold
+                ? SendLaterAsync(hold.Task, request, cancellationToken)
+                : base.SendAsync(request, cancellationToken);
+        }
+
+        async Task<HttpResponseMessage> SendLaterAsync(Task hold, HttpRequestMessage request, CancellationToken ct)
+        {
+            await hold.WaitAsync(ct);
+            return await base.SendAsync(request, ct);
         }
 
         static string? Header(HttpRequestMessage r, string name) => r.Headers.TryGetValues(name, out var v) ? v.Single() : null;

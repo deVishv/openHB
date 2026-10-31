@@ -58,7 +58,7 @@
                     <Label DockPanel.Dock="Right" Content="{t:Txt LayerLabel}" Target="{Binding ElementName=TargetBox}" />
                     <TextBox x:Name="ValueBox" AutomationProperties.Name="{t:Name ValueLabel}" />
                 </DockPanel>
-                <ListView x:Name="SettingList" ItemsSource="{Binding Rows}" AutomationProperties.Name="{t:Name SettingColumn}" SelectionChanged="OnSelected">
+                <ListView x:Name="SettingList" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name SettingColumn}" SelectionChanged="OnSelected">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Display}" /></Style>
                     </ListView.ItemContainerStyle>

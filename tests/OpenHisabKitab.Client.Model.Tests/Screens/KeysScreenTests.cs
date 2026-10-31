@@ -57,6 +57,17 @@ public sealed class KeysScreenTests : IDisposable
     }
 
     [Fact]
+    public async Task A_typing_key_is_not_recorded()
+    {
+        var (shell, keys) = await OpenKeys();
+        keys.Selected = Row(keys, "run.PURC");
+        keys.StartRecording();
+        Assert.True(await shell.HandleKeyAsync(Chord("q"), NoContext));
+        Assert.Equal("Cannot bind q: it is needed for typing.", keys.Message);
+        Assert.Equal("F7", Row(keys, "run.PURC").Key);
+    }
+
+    [Fact]
     public async Task Esc_cancels_recording()
     {
         var (shell, keys) = await OpenKeys();

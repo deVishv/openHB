@@ -212,22 +212,32 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
             try { await delay.ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
             lock (gate) if (generation != retryGeneration) return;
-            if (await AttemptAsync(ct).ConfigureAwait(false)) return;
+            if (await AttemptAsync(generation, ct).ConfigureAwait(false)) return;
         }
     }
 
-    /// <summary>True when the loop is done: back in, logged out, or blocked.</summary>
-    async Task<bool> AttemptAsync(CancellationToken ct)
+    bool Superseded(int generation)
+    {
+        lock (gate) return generation != retryGeneration;
+    }
+
+    /// <summary>
+    /// True when the loop is done: back in, logged out, or blocked. An attempt superseded while in flight, by a logout or
+    /// a new connect, changes nothing.
+    /// </summary>
+    async Task<bool> AttemptAsync(int generation, CancellationToken ct)
     {
         var c = clients!;
         HostInfo info;
         try { info = await c.Session.GetInfoAsync(new Empty(), Options(ct, token: false)).ConfigureAwait(false); }
         catch (RpcException)
         {
+            if (Superseded(generation)) return true;
             if (!CertificateNotTrusted()) return false;
             Set(ConnectionState.CertificateChanged, null);
             return true;
         }
+        if (Superseded(generation)) return true;
         if (info.Version != clientVersion)
         {
             Set(ConnectionState.VersionMismatch, string.Format(CultureInfo.InvariantCulture, Text.VersionMismatch, info.Version));
@@ -236,12 +246,14 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
         try
         {
             await c.Companies.ListAsync(new Empty(), Options(ct)).ConfigureAwait(false);
+            if (Superseded(generation)) return true;
             Set(ConnectionState.Connected, null);
             Reconnected?.Invoke();
             return true;
         }
         catch (RpcException e) when (e.StatusCode == StatusCode.Unauthenticated)
         {
+            if (Superseded(generation)) return true;
             sessionLost = true;
             Set(ConnectionState.NeedsLogin, e.Status.Detail);
             return true;

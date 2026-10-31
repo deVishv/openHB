@@ -16,6 +16,11 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
     Dictionary<string, string> machine = [];
     IReadOnlyDictionary<string, string> company = new Dictionary<string, string>();
     IReadOnlyDictionary<string, string> user = new Dictionary<string, string>();
+    // A remote layer counts only once it has been read: one that could not be read keeps what was last read, and is
+    // never written, so a save cannot replace the host's copy with an empty one.
+    bool userRead;
+    int? companyRead;
+    IReadOnlyList<SettingError> machineErrors = [];
 
     public EffectiveSettings Current { get; private set; } = new(new Dictionary<SettingLayer, IReadOnlyDictionary<string, string>>());
 
@@ -24,15 +29,35 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
 
     public event Action? Changed;
 
+    /// <summary>The problems in this PC's settings.json, by line, for the JSON editor.</summary>
+    public IReadOnlyList<SettingError> MachineErrors => machineErrors;
+
     public async Task LoadAsync(int? company, CancellationToken ct = default)
     {
         var load = files.LoadSettings();
         machine = new Dictionary<string, string>(load.Values, StringComparer.Ordinal);
+        machineErrors = load.Errors;
         LoadErrors = [.. load.Errors.Select(e => string.Create(CultureInfo.InvariantCulture, $"settings.json line {e.Line}: {e.Message}"))];
-        user = await ReadAsync(async () => (await host.CallAsync((h, o) => h.UserSettings.ListAsync(new Empty(), o), ct)).Values);
-        this.company = company is { } id
-            ? await ReadAsync(async () => (await host.CallAsync((h, o) => h.Companies.ListSettingsAsync(new CompanyRef { Company = id }, o), ct)).Values)
-            : new Dictionary<string, string>();
+        if (host.Session is null)
+        {
+            (user, userRead) = (new Dictionary<string, string>(), false);
+        }
+        else if (await ReadAsync(async () => (await host.CallAsync((h, o) => h.UserSettings.ListAsync(new Empty(), o), ct)).Values) is { } read)
+        {
+            (user, userRead) = (read, true);
+        }
+        if (company is not { } id || host.Session is null)
+        {
+            (this.company, companyRead) = (new Dictionary<string, string>(), null);
+        }
+        else if (await ReadAsync(async () => (await host.CallAsync((h, o) => h.Companies.ListSettingsAsync(new CompanyRef { Company = id }, o), ct)).Values) is { } read)
+        {
+            (this.company, companyRead) = (read, id);
+        }
+        else if (companyRead != id)
+        {
+            (this.company, companyRead) = (new Dictionary<string, string>(), null);   // another company's values never stand in
+        }
         Rebuild();
     }
 
@@ -46,10 +71,12 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
                 EditMachineFile(o => o[key] = JsonNode.Parse(json));
                 break;
             case SettingLayer.User:
+                RequireRead(layer, company);
                 await host.CallAsync((h, o) => h.UserSettings.SetAsync(new SettingValue { Key = key, Json = json }, o));
                 user = new Dictionary<string, string>(user) { [key] = json };
                 break;
             case SettingLayer.Company:
+                RequireRead(layer, company);
                 await host.CallAsync((h, o) => h.Companies.SetSettingAsync(new SettingRequest { Company = CompanyId(company), Key = key, Json = json }, o));
                 this.company = new Dictionary<string, string>(this.company) { [key] = json };
                 break;
@@ -66,10 +93,12 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
                 if (machine.Remove(key)) EditMachineFile(o => o.Remove(key));
                 break;
             case SettingLayer.User:
+                RequireRead(layer, company);
                 await host.CallAsync((h, o) => h.UserSettings.ResetAsync(new SettingKey { Key = key }, o));
                 user = Without(user, key);
                 break;
             case SettingLayer.Company:
+                RequireRead(layer, company);
                 await host.CallAsync((h, o) => h.Companies.ResetSettingAsync(new CompanySettingKey { Company = CompanyId(company), Key = key }, o));
                 this.company = Without(this.company, key);
                 break;
@@ -92,11 +121,13 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
     {
         var load = SettingsDocument.Parse(text, layer);
         if (load.Errors.Count > 0) return load.Errors;
+        if (layer != SettingLayer.Machine) RequireRead(layer, company);
         if (layer == SettingLayer.Machine)
         {
             files.WriteSettingsText(text);
             machine = new Dictionary<string, string>(load.Values, StringComparer.Ordinal);
             LoadErrors = [];
+            machineErrors = [];
             Rebuild();
             return [];
         }
@@ -139,15 +170,22 @@ public sealed class SettingsStore(MachineFiles files, HostConnection host)
         Changed?.Invoke();
     }
 
-    async Task<IReadOnlyDictionary<string, string>> ReadAsync(Func<Task<IEnumerable<SettingValue>>> read)
+    /// <summary>The layer as read, or null when it could not be read now.</summary>
+    async Task<IReadOnlyDictionary<string, string>?> ReadAsync(Func<Task<IEnumerable<SettingValue>>> read)
     {
-        if (host.State != ConnectionState.Connected) return new Dictionary<string, string>();
+        if (host.State != ConnectionState.Connected) return null;
         try
         {
             // Only settings: the user layer also stores keybindings, which KeybindingStore reads.
             return (await read()).Where(v => SettingsCatalog.Find(v.Key) is not null).ToDictionary(v => v.Key, v => v.Json, StringComparer.Ordinal);
         }
-        catch (HostException) { return new Dictionary<string, string>(); }
+        catch (HostException) { return null; }
+    }
+
+    void RequireRead(SettingLayer layer, int? company)
+    {
+        var read = layer == SettingLayer.User ? userRead : companyRead is { } id && id == company;
+        if (!read) throw new HostException(HostErrorKind.Unreachable, Resources.Text.LayerNotRead, new Grpc.Core.Metadata());
     }
 
     static int CompanyId(int? company) => company ?? throw new InvalidOperationException("Open a company first.");

@@ -77,11 +77,20 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
+            <!-- The message takes what room is left and trims; the context on the right keeps its own room. -->
             <StatusBar DockPanel.Dock="Bottom" AutomationProperties.Name="{t:Name StatusBar}">
+                <StatusBar.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        </Grid>
+                    </ItemsPanelTemplate>
+                </StatusBar.ItemsPanel>
                 <StatusBarItem>
-                    <TextBlock x:Name="StatusMessage" Text="{Binding Status.Message}" AutomationProperties.LiveSetting="Polite" />
+                    <TextBlock x:Name="StatusMessage" Text="{Binding Status.Message}" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding Status.Message}" AutomationProperties.LiveSetting="Polite" />
                 </StatusBarItem>
-                <StatusBarItem HorizontalAlignment="Right">
+                <StatusBarItem Grid.Column="1">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="{t:Txt ChangedMarker}" Margin="8,0" FontWeight="Bold"
                                    Visibility="{Binding Status.Changed, Converter={StaticResource Bool}}" />
@@ -102,7 +111,13 @@
                 </ItemsControl.ItemContainerStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Button Content="{Binding Text}" AutomationProperties.Name="{Binding Text}" Padding="2" Focusable="False" Click="OnFKey" />
+                        <!-- Key over code, so the labels fit at the largest text size (spec 6.6). -->
+                        <Button AutomationProperties.Name="{Binding Text}" Padding="1" Margin="1" Focusable="False" Click="OnFKey">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Key}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding Code}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

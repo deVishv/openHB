@@ -148,12 +148,17 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Unreachable_host_leaves_the_remote_layers_empty()
+    public async Task Unreachable_host_keeps_the_remote_layers_last_read()
     {
-        var (store, _) = await LoggedInStore();
+        var (store, connection) = await LoggedInStore();
+        await store.LoadAsync(null);
         await store.SetAsync("ui.fontSize", "20", SettingLayer.User, null);
         t.Offline = true;
         await store.LoadAsync(null);
-        Assert.Equal(14, store.Current.Int("ui.fontSize"));
+        Assert.Equal(20, store.Current.Int("ui.fontSize"));
+        var fresh = new SettingsStore(new MachineFiles(paths), connection);
+        await fresh.LoadAsync(null);
+        Assert.Equal(14, fresh.Current.Int("ui.fontSize"));
+        await Assert.ThrowsAsync<HostException>(() => fresh.SaveLayerTextAsync(SettingLayer.User, "{ }", null));
     }
 }

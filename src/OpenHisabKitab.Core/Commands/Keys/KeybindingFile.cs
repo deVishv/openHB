@@ -68,6 +68,7 @@ public static class KeybindingFile
         if (remove) command = command[1..];
         if (!KeyCommands.IsKnown(command)) { problem = $"Unknown command: {command}."; return false; }
         if (!KeyChord.TryParse(k.GetString(), out var key)) { problem = $"Cannot read key: {k.GetString()}."; return false; }
+        if (!remove && KeybindingRules.Problem(key) is { } refused) { problem = refused; return false; }
         var whenText = e.TryGetProperty("when", out var w) && w.ValueKind == JsonValueKind.String ? w.GetString() : null;
         if (!WhenClause.TryParse(whenText, out var when, out problem)) return false;
         entry = new KeybindingEntry(key, command, when, remove);

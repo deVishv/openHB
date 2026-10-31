@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Client view models and logic, with no WPF types, so plain tests cover them. Screen text lives here too:
+       WPF's temporary markup compile pass cannot see a resx class generated in the WPF project itself. -->
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources/Text.resx" StronglyTypedLanguage="CSharp" StronglyTypedClassName="Text"
+                      StronglyTypedNamespace="OpenHisabKitab.Client.Model.Resources"
+                      StronglyTypedFileName="$(IntermediateOutputPath)Text.Designer.cs" PublicClass="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Grpc.Net.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpenHisabKitab.Client.Model.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenHisabKitab.Contracts\OpenHisabKitab.Contracts.csproj" />
+    <ProjectReference Include="..\OpenHisabKitab.Core\OpenHisabKitab.Core.csproj" />
+  </ItemGroup>
+
+</Project>

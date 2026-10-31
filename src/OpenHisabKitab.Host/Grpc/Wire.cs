@@ -77,6 +77,13 @@ internal static class Wire
 
     public static YearMsg ToMsg(FinancialYear fy) => new() { StartYear = fy.StartYear, Label = fy.Label };
 
+    public static SettingValues ToMsg(IReadOnlyDictionary<string, string> values)
+    {
+        var m = new SettingValues();
+        m.Values.AddRange(values.Select(p => new SettingValue { Key = p.Key, Json = p.Value }));
+        return m;
+    }
+
     // Masters
 
     public static ChartMsg ToMsg(ChartOfAccounts chart, IReadOnlyDictionary<LedgerId, Money> openings)

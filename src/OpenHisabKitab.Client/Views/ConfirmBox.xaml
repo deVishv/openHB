@@ -1,0 +1,15 @@
+<Window x:Class="OpenHisabKitab.Client.Views.ConfirmBox"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:t="clr-namespace:OpenHisabKitab.Client"
+        Title="{t:Txt ConfirmTitle}" SizeToContent="WidthAndHeight" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+    <!-- Yes and No by access key; Esc is No (spec 6.4, Esc asks once before discarding). -->
+    <StackPanel Margin="12">
+        <TextBlock x:Name="Question" Margin="0,0,0,12" AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="Yes" Content="{t:Txt YesButton}" AutomationProperties.Name="{t:Name YesButton}" MinWidth="72" Click="OnYes" />
+            <Button Content="{t:Txt NoButton}" AutomationProperties.Name="{t:Name NoButton}" MinWidth="72" IsCancel="True" IsDefault="True" />
+        </StackPanel>
+    </StackPanel>
+</Window>

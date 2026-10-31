@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="AppName" xml:space="preserve"><value>Open Hisab Kitab</value></data>
+  <data name="HostUnreachable" xml:space="preserve"><value>Host not reachable. Trying again.</value></data>
+  <data name="HostNotFound" xml:space="preserve"><value>Host not reachable. Check the host name and port.</value></data>
+  <data name="VersionMismatch" xml:space="preserve"><value>Install Open Hisab Kitab {0} to connect.</value></data>
+  <data name="EnterHostName" xml:space="preserve"><value>Enter the host name or IP address.</value></data>
+  <data name="EnterPort" xml:space="preserve"><value>Enter a port from 1 to 65535.</value></data>
+  <data name="UnknownFunction" xml:space="preserve"><value>Unknown function: {0}</value></data>
+  <data name="NotInThisVersion" xml:space="preserve"><value>{0} is not in this version yet.</value></data>
+  <data name="NothingToRefresh" xml:space="preserve"><value>Nothing to refresh.</value></data>
+  <data name="DiscardChanges" xml:space="preserve"><value>Discard unsaved changes?</value></data>
+  <data name="TitleNoCompany" xml:space="preserve"><value>Open Hisab Kitab</value></data>
+  <data name="TitleWithCompany" xml:space="preserve"><value>Open Hisab Kitab: {0} FY {1}</value></data>
+  <data name="PasswordsDiffer" xml:space="preserve"><value>The passwords differ.</value></data>
+  <data name="ConnectedTo" xml:space="preserve"><value>Connected to {0}</value></data>
+  <data name="LogInAgain" xml:space="preserve"><value>Log in again.</value></data>
+  <data name="WorkingDateStatus" xml:space="preserve"><value>Date {0}</value></data>
+  <data name="MenuFile" xml:space="preserve"><value>_File</value></data>
+  <data name="MenuLogOut" xml:space="preserve"><value>_Log out</value></data>
+  <data name="MenuExit" xml:space="preserve"><value>E_xit</value></data>
+  <data name="MenuEdit" xml:space="preserve"><value>_Edit</value></data>
+  <data name="MenuFind" xml:space="preserve"><value>_Find</value></data>
+  <data name="MenuSave" xml:space="preserve"><value>_Save</value></data>
+  <data name="MenuView" xml:space="preserve"><value>_View</value></data>
+  <data name="MenuPalette" xml:space="preserve"><value>Command _palette</value></data>
+  <data name="MenuNextTab" xml:space="preserve"><value>_Next tab</value></data>
+  <data name="MenuPreviousTab" xml:space="preserve"><value>_Previous tab</value></data>
+  <data name="MenuHelp" xml:space="preserve"><value>_Help</value></data>
+  <data name="MenuFunctions" xml:space="preserve"><value>_Functions</value></data>
+  <data name="MenuKeybindings" xml:space="preserve"><value>_Keybindings</value></data>
+  <data name="PromptName" xml:space="preserve"><value>Command prompt</value></data>
+  <data name="Suggestions" xml:space="preserve"><value>Matching functions</value></data>
+  <data name="TabStrip" xml:space="preserve"><value>Tabs</value></data>
+  <data name="FKeys" xml:space="preserve"><value>Function keys</value></data>
+  <data name="StatusBar" xml:space="preserve"><value>Status</value></data>
+  <data name="Content" xml:space="preserve"><value>Function screen</value></data>
+  <data name="Palette" xml:space="preserve"><value>Command palette</value></data>
+  <data name="PaletteSearch" xml:space="preserve"><value>Search functions and settings</value></data>
+  <data name="PaletteItems" xml:space="preserve"><value>Matches</value></data>
+  <data name="HostLabel" xml:space="preserve"><value>_Host</value></data>
+  <data name="PortLabel" xml:space="preserve"><value>P_ort</value></data>
+  <data name="ConnectButton" xml:space="preserve"><value>_Connect</value></data>
+  <data name="ChangeHostButton" xml:space="preserve"><value>C_hange host</value></data>
+  <data name="TrustHeading" xml:space="preserve"><value>New host. Compare this fingerprint with the one on the host PC.</value></data>
+  <data name="FingerprintLabel" xml:space="preserve"><value>Fingerprint</value></data>
+  <data name="TrustButton" xml:space="preserve"><value>_Trust</value></data>
+  <data name="ChangedHeading" xml:space="preserve"><value>The host certificate changed. Accept it only if the host was reinstalled.</value></data>
+  <data name="WasLabel" xml:space="preserve"><value>Was</value></data>
+  <data name="NowLabel" xml:space="preserve"><value>Now</value></data>
+  <data name="AcceptButton" xml:space="preserve"><value>_Accept</value></data>
+  <data name="SetupHeading" xml:space="preserve"><value>Set up the Owner.</value></data>
+  <data name="UserLabel" xml:space="preserve"><value>_User</value></data>
+  <data name="PasswordLabel" xml:space="preserve"><value>_Password</value></data>
+  <data name="ConfirmPasswordLabel" xml:space="preserve"><value>C_onfirm password</value></data>
+  <data name="SetupButton" xml:space="preserve"><value>_Set up</value></data>
+  <data name="LoginButton" xml:space="preserve"><value>_Log in</value></data>
+  <data name="YesButton" xml:space="preserve"><value>_Yes</value></data>
+  <data name="NoButton" xml:space="preserve"><value>_No</value></data>
+  <data name="ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
+  <data name="SessionPanel" xml:space="preserve"><value>Connection</value></data>
+  <data name="ChangedMarker" xml:space="preserve"><value>Changed</value></data>
+  <data name="Purpose_HELP" xml:space="preserve"><value>Lists all functions and shortcuts. HELP CODE shows one function.</value></data>
+  <data name="Purpose_SETG" xml:space="preserve"><value>Searchable settings, as a form or as JSON.</value></data>
+  <data name="Purpose_KEYS" xml:space="preserve"><value>Searchable keybindings, as a form or as JSON.</value></data>
+  <data name="Purpose_CMPY" xml:space="preserve"><value>Create, select, and edit companies and financial years.</value></data>
+  <data name="Purpose_USER" xml:space="preserve"><value>Users, roles, and permissions.</value></data>
+  <data name="Purpose_AUDT" xml:space="preserve"><value>Filter and view the log, and verify the chain.</value></data>
+  <data name="Purpose_LOCK" xml:space="preserve"><value>Lock or unlock the books up to a date.</value></data>
+  <data name="Purpose_BKUP" xml:space="preserve"><value>Back up now, restore, and set the backup schedule.</value></data>
+  <data name="Purpose_DATE" xml:space="preserve"><value>Set the default date for new vouchers and reports.</value></data>
+  <data name="Purpose_FIND" xml:space="preserve"><value>Search vouchers by number, party, amount, or narration.</value></data>
+  <data name="Purpose_RFSH" xml:space="preserve"><value>Reload the current tab.</value></data>
+  <data name="Purpose_PRNT" xml:space="preserve"><value>Print the current tab or save it as PDF.</value></data>
+  <data name="Purpose_ACCT" xml:space="preserve"><value>Chart of accounts: groups and ledgers.</value></data>
+  <data name="Purpose_PRTY" xml:space="preserve"><value>Customers and suppliers, with GSTIN, state, addresses, and credit days.</value></data>
+  <data name="Purpose_ITEM" xml:space="preserve"><value>Goods and services, with HSN/SAC code, GST rate, unit, and default price.</value></data>
+  <data name="Purpose_SALE" xml:space="preserve"><value>Enter and edit sales invoices.</value></data>
+  <data name="Purpose_PURC" xml:space="preserve"><value>Enter and edit purchase invoices.</value></data>
+  <data name="Purpose_CRNT" xml:space="preserve"><value>Enter and edit credit notes.</value></data>
+  <data name="Purpose_DBNT" xml:space="preserve"><value>Enter and edit debit notes.</value></data>
+  <data name="Purpose_RCPT" xml:space="preserve"><value>Enter and edit receipts.</value></data>
+  <data name="Purpose_PYMT" xml:space="preserve"><value>Enter and edit payments.</value></data>
+  <data name="Purpose_JRNL" xml:space="preserve"><value>Enter and edit journal vouchers.</value></data>
+  <data name="Purpose_CNTR" xml:space="preserve"><value>Enter and edit contra vouchers between cash and bank.</value></data>
+  <data name="Purpose_DAYB" xml:space="preserve"><value>Vouchers by date.</value></data>
+  <data name="Purpose_LEDG" xml:space="preserve"><value>One ledger's statement with running balance.</value></data>
+  <data name="Purpose_TRLB" xml:space="preserve"><value>Opening, debits, credits, and closing for every ledger.</value></data>
+  <data name="Purpose_PNLS" xml:space="preserve"><value>Income, expenses, and net profit for a period.</value></data>
+  <data name="Purpose_BSHT" xml:space="preserve"><value>Follows the Schedule III layout, with an option to show it grouped by the chart of accounts instead.</value></data>
+  <data name="Purpose_CFLO" xml:space="preserve"><value>Cash flow by the indirect method.</value></data>
+  <data name="Purpose_OUTS" xml:space="preserve"><value>Receivables and payables, bill by bill, with ageing buckets set in settings.</value></data>
+  <data name="Purpose_GST1" xml:space="preserve"><value>Builds every GSTR-1 table from the vouchers and exports JSON in the GST portal's offline upload format.</value></data>
+  <data name="Purpose_GS3B" xml:space="preserve"><value>Summary by table, for entering on the portal. Exports to PDF and CSV.</value></data>
+  <data name="Purpose_G2BR" xml:space="preserve"><value>Imports the GSTR-2B JSON downloaded from the portal and matches it against purchases.</value></data>
+  <data name="Purpose_EINV" xml:space="preserve"><value>Exports selected invoices as e-invoice JSON and imports the IRP response file.</value></data>
+  <data name="Cmd_prompt_focus" xml:space="preserve"><value>Focus the prompt</value></data>
+  <data name="Cmd_prompt_run" xml:space="preserve"><value>Run in this tab</value></data>
+  <data name="Cmd_prompt_runNewTab" xml:space="preserve"><value>Run in a new tab</value></data>
+  <data name="Cmd_screen_cancel" xml:space="preserve"><value>Cancel or go back</value></data>
+  <data name="Cmd_screen_save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cmd_screen_find" xml:space="preserve"><value>Find in this screen</value></data>
+  <data name="Cmd_tab_new" xml:space="preserve"><value>New tab</value></data>
+  <data name="Cmd_tab_close" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Cmd_tab_next" xml:space="preserve"><value>Next tab</value></data>
+  <data name="Cmd_tab_previous" xml:space="preserve"><value>Previous tab</value></data>
+  <data name="Cmd_tab_goto" xml:space="preserve"><value>Go to tab {0}</value></data>
+  <data name="Cmd_nav_back" xml:space="preserve"><value>Back</value></data>
+  <data name="Cmd_nav_forward" xml:space="preserve"><value>Forward</value></data>
+  <data name="Cmd_palette_open" xml:space="preserve"><value>Search functions and settings</value></data>
+  <data name="Category_System" xml:space="preserve"><value>System</value></data>
+  <data name="Category_Masters" xml:space="preserve"><value>Masters</value></data>
+  <data name="Category_Vouchers" xml:space="preserve"><value>Vouchers</value></data>
+  <data name="Category_Reports" xml:space="preserve"><value>Reports</value></data>
+  <data name="Category_Gst" xml:space="preserve"><value>GST</value></data>
+  <data name="WorkingDateSet" xml:space="preserve"><value>Working date {0}.</value></data>
+  <data name="EnterDate" xml:space="preserve"><value>Enter a date like 15-04-2026, 15-4, or today.</value></data>
+  <data name="NoYearHolds" xml:space="preserve"><value>No financial year holds {0}. Add one in CMPY.</value></data>
+  <data name="HelpFilter" xml:space="preserve"><value>_Filter</value></data>
+  <data name="HelpFunctions" xml:space="preserve"><value>Functions</value></data>
+  <data name="HelpShortcuts" xml:space="preserve"><value>Shortcuts</value></data>
+  <data name="CodeColumn" xml:space="preserve"><value>Code</value></data>
+  <data name="NameColumn" xml:space="preserve"><value>Name</value></data>
+  <data name="CategoryColumn" xml:space="preserve"><value>Category</value></data>
+  <data name="KeyColumn" xml:space="preserve"><value>Key</value></data>
+  <data name="CommandColumn" xml:space="preserve"><value>Command</value></data>
+  <data name="WhenColumn" xml:space="preserve"><value>When</value></data>
+  <data name="PurposeLabel" xml:space="preserve"><value>Purpose</value></data>
+  <data name="DateLabel" xml:space="preserve"><value>_Working date</value></data>
+  <data name="ApplyButton" xml:space="preserve"><value>_Apply</value></data>
+  <data name="OpenedCompany" xml:space="preserve"><value>Opened {0} FY {1}.</value></data>
+  <data name="CompaniesLabel" xml:space="preserve"><value>_Companies</value></data>
+  <data name="YearsLabel" xml:space="preserve"><value>_Years</value></data>
+  <data name="OpenButton" xml:space="preserve"><value>_Open</value></data>
+  <data name="AddYearButton" xml:space="preserve"><value>Add _year</value></data>
+  <data name="NewCompanyHeading" xml:space="preserve"><value>New company</value></data>
+  <data name="CompanyNameLabel" xml:space="preserve"><value>_Name</value></data>
+  <data name="StateLabel" xml:space="preserve"><value>_State</value></data>
+  <data name="RegistrationLabel" xml:space="preserve"><value>_Registration</value></data>
+  <data name="GstinLabel" xml:space="preserve"><value>_GSTIN</value></data>
+  <data name="AddressLabel" xml:space="preserve"><value>A_ddress</value></data>
+  <data name="FirstYearLabel" xml:space="preserve"><value>_First year starting</value></data>
+  <data name="CreateButton" xml:space="preserve"><value>C_reate</value></data>
+  <data name="Saved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="SavedRestartHost" xml:space="preserve"><value>Saved. Restart the host service to apply.</value></data>
+  <data name="SavedNextConnect" xml:space="preserve"><value>Saved. Applies at the next connect.</value></data>
+  <data name="JsonLine" xml:space="preserve"><value>line {0}: {1}</value></data>
+  <data name="Layer_Default" xml:space="preserve"><value>Built in</value></data>
+  <data name="Layer_Machine" xml:space="preserve"><value>This PC</value></data>
+  <data name="Layer_Company" xml:space="preserve"><value>Company</value></data>
+  <data name="Layer_User" xml:space="preserve"><value>User</value></data>
+  <data name="SettingsFilter" xml:space="preserve"><value>_Search</value></data>
+  <data name="KeyColumnHeader" xml:space="preserve"><value>Key</value></data>
+  <data name="SettingColumn" xml:space="preserve"><value>Setting</value></data>
+  <data name="ValueColumn" xml:space="preserve"><value>Value</value></data>
+  <data name="FromColumn" xml:space="preserve"><value>From</value></data>
+  <data name="DescriptionColumn" xml:space="preserve"><value>Description</value></data>
+  <data name="LayerLabel" xml:space="preserve"><value>Save _to</value></data>
+  <data name="JsonModeLabel" xml:space="preserve"><value>Edit as _JSON</value></data>
+  <data name="SetButton" xml:space="preserve"><value>_Set</value></data>
+  <data name="ResetButton" xml:space="preserve"><value>_Reset</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>_Save</value></data>
+  <data name="HostSettingsHeading" xml:space="preserve"><value>Host settings</value></data>
+  <data name="RecordButton" xml:space="preserve"><value>_Change key</value></data>
+  <data name="Recording" xml:space="preserve"><value>Press the new key. Esc cancels.</value></data>
+  <data name="ValueLabel" xml:space="preserve"><value>_Value</value></data>
+  <data name="HostValueLabel" xml:space="preserve"><value>Host _value</value></data>
+  <data name="Errors" xml:space="preserve"><value>Errors</value></data>
+  <data name="TokenShownOnce" xml:space="preserve"><value>Copy this token now. It is not shown again.</value></data>
+  <data name="Never" xml:space="preserve"><value>Never</value></data>
+  <data name="ReadOnlyAccess" xml:space="preserve"><value>Read only</value></data>
+  <data name="ReadWriteAccess" xml:space="preserve"><value>Read and write</value></data>
+  <data name="RevokeQuestion" xml:space="preserve"><value>Revoke {0}?</value></data>
+  <data name="NewPasswordsDiffer" xml:space="preserve"><value>The new passwords differ.</value></data>
+  <data name="PasswordChanged" xml:space="preserve"><value>Password changed.</value></data>
+  <data name="UserCreated" xml:space="preserve"><value>User created.</value></data>
+  <data name="PasswordHeading" xml:space="preserve"><value>Your password</value></data>
+  <data name="CurrentPasswordLabel" xml:space="preserve"><value>C_urrent password</value></data>
+  <data name="NewPasswordLabel" xml:space="preserve"><value>_New password</value></data>
+  <data name="ConfirmNewPasswordLabel" xml:space="preserve"><value>Con_firm new password</value></data>
+  <data name="ChangePasswordButton" xml:space="preserve"><value>Change _password</value></data>
+  <data name="TokensHeading" xml:space="preserve"><value>Your API tokens</value></data>
+  <data name="TokenNameLabel" xml:space="preserve"><value>Token _name</value></data>
+  <data name="ReadWriteLabel" xml:space="preserve"><value>Read and _write</value></data>
+  <data name="CreateTokenButton" xml:space="preserve"><value>Create _token</value></data>
+  <data name="RevokeButton" xml:space="preserve"><value>Re_voke</value></data>
+  <data name="NewTokenLabel" xml:space="preserve"><value>New token</value></data>
+  <data name="AccessColumn" xml:space="preserve"><value>Access</value></data>
+  <data name="CreatedColumn" xml:space="preserve"><value>Created</value></data>
+  <data name="LastUsedColumn" xml:space="preserve"><value>Last used</value></data>
+  <data name="RevokedColumn" xml:space="preserve"><value>Revoked</value></data>
+  <data name="UsersHeading" xml:space="preserve"><value>Users</value></data>
+  <data name="UserNameLabel" xml:space="preserve"><value>User na_me</value></data>
+  <data name="RoleLabel" xml:space="preserve"><value>R_ole</value></data>
+  <data name="NewUserPasswordLabel" xml:space="preserve"><value>Pass_word</value></data>
+  <data name="CreateUserButton" xml:space="preserve"><value>Create _user</value></data>
+  <data name="CompaniesForUser" xml:space="preserve"><value>Compan_ies for the selected user</value></data>
+  <data name="SaveCompaniesButton" xml:space="preserve"><value>Save compan_ies</value></data>
+  <data name="RoleColumn" xml:space="preserve"><value>Role</value></data>
+  <data name="ActiveColumn" xml:space="preserve"><value>Active</value></data>
+  <data name="MenuBar" xml:space="preserve"><value>Menu</value></data>
+  <data name="MoreSettingsErrors" xml:space="preserve"><value>{0} (and {1} more. See SETG.)</value></data>
+  <data name="MoreKeyErrors" xml:space="preserve"><value>{0} (and {1} more. See KEYS.)</value></data>
+  <data name="LayerNotRead" xml:space="preserve"><value>Your settings could not be read from the host yet. Try again when connected.</value></data>
+</root>

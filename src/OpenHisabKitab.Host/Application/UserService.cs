@@ -48,4 +48,12 @@ public sealed class UserService(HostData data, SessionStore sessions, TimeProvid
         using var c = data.OpenHost();
         return [.. UserRepository.List(c).Select(u => u with { PasswordHash = "" })];
     }
+
+    /// <summary>The companies a user can open, so USER can show them checked.</summary>
+    public IReadOnlyList<int> Companies(CallContext ctx, int userId)
+    {
+        ctx.Require(Permission.ManageUsers);
+        using var c = data.OpenHost();
+        return UserRepository.Companies(c, userId);
+    }
 }

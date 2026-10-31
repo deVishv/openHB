@@ -1,6 +1,7 @@
 using System.Text.Json;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Gst;
+using OpenHisabKitab.Core.Settings;
 using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Data;
 using OpenHisabKitab.Data.Audit;
@@ -86,19 +87,35 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
 
+    /// <summary>The company layer of settings (spec 7): what is stored, not the defaults.</summary>
+    public IReadOnlyDictionary<string, string> ListSettings(CallContext ctx, int id)
+    {
+        ctx.RequireCompany(id);
+        using var c = hub.Open(id);
+        return CompanyRepository.ListSettings(c);
+    }
+
+    /// <summary>Back to the default. Resetting a key that holds nothing changes and audits nothing.</summary>
+    public Task ResetSettingAsync(CallContext ctx, int id, string key)
+    {
+        ctx.Require(Permission.ManageCompanies);
+        ctx.RequireCompany(id);
+        if (SettingsCatalog.Find(key) is null) throw new ServiceException(ServiceError.Invalid, $"No setting named {key}.");
+        return hub.WriteAsync(id, tx =>
+        {
+            var before = CompanyRepository.GetSetting(tx.Connection!, key);
+            if (before is null) return false;
+            CompanyRepository.RemoveSetting(tx, key);
+            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "reset", "setting", key, before, null));
+            return true;
+        }, changed => { if (changed) feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)); });
+    }
+
     public Task SetSettingAsync(CallContext ctx, int id, string key, string json)
     {
         ctx.Require(Permission.ManageCompanies);
         ctx.RequireCompany(id);
-        JsonValueKind kind;
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            kind = doc.RootElement.ValueKind;
-        }
-        catch (JsonException) { throw new ServiceException(ServiceError.Invalid, $"Setting {key} needs a JSON value."); }
-        if (BooleanSettings.Contains(key) && kind is not (JsonValueKind.True or JsonValueKind.False))
-            throw new ServiceException(ServiceError.Invalid, $"Setting {key} must be true or false.");
+        if (SettingsCatalog.Validate(key, json, SettingLayer.Company) is { } problem) throw new ServiceException(ServiceError.Invalid, problem);
         return hub.WriteAsync(id, tx =>
         {
             var before = CompanyRepository.GetSetting(tx.Connection!, key);
@@ -107,9 +124,6 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             return 0;
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
-
-    // Company settings the host reads, with their types. The full settings list arrives with SETG in Plan 4.
-    static readonly HashSet<string> BooleanSettings = ["invoice.roundOff"];
 
     static CompanyProfile Checked(CompanyProfile p)
     {

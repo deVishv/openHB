@@ -1,0 +1,96 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.SessionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
+             AutomationProperties.Name="{t:Name SessionPanel}">
+    <UserControl.Resources>
+        <v:EnumVisibility x:Key="Shows" />
+        <v:PresentVisibility x:Key="Present" />
+        <Style TargetType="TextBlock" x:Key="Fingerprint">
+            <Setter Property="FontFamily" Value="{DynamicResource NumberFont}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="MaxWidth" Value="560" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Covers the shell, so typed letters and F keys never reach it while the client is not in. -->
+    <Border Background="{DynamicResource FaceBrush}">
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center" BorderThickness="1" BorderBrush="{DynamicResource DarkShadowBrush}" Padding="16">
+            <StackPanel MinWidth="360" KeyboardNavigation.TabNavigation="Cycle">
+
+                <Grid Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=Connect}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <Label Content="{t:Txt HostLabel}" Target="{Binding ElementName=HostName}" />
+                    <TextBox x:Name="HostName" Grid.Column="1" Text="{Binding HostName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name HostLabel}" />
+                    <Label Grid.Row="1" Content="{t:Txt PortLabel}" Target="{Binding ElementName=PortBox}" />
+                    <TextBox x:Name="PortBox" Grid.Row="1" Grid.Column="1" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name PortLabel}" />
+                    <Button Grid.Row="2" Grid.Column="1" HorizontalAlignment="Right" Content="{t:Txt ConnectButton}" AutomationProperties.Name="{t:Name ConnectButton}"
+                            IsDefault="{Binding IsVisible, RelativeSource={RelativeSource Self}}" Click="OnConnect" />
+                </Grid>
+
+                <StackPanel Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=Trust}">
+                    <TextBlock Text="{t:Txt TrustHeading}" TextWrapping="Wrap" MaxWidth="560" Margin="0,0,0,8" />
+                    <Label Content="{t:Txt FingerprintLabel}" />
+                    <TextBlock Style="{StaticResource Fingerprint}" Text="{Binding SeenFingerprint}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="{t:Txt TrustButton}" AutomationProperties.Name="{t:Name TrustButton}" Click="OnTrust" />
+                        <Button Content="{t:Txt ChangeHostButton}" AutomationProperties.Name="{t:Name ChangeHostButton}" Click="OnChangeHost" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=CertificateChanged}">
+                    <TextBlock Text="{t:Txt ChangedHeading}" TextWrapping="Wrap" MaxWidth="560" Margin="0,0,0,8" />
+                    <Label Content="{t:Txt WasLabel}" />
+                    <TextBlock Style="{StaticResource Fingerprint}" Text="{Binding PinnedFingerprint}" />
+                    <Label Content="{t:Txt NowLabel}" />
+                    <TextBlock Style="{StaticResource Fingerprint}" Text="{Binding SeenFingerprint}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+                        <Button Content="{t:Txt AcceptButton}" AutomationProperties.Name="{t:Name AcceptButton}" Click="OnTrust" />
+                        <Button Content="{t:Txt ChangeHostButton}" AutomationProperties.Name="{t:Name ChangeHostButton}" Click="OnChangeHost" />
+                    </StackPanel>
+                </StackPanel>
+
+                <Grid Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=Setup}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <TextBlock Grid.ColumnSpan="2" Text="{t:Txt SetupHeading}" Margin="0,0,0,8" />
+                    <Label Grid.Row="1" Content="{t:Txt UserLabel}" Target="{Binding ElementName=SetupUser}" />
+                    <TextBox x:Name="SetupUser" Grid.Row="1" Grid.Column="1" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name UserLabel}" />
+                    <Label Grid.Row="2" Content="{t:Txt PasswordLabel}" Target="{Binding ElementName=SetupPassword}" />
+                    <PasswordBox x:Name="SetupPassword" Grid.Row="2" Grid.Column="1" AutomationProperties.Name="{t:Name PasswordLabel}" />
+                    <Label Grid.Row="3" Content="{t:Txt ConfirmPasswordLabel}" Target="{Binding ElementName=SetupConfirm}" />
+                    <PasswordBox x:Name="SetupConfirm" Grid.Row="3" Grid.Column="1" AutomationProperties.Name="{t:Name ConfirmPasswordLabel}" />
+                    <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="{t:Txt SetupButton}" AutomationProperties.Name="{t:Name SetupButton}"
+                                IsDefault="{Binding IsVisible, RelativeSource={RelativeSource Self}}" Click="OnSetup" />
+                        <Button Content="{t:Txt ChangeHostButton}" AutomationProperties.Name="{t:Name ChangeHostButton}" Click="OnChangeHost" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=Login}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                    <Label Content="{t:Txt UserLabel}" Target="{Binding ElementName=LoginUser}" />
+                    <TextBox x:Name="LoginUser" Grid.Column="1" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name UserLabel}" />
+                    <Label Grid.Row="1" Content="{t:Txt PasswordLabel}" Target="{Binding ElementName=LoginPassword}" />
+                    <PasswordBox x:Name="LoginPassword" Grid.Row="1" Grid.Column="1" AutomationProperties.Name="{t:Name PasswordLabel}" />
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="{t:Txt LoginButton}" AutomationProperties.Name="{t:Name LoginButton}"
+                                IsDefault="{Binding IsVisible, RelativeSource={RelativeSource Self}}" Click="OnLogin" />
+                        <Button Content="{t:Txt ChangeHostButton}" AutomationProperties.Name="{t:Name ChangeHostButton}" Click="OnChangeHost" />
+                    </StackPanel>
+                </Grid>
+
+                <StackPanel Visibility="{Binding Panel, Converter={StaticResource Shows}, ConverterParameter=VersionMismatch}">
+                    <Button HorizontalAlignment="Right" Content="{t:Txt ChangeHostButton}" AutomationProperties.Name="{t:Name ChangeHostButton}" Click="OnChangeHost" />
+                </StackPanel>
+
+                <TextBlock x:Name="Message" Text="{Binding Message}" TextWrapping="Wrap" MaxWidth="560" Margin="0,8,0,0"
+                           Visibility="{Binding Message, Converter={StaticResource Present}}"
+                           AutomationProperties.LiveSetting="Assertive" />
+            </StackPanel>
+        </Border>
+    </Border>
+</UserControl>

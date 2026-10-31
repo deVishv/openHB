@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Keyboard only smoke tests of the real client (spec 11). Skipped unless OHK_UI_TESTS=1, so CI without a desktop stays green. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="FlaUI.UIA3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenHisabKitab.Client\OpenHisabKitab.Client.csproj" />
+    <ProjectReference Include="..\..\src\OpenHisabKitab.Host\OpenHisabKitab.Host.csproj" />
+  </ItemGroup>
+
+</Project>

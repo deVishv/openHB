@@ -3,6 +3,7 @@ package ohk.v1;
 option csharp_namespace = "OpenHisabKitab.Contracts.V1";
 
 import "common.proto";
+import "settings.proto";
 
 service Companies {
   rpc List (Empty) returns (CompanyList);
@@ -11,6 +12,9 @@ service Companies {
   rpc ListYears (CompanyRef) returns (YearList);
   rpc AddYear (CompanyRef) returns (YearMsg);
   rpc SetSetting (SettingRequest) returns (Empty);
+  // The company layer of settings: stored values only, not the defaults.
+  rpc ListSettings (CompanyRef) returns (SettingValues);
+  rpc ResetSetting (CompanySettingKey) returns (Empty);
 }
 
 message CompanyEntry { int32 id = 1; string name = 2; }
@@ -27,3 +31,4 @@ message CompanyProfileMsg {
 message YearMsg { int32 start_year = 1; string label = 2; }
 message YearList { repeated YearMsg years = 1; }
 message SettingRequest { int32 company = 1; string key = 2; string json = 3; }
+message CompanySettingKey { int32 company = 1; string key = 2; }

@@ -1,0 +1,170 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Windows 98 look (spec 6.6): grey face, bevelled 3D borders, navy selection, square corners, no animations.
+         Every brush is a DynamicResource set by ThemeResources, so High Contrast mode and font settings apply live. -->
+
+    <!-- A 2 px solid focus outline, replacing the classic dotted box (spec 6.6, Focus). -->
+    <Style x:Key="FocusOutline">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="-2" StrokeThickness="2" Stroke="{DynamicResource FocusBrush}" SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FocusOutlineOnSelection">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Rectangle Margin="1" StrokeThickness="2" Stroke="{DynamicResource FocusOnSelectionBrush}" SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Window">
+        <Setter Property="Background" Value="{DynamicResource FaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiFontSize}" />
+    </Style>
+
+    <Style TargetType="Control" x:Key="BaseControl">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusOutline}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiFontSize}" />
+    </Style>
+
+    <!-- Raised button. Disabled keeps #404040 text and also loses its bevel for a flat 1 px border, so disabled is not shown by colour alone. -->
+    <Style TargetType="Button" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Background" Value="{DynamicResource FaceBrush}" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Outer" Background="{TemplateBinding Background}" BorderThickness="0,0,1,1"
+                            BorderBrush="{DynamicResource DarkShadowBrush}" SnapsToDevicePixels="True">
+                        <Border x:Name="Light" BorderThickness="1,1,0,0" BorderBrush="{DynamicResource LightBrush}">
+                            <Border x:Name="Shadow" BorderThickness="0,0,1,1" BorderBrush="{DynamicResource ShadowBrush}" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                            </Border>
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Outer" Property="BorderThickness" Value="1,1,0,0" />
+                            <Setter TargetName="Light" Property="BorderThickness" Value="0,0,1,1" />
+                            <Setter TargetName="Shadow" Property="BorderThickness" Value="1,1,0,0" />
+                        </Trigger>
+                        <Trigger Property="IsDefaulted" Value="True">
+                            <Setter TargetName="Outer" Property="BorderThickness" Value="1,1,2,2" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+                            <Setter TargetName="Outer" Property="BorderThickness" Value="1" />
+                            <Setter TargetName="Light" Property="BorderThickness" Value="0" />
+                            <Setter TargetName="Shadow" Property="BorderThickness" Value="0" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Sunken white field. -->
+    <ControlTemplate x:Key="SunkenField" TargetType="Control">
+        <Border BorderThickness="1,1,0,0" BorderBrush="{DynamicResource ShadowBrush}" SnapsToDevicePixels="True">
+            <Border BorderThickness="0,0,1,1" BorderBrush="{DynamicResource LightBrush}">
+                <Border x:Name="Inner" BorderThickness="1,1,0,0" BorderBrush="{DynamicResource DarkShadowBrush}" Background="{TemplateBinding Background}">
+                    <ScrollViewer x:Name="PART_ContentHost" Margin="2,1" />
+                </Border>
+            </Border>
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+                <Setter TargetName="Inner" Property="Background" Value="{DynamicResource FaceBrush}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style TargetType="TextBox" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Background" Value="{DynamicResource ContentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ContentTextBrush}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource SelectionBrush}" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="Template" Value="{StaticResource SunkenField}" />
+    </Style>
+
+    <Style TargetType="PasswordBox" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Background" Value="{DynamicResource ContentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ContentTextBrush}" />
+        <Setter Property="Margin" Value="2" />
+        <Setter Property="Template" Value="{StaticResource SunkenField}" />
+    </Style>
+
+    <Style TargetType="CheckBox" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Margin" Value="2" />
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource DisabledTextBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="ComboBox" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Margin" Value="2" />
+    </Style>
+
+    <Style TargetType="Label">
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Padding" Value="2" />
+    </Style>
+
+    <Style TargetType="ListBox" BasedOn="{StaticResource BaseControl}">
+        <Setter Property="Background" Value="{DynamicResource ContentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ContentTextBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DarkShadowBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- Selected rows are navy with white text; their focus outline is white so it keeps 3:1 against the navy. -->
+    <Style TargetType="ListBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusOutlineOnSelection}" />
+        <Setter Property="Foreground" Value="{DynamicResource ContentTextBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ListBoxItem">
+                    <Border x:Name="Row" Background="Transparent" Padding="4,1" SnapsToDevicePixels="True">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Row" Property="Background" Value="{DynamicResource SelectionBrush}" />
+                            <Setter Property="Foreground" Value="{DynamicResource SelectionTextBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="Menu">
+        <Setter Property="Background" Value="{DynamicResource FaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiFontSize}" />
+    </Style>
+
+    <Style TargetType="StatusBar">
+        <Setter Property="Background" Value="{DynamicResource FaceBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource UiFont}" />
+        <Setter Property="FontSize" Value="{DynamicResource UiFontSize}" />
+    </Style>
+</ResourceDictionary>

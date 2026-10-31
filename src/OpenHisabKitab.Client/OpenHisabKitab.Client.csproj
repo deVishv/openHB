@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The WPF client: views, theme, key translation, and composition only. Logic and text are in Client.Model. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenHisabKitab.Client.Model\OpenHisabKitab.Client.Model.csproj" />
+  </ItemGroup>
+
+</Project>

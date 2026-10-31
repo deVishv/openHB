@@ -18,6 +18,27 @@ public class MigratorTests
     }
 
     [Fact]
+    public void Host_version_2_gains_user_settings_and_keeps_its_users()
+    {
+        using var db = new TempDb();
+        using var c = db.Open();
+        Migrator.Migrate(c, Schema.Host);
+        Exec(c, "INSERT INTO users(name, password_hash, role) VALUES ('owner', 'x', 'Owner'); DROP TABLE user_settings; PRAGMA user_version = 2;");
+        var from = 0;
+        Assert.Equal(new MigrationResult(2, 3), Migrator.Migrate(c, Schema.Host, v => from = v));
+        Assert.Equal(2, from);
+        Assert.Equal(1L, Scalar(c, "SELECT count(*) FROM users WHERE name = 'owner'"));
+        Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM user_settings"));
+    }
+
+    static void Exec(SqliteConnection c, string sql)
+    {
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+
+    [Fact]
     public void Second_run_does_nothing()
     {
         using var db = new TempDb();

@@ -1,0 +1,70 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.CompanyView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+
+        <!-- The create form (spec 13, Companies). Ctrl+S creates. -->
+        <Border DockPanel.Dock="Bottom" Margin="2" Padding="6" BorderThickness="1" BorderBrush="{DynamicResource DarkShadowBrush}"
+                Visibility="{Binding CanCreate, Converter={StaticResource Bool}}">
+            <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <TextBlock Grid.ColumnSpan="4" Text="{t:Txt NewCompanyHeading}" FontWeight="Bold" />
+                <Label Grid.Row="1" Content="{t:Txt CompanyNameLabel}" Target="{Binding ElementName=NewName}" />
+                <TextBox x:Name="NewName" Grid.Row="1" Grid.Column="1" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name CompanyNameLabel}" />
+                <Label Grid.Row="1" Grid.Column="2" Content="{t:Txt StateLabel}" Target="{Binding ElementName=NewState}" />
+                <ComboBox x:Name="NewState" Grid.Row="1" Grid.Column="3" ItemsSource="{Binding States}" SelectedItem="{Binding NewState}" DisplayMemberPath="Label"
+                          IsEditable="False" AutomationProperties.Name="{t:Name StateLabel}" />
+                <Label Grid.Row="2" Content="{t:Txt RegistrationLabel}" Target="{Binding ElementName=NewRegistration}" />
+                <ComboBox x:Name="NewRegistration" Grid.Row="2" Grid.Column="1" ItemsSource="{Binding Registrations}" SelectedItem="{Binding NewRegistration}"
+                          AutomationProperties.Name="{t:Name RegistrationLabel}" />
+                <Label Grid.Row="2" Grid.Column="2" Content="{t:Txt GstinLabel}" Target="{Binding ElementName=NewGstin}" />
+                <TextBox x:Name="NewGstin" Grid.Row="2" Grid.Column="3" Text="{Binding NewGstin, UpdateSourceTrigger=PropertyChanged}" CharacterCasing="Upper"
+                         FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name GstinLabel}" />
+                <Label Grid.Row="3" Content="{t:Txt AddressLabel}" Target="{Binding ElementName=NewAddress}" />
+                <TextBox x:Name="NewAddress" Grid.Row="3" Grid.Column="1" Text="{Binding NewAddress, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AddressLabel}" />
+                <Label Grid.Row="3" Grid.Column="2" Content="{t:Txt FirstYearLabel}" Target="{Binding ElementName=NewFirstYear}" />
+                <TextBox x:Name="NewFirstYear" Grid.Row="3" Grid.Column="3" Text="{Binding NewFirstYear, UpdateSourceTrigger=PropertyChanged}"
+                         FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name FirstYearLabel}" />
+                <Button Grid.Row="4" Grid.Column="3" HorizontalAlignment="Right" Content="{t:Txt CreateButton}" AutomationProperties.Name="{t:Name CreateButton}" Click="OnCreate" />
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <DockPanel Margin="2">
+                <Label DockPanel.Dock="Top" Content="{t:Txt CompaniesLabel}" Target="{Binding ElementName=CompanyList}" />
+                <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Content="{t:Txt OpenButton}" AutomationProperties.Name="{t:Name OpenButton}" Click="OnOpen" />
+                <ListBox x:Name="CompanyList" ItemsSource="{Binding Companies}" SelectedItem="{Binding Selected}" DisplayMemberPath="Name"
+                         AutomationProperties.Name="{t:Name CompaniesLabel}" KeyDown="OnListKeyDown" MouseDoubleClick="OnOpen">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </DockPanel>
+            <DockPanel Grid.Column="1" Margin="2">
+                <Label DockPanel.Dock="Top" Content="{t:Txt YearsLabel}" Target="{Binding ElementName=YearList}" />
+                <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Content="{t:Txt AddYearButton}" AutomationProperties.Name="{t:Name AddYearButton}"
+                        Visibility="{Binding CanAddYear, Converter={StaticResource Bool}}" Click="OnAddYear" />
+                <ListBox x:Name="YearList" ItemsSource="{Binding Years}" DisplayMemberPath="Label" FontFamily="{DynamicResource NumberFont}"
+                         AutomationProperties.Name="{t:Name YearsLabel}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

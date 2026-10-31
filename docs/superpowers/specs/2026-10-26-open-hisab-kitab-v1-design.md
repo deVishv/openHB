@@ -42,7 +42,7 @@ These are not rejected, only deferred to later releases, each with its own desig
 - E-way bills.
 - Cost centres, budgets, foreign currency.
 - Direct connection to any government portal (GST, IRP, e-way bill). File export and import only. [Owner]
-- Access over the internet or from outside the office network.
+- Access over the internet or from outside the office network, including a host on a cloud or remote server and a cloud database. This comes after version 1 with its own design and its own security work: public certificates, stronger login protection, and safe exposure of the API port. Until then, a host reached over a VPN works with no code changes. Version 1 keeps the client ready for it (section 13, "Remote ready client"). [Owner, 2026-10-30]
 - macOS and Linux. Windows only. [Owner]
 - Languages other than English. All screen text lives in resource files so translations can be added later without code changes. [Designer]
 
@@ -529,6 +529,10 @@ These are measured on a mid range office PC with 1,000,000 posting lines.
 - **Opening balances.** `ACCT` takes an opening balance per ledger as at the start of the first financial year in the software. `PRTY` takes opening bills (number, date, amount, due date) so that `OUTS` is correct from day one. The opening trial balance must balance before any voucher can be saved. Otherwise an "Opening difference" line is shown and blocks saving.
 - **First run.** The host's first start creates the Owner account. Clients ask for the host address (name or IP and port) on first run and store it in machine settings.
 - **Version match.** Client and host must run the same version. A mismatched client shows one line saying which version to install, and does not connect.
+- **Remote ready client.** The client must work the same with a host that is slower or farther away than one on the LAN, so that remote hosting can be added later without rewriting the client. [Owner, 2026-10-30]
+  - The host address is always typed as a name or IP and a port. Finding hosts on the LAN may be offered as a shortcut, but never as the only way.
+  - The status bar shows the connection state. When the connection drops, the client tries again on its own, and open edits stay on screen, unsaved, until a save succeeds or the user discards them.
+  - Screens load data in a few calls, not one call per row or per cell. Lists are fetched in pages, and lookups such as party and item lists are cached on the client and refreshed from the change stream.
 
 ### Vouchers and invoices
 

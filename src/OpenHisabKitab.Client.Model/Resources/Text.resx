@@ -323,4 +323,14 @@
   <data name="NarrationColumn" xml:space="preserve"><value>Narration</value></data>
   <data name="StatusColumn" xml:space="preserve"><value>Status</value></data>
   <data name="FoundHeading" xml:space="preserve"><value>Vouchers found</value></data>
+  <data name="EditCompanyHeading" xml:space="preserve"><value>Edit company</value></data>
+  <data name="EditButton" xml:space="preserve"><value>_Edit</value></data>
+  <data name="LockedUpTo" xml:space="preserve"><value>Locked up to {0}</value></data>
+  <data name="NotLocked" xml:space="preserve"><value>Not locked</value></data>
+  <data name="UnlockAfterQuestion" xml:space="preserve"><value>Unlock vouchers after {0}?</value></data>
+  <data name="UnlockAllQuestion" xml:space="preserve"><value>Unlock all periods?</value></data>
+  <data name="LockDateLabel" xml:space="preserve"><value>Lock _up to</value></data>
+  <data name="LockButton" xml:space="preserve"><value>_Lock</value></data>
+  <data name="UnlockButton" xml:space="preserve"><value>_Unlock all</value></data>
+  <data name="LockHeading" xml:space="preserve"><value>Period lock</value></data>
 </root>

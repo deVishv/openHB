@@ -15,6 +15,12 @@ public partial class CompanyView : UserControl
 
     async void OnCreate(object sender, RoutedEventArgs e) => await Vm.SaveAsync();
 
+    async void OnEdit(object sender, RoutedEventArgs e)
+    {
+        await Vm.EditSelectedAsync();
+        if (Vm.Editing) NewName.Focus();
+    }
+
     async void OnAddYear(object sender, RoutedEventArgs e) => await Vm.AddYearAsync();
 
     /// <summary>Enter on a company opens it.</summary>

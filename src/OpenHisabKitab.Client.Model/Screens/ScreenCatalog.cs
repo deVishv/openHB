@@ -18,6 +18,7 @@ public static class ScreenCatalog
         ["ITEM"] = Now(ItemsViewModel.Create),
         ["PRTY"] = Now((cmd, ctx) => PartiesViewModel.Create(cmd, ctx)),
         ["FIND"] = FindViewModel.CreateAsync,
+        ["LOCK"] = Now(LockViewModel.Create),
         ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,

@@ -144,4 +144,21 @@ public sealed class KeybindingSetTests
         Assert.Contains("run.TRLB", KeyCommands.All);
         Assert.False(KeyCommands.IsKnown("run.NOPE"));
     }
+    [Fact]
+    public void Default_keys_bind_the_record_and_line_commands()
+    {
+        var set = KeybindingSet.Build([], []);
+        var grid = new HashSet<string> { "gridFocus" };
+        var input = new HashSet<string> { "inputFocus" };
+        Assert.Equal("record.new", set.Resolve(Chord("ctrl+n"), Empty));
+        Assert.Equal("record.delete", set.Resolve(Chord("ctrl+delete"), Empty));
+        Assert.Null(set.Resolve(Chord("ctrl+delete"), input));
+        Assert.Equal("line.remove", set.Resolve(Chord("ctrl+delete"), grid));
+        Assert.Equal("line.add", set.Resolve(Chord("ctrl+insert"), grid));
+        Assert.Null(set.Resolve(Chord("ctrl+insert"), Empty));
+        Assert.Equal("voucher.bills", set.Resolve(Chord("ctrl+b"), input));
+        Assert.Equal("voucher.cancelVoucher", set.Resolve(Chord("ctrl+shift+delete"), Empty));
+        Assert.All(new[] { "record.new", "record.delete", "line.add", "line.remove", "voucher.bills", "voucher.cancelVoucher" },
+            c => Assert.True(KeyCommands.IsKnown(c), c));
+    }
 }

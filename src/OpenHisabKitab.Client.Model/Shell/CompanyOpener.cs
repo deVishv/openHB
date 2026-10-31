@@ -8,7 +8,10 @@ namespace OpenHisabKitab.Client.Model.Shell;
 /// <summary>Opening a company: its year, the company settings layer, and remembering it for the next login on this PC.</summary>
 public static class CompanyOpener
 {
-    /// <summary>Opens the year holding the working date, else the latest year. Two calls: the years, then the company settings.</summary>
+    /// <summary>
+    /// Opens the year holding the working date, else the latest year. The years and the company settings come first; then the
+    /// lookup cache loads. A cache failure leaves the company open and says so; the next change reloads it.
+    /// </summary>
     public static async Task OpenAsync(ShellContext ctx, CompanyEntry company)
     {
         var years = await ctx.Host.CallAsync((h, o) => h.Companies.ListYearsAsync(new CompanyRef { Company = company.Id }, o));
@@ -16,6 +19,8 @@ public static class CompanyOpener
         ctx.OpenCompany(company, Pick(all, ctx.WorkingDate), all);
         Remember(ctx, company.Id);
         await ctx.Settings.LoadAsync(company.Id);
+        try { await ctx.Lookups.LoadAsync(company.Id); }
+        catch (HostException e) { ctx.Report(e.Message); }
     }
 
     /// <summary>Reopens the last company used with this host, when the user can still open it.</summary>

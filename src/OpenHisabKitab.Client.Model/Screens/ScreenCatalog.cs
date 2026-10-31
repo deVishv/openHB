@@ -11,6 +11,8 @@ public static class ScreenCatalog
         ["HELP"] = Now(HelpViewModel.Create),
         ["DATE"] = Now(DateViewModel.Create),
         ["CMPY"] = CompanyViewModel.CreateAsync,
+        ["SETG"] = Now(SettingsViewModel.Create),
+        ["KEYS"] = Now(KeysViewModel.Create),
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

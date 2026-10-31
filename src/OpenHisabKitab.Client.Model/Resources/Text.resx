@@ -145,4 +145,29 @@
   <data name="AddressLabel" xml:space="preserve"><value>A_ddress</value></data>
   <data name="FirstYearLabel" xml:space="preserve"><value>_First year starting</value></data>
   <data name="CreateButton" xml:space="preserve"><value>C_reate</value></data>
+  <data name="Saved" xml:space="preserve"><value>Saved.</value></data>
+  <data name="SavedRestartHost" xml:space="preserve"><value>Saved. Restart the host service to apply.</value></data>
+  <data name="SavedNextConnect" xml:space="preserve"><value>Saved. Applies at the next connect.</value></data>
+  <data name="JsonLine" xml:space="preserve"><value>line {0}: {1}</value></data>
+  <data name="Layer_Default" xml:space="preserve"><value>Built in</value></data>
+  <data name="Layer_Machine" xml:space="preserve"><value>This PC</value></data>
+  <data name="Layer_Company" xml:space="preserve"><value>Company</value></data>
+  <data name="Layer_User" xml:space="preserve"><value>User</value></data>
+  <data name="SettingsFilter" xml:space="preserve"><value>_Search</value></data>
+  <data name="KeyColumnHeader" xml:space="preserve"><value>Key</value></data>
+  <data name="SettingColumn" xml:space="preserve"><value>Setting</value></data>
+  <data name="ValueColumn" xml:space="preserve"><value>Value</value></data>
+  <data name="FromColumn" xml:space="preserve"><value>From</value></data>
+  <data name="DescriptionColumn" xml:space="preserve"><value>Description</value></data>
+  <data name="LayerLabel" xml:space="preserve"><value>Save _to</value></data>
+  <data name="JsonModeLabel" xml:space="preserve"><value>Edit as _JSON</value></data>
+  <data name="SetButton" xml:space="preserve"><value>_Set</value></data>
+  <data name="ResetButton" xml:space="preserve"><value>_Reset</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>_Save</value></data>
+  <data name="HostSettingsHeading" xml:space="preserve"><value>Host settings</value></data>
+  <data name="RecordButton" xml:space="preserve"><value>_Change key</value></data>
+  <data name="Recording" xml:space="preserve"><value>Press the new key. Esc cancels.</value></data>
+  <data name="ValueLabel" xml:space="preserve"><value>_Value</value></data>
+  <data name="HostValueLabel" xml:space="preserve"><value>Host _value</value></data>
+  <data name="Errors" xml:space="preserve"><value>Errors</value></data>
 </root>

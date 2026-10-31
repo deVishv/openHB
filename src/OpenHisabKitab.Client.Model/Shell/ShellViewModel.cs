@@ -62,6 +62,9 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     /// <summary>False while a session panel covers the shell: no binding runs and typed letters do not reach the prompt.</summary>
     public bool AcceptsTyping => Session.Panel == SessionPanel.None;
 
+    /// <summary>True while the active screen records a key: every key goes to it, bound or not.</summary>
+    public bool WantsEveryKey => Tabs.Active?.Screen is IKeyRecorder { Recording: true };
+
     /// <summary>Starts following the change stream.</summary>
     public void Start() => watching ??= watcher.RunAsync(stopping.Token);
 
@@ -117,6 +120,11 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     public async Task<bool> HandleKeyAsync(KeyChord key, IReadOnlySet<string> context)
     {
         if (!AcceptsTyping) return false;
+        if (Tabs.Active?.Screen is IKeyRecorder { Recording: true } recorder)
+        {
+            await recorder.RecordKeyAsync(key);
+            return true;
+        }
         var command = Context.Keys.Current.Resolve(key, context);
         if (command is null) return false;
         if (command.StartsWith("run.", StringComparison.Ordinal))

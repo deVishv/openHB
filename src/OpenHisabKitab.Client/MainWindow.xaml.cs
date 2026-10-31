@@ -58,6 +58,13 @@ public partial class MainWindow : Window
     async void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (shell.Palette.IsOpen || KeyInput.From(e) is not { } chord) return;
+        if (shell.WantsEveryKey)
+        {
+            // KEYS is recording: the key is the new binding, whatever it is bound to now.
+            e.Handled = true;
+            await shell.HandleKeyAsync(chord, new HashSet<string>());
+            return;
+        }
         // Marked handled before awaiting: WPF reads Handled when this handler returns, at the first await.
         var context = KeyInput.Context(Keyboard.FocusedElement, shell.Palette.IsOpen);
         if (shell.Context.Keys.Current.Resolve(chord, context) is null || !shell.AcceptsTyping) return;

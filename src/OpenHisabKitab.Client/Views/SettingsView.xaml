@@ -1,0 +1,91 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <v:LayerName x:Key="LayerName" />
+        <v:EnumVisibility x:Key="Shows" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+        <DataTemplate x:Key="LayerItem">
+            <TextBlock Text="{Binding Converter={StaticResource LayerName}}" />
+        </DataTemplate>
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top">
+            <CheckBox DockPanel.Dock="Right" Content="{t:Txt JsonModeLabel}" IsChecked="{Binding JsonMode}" AutomationProperties.Name="{t:Name JsonModeLabel}"
+                      VerticalAlignment="Center" />
+            <Label Content="{t:Txt SettingsFilter}" Target="{Binding ElementName=FilterBox}" />
+            <TextBox x:Name="FilterBox" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name SettingsFilter}" />
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+
+        <!-- Host settings: the Owner only (spec 7, Host settings). -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="2" Visibility="{Binding CanSeeHost, Converter={StaticResource Bool}}">
+            <TextBlock DockPanel.Dock="Top" Text="{t:Txt HostSettingsHeading}" FontWeight="Bold" />
+            <DockPanel DockPanel.Dock="Bottom">
+                <Label Content="{t:Txt HostValueLabel}" Target="{Binding ElementName=HostValue}" />
+                <Button DockPanel.Dock="Right" Content="{t:Txt SetButton}" AutomationProperties.Name="{t:Name SetButton}" Click="OnSetHost" />
+                <TextBox x:Name="HostValue" FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name HostValueLabel}" />
+            </DockPanel>
+            <ListView x:Name="HostList" ItemsSource="{Binding HostRows}" MaxHeight="180" AutomationProperties.Name="{t:Name HostSettingsHeading}"
+                      SelectionChanged="OnHostSelected">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Key}" /></Style>
+                </ListView.ItemContainerStyle>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="{t:Txt SettingColumn}" DisplayMemberBinding="{Binding Key}" Width="170" />
+                        <GridViewColumn Header="{t:Txt ValueColumn}" DisplayMemberBinding="{Binding Value}" Width="120" />
+                        <GridViewColumn Header="{t:Txt DescriptionColumn}" DisplayMemberBinding="{Binding Description}" Width="320" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </DockPanel>
+
+        <Grid>
+            <!-- Form mode. -->
+            <DockPanel Visibility="{Binding JsonMode, Converter={StaticResource Shows}, ConverterParameter=False}">
+                <DockPanel DockPanel.Dock="Bottom">
+                    <Label Content="{t:Txt ValueLabel}" Target="{Binding ElementName=ValueBox}" />
+                    <Button DockPanel.Dock="Right" Content="{t:Txt ResetButton}" AutomationProperties.Name="{t:Name ResetButton}" Click="OnReset" />
+                    <Button DockPanel.Dock="Right" Content="{t:Txt SetButton}" AutomationProperties.Name="{t:Name SetButton}" Click="OnSet" />
+                    <ComboBox x:Name="TargetBox" DockPanel.Dock="Right" MinWidth="110" ItemTemplate="{StaticResource LayerItem}"
+                              ItemsSource="{Binding SelectedItem.Layers, ElementName=SettingList}" SelectedItem="{Binding SelectedItem.TargetLayer, ElementName=SettingList}"
+                              AutomationProperties.Name="{t:Name LayerLabel}" />
+                    <Label DockPanel.Dock="Right" Content="{t:Txt LayerLabel}" Target="{Binding ElementName=TargetBox}" />
+                    <TextBox x:Name="ValueBox" AutomationProperties.Name="{t:Name ValueLabel}" />
+                </DockPanel>
+                <ListView x:Name="SettingList" ItemsSource="{Binding Rows}" AutomationProperties.Name="{t:Name SettingColumn}" SelectionChanged="OnSelected">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Display}" /></Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{t:Txt SettingColumn}" DisplayMemberBinding="{Binding Display}" Width="190" />
+                            <GridViewColumn Header="{t:Txt ValueColumn}" DisplayMemberBinding="{Binding ValueText}" Width="130" />
+                            <GridViewColumn Header="{t:Txt FromColumn}" DisplayMemberBinding="{Binding FromText}" Width="90" />
+                            <GridViewColumn Header="{t:Txt DescriptionColumn}" DisplayMemberBinding="{Binding Description}" Width="320" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+
+            <!-- JSON mode: one layer as JSON; Ctrl+S saves it. -->
+            <DockPanel Visibility="{Binding JsonMode, Converter={StaticResource Bool}}">
+                <DockPanel DockPanel.Dock="Top">
+                    <Button DockPanel.Dock="Right" Content="{t:Txt SaveButton}" AutomationProperties.Name="{t:Name SaveButton}" Click="OnSaveJson" />
+                    <Label Content="{t:Txt LayerLabel}" Target="{Binding ElementName=JsonLayerBox}" />
+                    <ComboBox x:Name="JsonLayerBox" ItemsSource="{Binding JsonLayers}" SelectedItem="{Binding JsonLayer}" ItemTemplate="{StaticResource LayerItem}"
+                              HorizontalAlignment="Left" MinWidth="110" AutomationProperties.Name="{t:Name LayerLabel}" />
+                </DockPanel>
+                <ListBox DockPanel.Dock="Bottom" ItemsSource="{Binding JsonErrors}" MaxHeight="120" AutomationProperties.Name="{t:Name Errors}" />
+                <TextBox Text="{Binding JsonText, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="False"
+                         FontFamily="{DynamicResource NumberFont}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                         AutomationProperties.Name="{t:Name JsonModeLabel}" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</UserControl>

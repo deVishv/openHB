@@ -28,6 +28,15 @@ public interface IScreen
     void Find();
 }
 
+/// <summary>A screen that takes the next key itself, as KEYS does while it records a new key for a command.</summary>
+public interface IKeyRecorder
+{
+    bool Recording { get; }
+
+    /// <summary>Esc cancels recording; any other key becomes the new key.</summary>
+    Task RecordKeyAsync(Core.Commands.Keys.KeyChord key);
+}
+
 /// <summary>Asks one yes or no question; the view shows it as a keyboard Yes/No box.</summary>
 public interface IConfirm
 {

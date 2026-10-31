@@ -26,3 +26,12 @@ public sealed class PresentVisibility : IValueConverter
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
 }
+
+/// <summary>A settings layer by its plain name: "This PC", "User".</summary>
+public sealed class LayerName : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Core.Settings.SettingLayer layer ? Model.Screens.SettingsViewModel.LayerName(layer) : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}

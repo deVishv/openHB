@@ -75,7 +75,8 @@ public partial class MainWindow : Window
     void OnPreviewTextInput(object sender, TextCompositionEventArgs e)
     {
         if (!shell.AcceptsTyping || shell.Palette.IsOpen || e.Text.Length == 0 || char.IsControl(e.Text[0])) return;
-        if (Keyboard.FocusedElement is TextBoxBase or PasswordBox or ComboBox) return;
+        // A field takes its own typing, and an open menu takes its access keys (Alt, H, K reaches KEYS).
+        if (Keyboard.FocusedElement is TextBoxBase or PasswordBox or ComboBox or MenuItem or Menu) return;
         shell.Prompt.Text += e.Text;
         FocusPrompt();
         e.Handled = true;

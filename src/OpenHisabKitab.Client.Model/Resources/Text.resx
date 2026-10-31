@@ -202,4 +202,5 @@
   <data name="SaveCompaniesButton" xml:space="preserve"><value>Save compan_ies</value></data>
   <data name="RoleColumn" xml:space="preserve"><value>Role</value></data>
   <data name="ActiveColumn" xml:space="preserve"><value>Active</value></data>
+  <data name="MenuBar" xml:space="preserve"><value>Menu</value></data>
 </root>

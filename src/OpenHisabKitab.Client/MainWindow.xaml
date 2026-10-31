@@ -13,7 +13,7 @@
     <!-- Spec 6.1, top to bottom: menu, prompt, tab strip, content, F key row, status bar. -->
     <Grid>
         <DockPanel x:Name="ShellPanel">
-            <Menu DockPanel.Dock="Top">
+            <Menu DockPanel.Dock="Top" AutomationProperties.Name="{t:Name MenuBar}">
                 <MenuItem Header="{t:Txt MenuFile}" AutomationProperties.Name="{t:Name MenuFile}">
                     <MenuItem Header="{t:Txt MenuLogOut}" AutomationProperties.Name="{t:Name MenuLogOut}" Click="OnLogOut" />
                     <MenuItem Header="{t:Txt MenuExit}" AutomationProperties.Name="{t:Name MenuExit}" Click="OnExit" />

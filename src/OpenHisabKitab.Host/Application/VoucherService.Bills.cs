@@ -26,6 +26,18 @@ public sealed partial class VoucherService
         return BillRepository.Bills(c, party, MasterService.SideOf(ChartRepository.Load(c), party), p.CreditDays, excludingVoucher);
     }
 
+    /// <summary>The numbers of the bills these vouchers' allocations settle, for showing them.</summary>
+    public IReadOnlyDictionary<BillRef, string> BillNumbers(CallContext ctx, int company, IEnumerable<VoucherRow> vouchers)
+    {
+        ctx.RequireCompany(company);
+        var refs = vouchers.SelectMany(v => v.Allocations).Select(a => a.Bill).Distinct().ToList();
+        if (refs.Count == 0) return new Dictionary<BillRef, string>();
+        using var c = hub.Open(company);
+        return refs.Select(r => (Ref: r, Bill: BillRepository.Describe(c, r)))
+            .Where(x => x.Bill is not null)
+            .ToDictionary(x => x.Ref, x => x.Bill!.Value.Number);
+    }
+
     // A retried save: the voucher its request id made, if the same user saved the same type; anything else is refused.
     static Outcome? Repeated(CallContext ctx, SqliteConnection c, VoucherType type, string requestId)
     {

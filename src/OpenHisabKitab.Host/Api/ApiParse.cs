@@ -1,6 +1,7 @@
 using System.Globalization;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
+using OpenHisabKitab.Core.Bills;
 using OpenHisabKitab.Core.Commands;
 using OpenHisabKitab.Core.Gst;
 using OpenHisabKitab.Core.Time;
@@ -62,7 +63,22 @@ public static class ApiParse
 
     public static JournalInput Journal(JournalRequest r, string root = "$") =>
         new(Choice<VoucherType>(r.Type, $"{root}.type"), Date(r.Date, $"{root}.date"), r.Narration ?? "",
-            [.. (r.Lines ?? []).Select((l, i) => new PostingLine(new LedgerId(l.LedgerId), Money(l.Amount, $"{root}.lines[{i}].amount")))]);
+            [.. (r.Lines ?? []).Select((l, i) => new PostingLine(new LedgerId(l.LedgerId), Money(l.Amount, $"{root}.lines[{i}].amount")))],
+            Allocations(r.Allocations, root), Text(r.RequestId));
+
+    static IReadOnlyList<AllocationRow> Allocations(IReadOnlyList<AllocationRequest>? list, string root) =>
+        [.. (list ?? []).Select((a, i) => new AllocationRow(new LedgerId(a.PartyId),
+            new BillRef(Choice<BillSource>(a.BillSource, $"{root}.allocations[{i}].billSource"), a.BillId),
+            Money(a.Amount, $"{root}.allocations[{i}].amount")))];
+
+    public static IReadOnlyList<OpeningBillRow> OpeningBills(OpeningBillsRequest r) =>
+        [.. (r.Bills ?? []).Select((b, i) => new OpeningBillRow(b.Id ?? 0, default, b.Number ?? "", Date(b.Date, $"$.bills[{i}].date"),
+            OptionalDate(b.DueDate, $"$.bills[{i}].dueDate"), Money(b.Amount, $"$.bills[{i}].amount")))];
+
+    /// <summary>The profile to save; the first financial year comes from the stored one, as it cannot change.</summary>
+    public static CompanyProfile Profile(CompanyUpdateRequest r, int firstYear) =>
+        new(r.Name ?? "", Wire.State(r.State ?? ""), Choice<GstRegistration>(r.Registration, "$.registration"), Wire.OptionalGstin(r.Gstin ?? ""),
+            r.Address ?? "", firstYear);
 
     public static InvoiceInput Invoice(InvoiceRequest r, string root = "$") =>
         new(Choice<VoucherType>(r.Type, $"{root}.type"), Date(r.Date, $"{root}.date"), r.Narration ?? "", new LedgerId(r.PartyId),
@@ -75,7 +91,9 @@ public static class ApiParse
                 return new InvoiceEntryLine(l.ItemId, new LedgerId(l.LedgerId), l.Description ?? "", l.HsnSac ?? "",
                     Quantity(l.Quantity, $"{at}.quantity"), Money(l.UnitPrice, $"{at}.unitPrice"), Money(l.Discount, $"{at}.discount"),
                     Rate(l.Rate, $"{at}.rate"), Rate(l.CessRate, $"{at}.cessRate"), l.PriceIncludesTax);
-            })]);
+            })],
+            new ExportDetails(Text(r.PortCode), Text(r.ShippingBillNumber), OptionalDate(r.ShippingBillDate, $"{root}.shippingBillDate")),
+            Allocations(r.Allocations, root), Text(r.RequestId));
 
     public static Party Party(PartyRequest r, LedgerId ledger, long rowVersion) =>
         new(ledger, Wire.OptionalGstin(r.Gstin ?? ""), Wire.State(r.State ?? ""), r.CreditDays, r.Address ?? "", rowVersion);

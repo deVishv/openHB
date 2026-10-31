@@ -1,10 +1,12 @@
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
+using OpenHisabKitab.Core.Bills;
 using OpenHisabKitab.Core.Gst;
 using OpenHisabKitab.Core.Reports;
 using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Core.Vouchers;
 using OpenHisabKitab.Data.CompanyDb;
+using OpenHisabKitab.Host.Application;
 using OpenHisabKitab.Data.HostDb;
 
 namespace OpenHisabKitab.Host.Api;
@@ -36,11 +38,25 @@ public sealed record InvoiceLineDto(
 public sealed record InvoiceDto(
     int PartyId, string Party, TradeDirection Direction, InvoiceKind Kind, string PlaceOfSupply, bool ReverseCharge,
     string? PartyDocNumber, DateOnly? PartyDocDate, string? OriginalNumber, DateOnly? OriginalDate, Money RoundOff,
-    IReadOnlyList<InvoiceLineDto> Lines);
+    IReadOnlyList<InvoiceLineDto> Lines, string? PortCode, string? ShippingBillNumber, DateOnly? ShippingBillDate);
+
+/// <summary>Part of a receipt, payment, or note allocated to one bill of a party.</summary>
+public sealed record AllocationDto(int PartyId, string Party, BillSource BillSource, long BillId, string BillNumber, Money Amount);
+
+/// <summary>A bill of a party: an invoice or note, or an opening bill. Open is what is still owed on it.</summary>
+public sealed record BillDto(
+    BillSource Source, long Id, string Number, string? PartyDocNumber, DateOnly Date, DateOnly? DueDate, Money Amount, Money Settled, Money Open);
+
+public sealed record OpeningBillDto(long Id, string Number, DateOnly Date, DateOnly? DueDate, Money Amount);
+
+/// <summary>A party's opening bills. Send Version back with a change; it moves on every save.</summary>
+public sealed record OpeningBillsDto(long Version, IReadOnlyList<OpeningBillDto> Bills);
+
+public sealed record VersionDto(long Version);
 
 public sealed record VoucherDto(
     long Id, VoucherType Type, string Number, DateOnly Date, string Narration, bool Cancelled, long RowVersion,
-    IReadOnlyList<PostingDto> Postings, InvoiceDto? Invoice);
+    IReadOnlyList<PostingDto> Postings, InvoiceDto? Invoice, IReadOnlyList<AllocationDto> Allocations);
 
 public sealed record TrialBalanceRowDto(int LedgerId, string Ledger, Money Opening, Money Debits, Money Credits, Money Closing);
 
@@ -85,17 +101,27 @@ public static class ApiMap
     public static ItemDto ToDto(Item i) =>
         new(i.Id, i.Name, i.HsnSac, i.IsService, i.Unit, i.Rate, i.CessRate, i.DefaultPrice, i.RowVersion);
 
-    public static VoucherDto ToDto(VoucherRow v, ChartOfAccounts chart) =>
+    /// <summary>billNumbers names the bills the voucher's allocations settle; a bill missing from it shows an empty number.</summary>
+    public static VoucherDto ToDto(VoucherRow v, ChartOfAccounts chart, IReadOnlyDictionary<BillRef, string>? billNumbers = null) =>
         new(v.Id, v.Type, v.DisplayNumber, v.Date, v.Narration, v.Cancelled, v.RowVersion,
             [.. v.Postings.Select(p => new PostingDto(p.Ledger.Value, Name(chart, p.Ledger), p.Amount))],
-            v.Invoice is { } h ? ToDto(h, chart) : null);
+            v.Invoice is { } h ? ToDto(h, chart) : null,
+            [.. v.Allocations.Select(a => new AllocationDto(a.Party.Value, Name(chart, a.Party), a.Bill.Source, a.Bill.Id,
+                billNumbers?.GetValueOrDefault(a.Bill) ?? "", a.Amount))]);
+
+    public static BillDto ToDto(OpenBill b) =>
+        new(b.Ref.Source, b.Ref.Id, b.Number, b.PartyDocNumber, b.Date, b.DueDate, b.Amount, b.Settled, b.Open);
+
+    public static OpeningBillsDto ToDto(OpeningBills b) =>
+        new(b.Version, [.. b.Bills.Select(x => new OpeningBillDto(x.Id, x.Number, x.Date, x.DueDate, x.Amount))]);
 
     static InvoiceDto ToDto(InvoiceHeader h, ChartOfAccounts chart) =>
         new(h.Party.Value, Name(chart, h.Party), h.Direction, h.Kind, h.PlaceOfSupply.Value, h.ReverseCharge, h.PartyDocNumber,
             h.PartyDocDate, h.OriginalNumber, h.OriginalDate, h.RoundOff,
             [.. h.Lines.Select(l => new InvoiceLineDto(l.ItemId, l.Ledger.Value, Name(chart, l.Ledger), l.Description, l.HsnSac,
                 l.Quantity, l.UnitPrice, l.Discount, l.Rate, l.CessRate, l.PriceIncludesTax, l.Taxable, l.Cgst, l.Sgst, l.Utgst,
-                l.Igst, l.Cess))]);
+                l.Igst, l.Cess))],
+            h.Export?.PortCode, h.Export?.ShippingBillNumber, h.Export?.ShippingBillDate);
 
     public static TrialBalanceDto ToDto(TrialBalance tb, ChartOfAccounts chart) =>
         new(tb.Period.From, tb.Period.To,
@@ -139,7 +165,13 @@ public sealed record ItemRequest(
 /// <summary>A ledger line; amount is positive for debit.</summary>
 public sealed record LineRequest(int LedgerId, string Amount);
 
-public sealed record JournalRequest(string Type, string Date, string Narration, IReadOnlyList<LineRequest> Lines);
+/// <summary>Part of a receipt, payment, or note to settle one bill. BillSource and BillId come from open-bills.</summary>
+public sealed record AllocationRequest(int PartyId, string BillSource, long BillId, string Amount);
+
+/// <summary>RequestId, when sent, makes a retried save return the first voucher instead of saving a second.</summary>
+public sealed record JournalRequest(
+    string Type, string Date, string Narration, IReadOnlyList<LineRequest> Lines, IReadOnlyList<AllocationRequest>? Allocations = null,
+    string? RequestId = null);
 
 public sealed record InvoiceLineRequest(
     int? ItemId, int LedgerId, string Description, string HsnSac, string Quantity, string UnitPrice, string Discount, string Rate,
@@ -148,7 +180,15 @@ public sealed record InvoiceLineRequest(
 public sealed record InvoiceRequest(
     string Type, string Date, string Narration, int PartyId, string Direction, string Kind, string PlaceOfSupply, bool ReverseCharge,
     IReadOnlyList<InvoiceLineRequest> Lines, string? PartyDocNumber = null, string? PartyDocDate = null, string? OriginalNumber = null,
-    string? OriginalDate = null);
+    string? OriginalDate = null, string? PortCode = null, string? ShippingBillNumber = null, string? ShippingBillDate = null,
+    IReadOnlyList<AllocationRequest>? Allocations = null, string? RequestId = null);
+
+/// <summary>An opening bill to keep (with its Id) or add (without one).</summary>
+public sealed record OpeningBillRequest(string Number, string Date, string Amount, long? Id = null, string? DueDate = null);
+
+public sealed record OpeningBillsRequest(long Version, IReadOnlyList<OpeningBillRequest> Bills);
+
+public sealed record CompanyUpdateRequest(string Name, string State, string Registration, string Address, string? Gstin = null);
 
 public sealed record EditJournalRequest(long RowVersion, JournalRequest Voucher);
 

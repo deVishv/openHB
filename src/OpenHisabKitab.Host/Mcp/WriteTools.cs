@@ -16,12 +16,14 @@ public sealed class WriteTools(IHttpContextAccessor http, MasterService masters,
 {
     const string Off = " Off unless the Owner turns on mcp.allowWrites and the token can write.";
     const string Amounts = " Amounts, quantities, and rates are strings like \"12345.60\", \"2.500\", and \"18.00\". Dates are yyyy-mm-dd.";
+    const string Bills = " To settle bills, add allocations: the party, the bill's source and id from open_bills, and the amount. " +
+                         "What is not allocated stays on account.";
 
     CallContext Caller => (http.HttpContext ?? throw new ServiceException(ServiceError.NotAuthenticated, "Send a valid API token.")).Caller();
 
     [McpServerTool(Name = "create_voucher", Destructive = false),
      Description("Saves a receipt, payment, journal, or contra. Each line's amount is positive for debit and negative for credit, " +
-                 "and the lines must balance. Returns the voucher number." + Amounts + Off)]
+                 "and the lines must balance. Returns the voucher number." + Bills + Amounts + Off)]
     public Task<CallToolResult> CreateVoucher(int company, JournalRequest voucher) => McpResults.Run(log, "create_voucher", async () =>
     {
         var s = await vouchers.SaveJournalAsync(Caller, company, ApiParse.Journal(voucher, "$.voucher"));
@@ -30,7 +32,7 @@ public sealed class WriteTools(IHttpContextAccessor http, MasterService masters,
 
     [McpServerTool(Name = "create_invoice", Destructive = false),
      Description("Saves a sales or purchase invoice, credit note, or debit note. The host calculates taxable value and GST. " +
-                 "Returns the voucher number." + Amounts + Off)]
+                 "Returns the voucher number." + Bills + Amounts + Off)]
     public Task<CallToolResult> CreateInvoice(int company, InvoiceRequest invoice) => McpResults.Run(log, "create_invoice", async () =>
     {
         var s = await vouchers.SaveInvoiceAsync(Caller, company, ApiParse.Invoice(invoice, "$.invoice"));

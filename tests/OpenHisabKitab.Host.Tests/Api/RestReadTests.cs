@@ -167,4 +167,26 @@ public sealed class RestReadTests : IDisposable
         Assert.Equal(HttpStatusCode.NotFound, r.StatusCode);
         Assert.Equal("not_found", (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetProperty("code").GetString());
     }
+    [Fact]
+    public async Task Rest_open_bills()
+    {
+        var sale = b.BillSale("1000.00");
+        var bills = await api.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{b.Company}/parties/{b.Customer.Value}/open-bills");
+        var bill = bills[0];
+        Assert.Equal(("voucher", sale.Id, "INV/26-27/00001", "1000.00", "0.00", "1000.00", "2026-07-01"),
+            (bill.GetProperty("source").GetString(), bill.GetProperty("id").GetInt64(), bill.GetProperty("number").GetString(),
+             bill.GetProperty("amount").GetString(), bill.GetProperty("settled").GetString(), bill.GetProperty("open").GetString(),
+             bill.GetProperty("dueDate").GetString()));
+        var excluded = await api.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{b.Company}/parties/{b.Customer.Value}/open-bills?excludingVoucher={sale.Id}");
+        Assert.Equal(0, excluded.GetArrayLength());
+    }
+
+    [Fact]
+    public async Task Rest_voucher_search_matches_a_party_name()
+    {
+        var sale = b.BillSale("1000.00");
+        b.Receipt("5.00");
+        var found = await api.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{b.Company}/vouchers?search=ravi");
+        Assert.Equal(sale.Id, found.EnumerateArray().Single().GetProperty("id").GetInt64());
+    }
 }

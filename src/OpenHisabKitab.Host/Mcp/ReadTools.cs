@@ -90,14 +90,19 @@ public sealed class ReadTools(
 
     [McpServerTool(Name = "find_vouchers", ReadOnly = true),
      Description("Finds vouchers in a period, optionally of one type (sale, purchase, creditNote, debitNote, receipt, payment, journal, " +
-                 "contra) and containing some text in the number or narration. Returns at most 100." + Amounts + Dates)]
+                 "contra) and matching some text in the number, party name, amount, or narration. Returns at most 100." + Amounts + Dates)]
     public Task<CallToolResult> FindVouchers(int company, string from, string to, string? type = null, string? text = null) =>
         McpResults.Run(log, "find_vouchers", () =>
         {
-            var found = vouchers.List(Caller, company, ApiParse.Range(from, to), ApiParse.Type(type))
-                .Where(v => string.IsNullOrWhiteSpace(text)
-                    || v.DisplayNumber.Contains(text, StringComparison.OrdinalIgnoreCase)
-                    || v.Narration.Contains(text, StringComparison.OrdinalIgnoreCase))
+            var ctx = Caller;
+            var range = ApiParse.Range(from, to);
+            var kind = ApiParse.Type(type);
+            // With text, FIND's search runs, so a party name or an amount finds vouchers too (spec 6.3).
+            IEnumerable<Data.CompanyDb.VoucherRow> rows = string.IsNullOrWhiteSpace(text)
+                ? vouchers.List(ctx, company, range, kind)
+                : vouchers.Find(ctx, company, new VoucherSearch(text, range), new PageRequest(McpResults.RowLimit + 1)).Rows
+                    .Where(v => kind is null || v.Type == kind);
+            var found = rows
                 .Select(v => new McpVoucherSummary(v.Id, v.Type, v.DisplayNumber, v.Date, v.Narration, v.Cancelled,
                     Money.Sum(v.Postings.Where(p => p.Amount > Money.Zero).Select(p => p.Amount))))
                 .ToList();
@@ -108,6 +113,12 @@ public sealed class ReadTools(
     public Task<CallToolResult> GetVoucher(int company, long id) => McpResults.Run(log, "get_voucher", () =>
     {
         var ctx = Caller;
-        return ApiMap.ToDto(vouchers.Get(ctx, company, id), masters.Chart(ctx, company));
+        var v = vouchers.Get(ctx, company, id);
+        return ApiMap.ToDto(v, masters.Chart(ctx, company), vouchers.BillNumbers(ctx, company, [v]));
     });
+
+    [McpServerTool(Name = "open_bills", ReadOnly = true),
+     Description("A party's bills with what is still open, oldest first. Use the source and id to allocate a receipt, payment, or note to a bill." + Amounts + Dates)]
+    public Task<CallToolResult> OpenBills(int company, int partyId) => McpResults.Run(log, "open_bills", () =>
+        McpResults.Capped(vouchers.OpenBills(Caller, company, new LedgerId(partyId), null).Select(ApiMap.ToDto).ToList()));
 }

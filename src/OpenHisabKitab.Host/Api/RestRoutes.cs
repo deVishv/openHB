@@ -1,3 +1,5 @@
+using OpenHisabKitab.Core.Vouchers;
+using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Data.CompanyDb;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -56,20 +58,29 @@ public static class RestRoutes
         co.MapGet("/{company:int}/items", (HttpContext c, MasterService masters, int company) =>
             TypedResults.Ok(masters.Items(c.Caller(), company).Select(ApiMap.ToDto).ToList()));
 
-        co.MapGet("/{company:int}/vouchers", (HttpContext c, VoucherService vouchers, MasterService masters, int company, string? from, string? to, string? type) =>
+        co.MapGet("/{company:int}/vouchers", (HttpContext c, VoucherService vouchers, MasterService masters, int company, string? from, string? to,
+            string? type, string? search) =>
         {
             var ctx = c.Caller();
-            var range = ApiParse.Range(from, to);
-            var list = vouchers.List(ctx, company, range, ApiParse.Type(type));
+            IReadOnlyList<VoucherRow> list = string.IsNullOrWhiteSpace(search)
+                ? vouchers.List(ctx, company, ApiParse.Range(from, to), ApiParse.Type(type))
+                : Found(ctx, vouchers, company, search, from is null && to is null ? null : ApiParse.Range(from, to), ApiParse.Type(type));
             var chart = masters.Chart(ctx, company);
-            return TypedResults.Ok(list.Select(v => ApiMap.ToDto(v, chart)).ToList());
+            var bills = vouchers.BillNumbers(ctx, company, list);
+            return TypedResults.Ok(list.Select(v => ApiMap.ToDto(v, chart, bills)).ToList());
         });
+
+        co.MapGet("/{company:int}/parties/{id:int}/open-bills", (HttpContext c, VoucherService vouchers, int company, int id, long? excludingVoucher) =>
+            TypedResults.Ok(vouchers.OpenBills(c.Caller(), company, new LedgerId(id), excludingVoucher).Select(ApiMap.ToDto).ToList()));
+
+        co.MapGet("/{company:int}/parties/{id:int}/opening-bills", (HttpContext c, MasterService masters, int company, int id) =>
+            TypedResults.Ok(ApiMap.ToDto(masters.OpeningBills(c.Caller(), company, new LedgerId(id)))));
 
         co.MapGet("/{company:int}/vouchers/{id:long}", (HttpContext c, VoucherService vouchers, MasterService masters, int company, long id) =>
         {
             var ctx = c.Caller();
             var v = vouchers.Get(ctx, company, id);
-            return TypedResults.Ok(ApiMap.ToDto(v, masters.Chart(ctx, company)));
+            return TypedResults.Ok(ApiMap.ToDto(v, masters.Chart(ctx, company), vouchers.BillNumbers(ctx, company, [v])));
         });
 
         var reports = co.MapGroup("/{company:int}/reports");
@@ -131,6 +142,20 @@ public static class RestRoutes
             return TypedResults.Ok(new IdDto(id));
         });
 
+        co.MapPut("/{company:int}/parties/{id:int}/opening-bills", async (HttpContext c, MasterService masters, int company, int id, OpeningBillsRequest r) =>
+        {
+            var bills = ApiParse.OpeningBills(r);
+            var version = await Conflicts(c, masters, company, () => masters.SetOpeningBillsAsync(c.Caller(), company, new LedgerId(id), r.Version, bills));
+            return TypedResults.Ok(new VersionDto(version));
+        });
+
+        co.MapPut("/{company:int}", async (HttpContext c, CompanyService companies, int company, CompanyUpdateRequest r) =>
+        {
+            var ctx = c.Caller();
+            await companies.UpdateAsync(ctx, company, ApiParse.Profile(r, companies.Get(ctx, company).FirstFyStartYear));
+            return TypedResults.NoContent();
+        });
+
         co.MapPost("/{company:int}/items", async (HttpContext c, MasterService masters, int company, ItemRequest r) =>
             Created(c, new IdDto(await masters.SaveItemAsync(c.Caller(), company, ApiParse.Item(r, 0, 0)))));
 
@@ -175,6 +200,20 @@ public static class RestRoutes
             });
     }
 
+    // Every match of a search, page by page; REST returns the whole list, as for an unsearched list.
+    static List<VoucherRow> Found(CallContext ctx, VoucherService vouchers, int company, string search, DateRange? range, VoucherType? type)
+    {
+        var rows = new List<VoucherRow>();
+        string? after = null;
+        do
+        {
+            var page = vouchers.Find(ctx, company, new VoucherSearch(search, range), new PageRequest(1000, after));
+            rows.AddRange(page.Rows.Where(v => type is null || v.Type == type));
+            after = page.Next;
+        } while (after is not null);
+        return rows;
+    }
+
     static Created<IdDto> Created(HttpContext c, IdDto id) => TypedResults.Created($"{c.Request.Path}/{id.Id}", id);
 
     static Created<SavedDto> Saved(HttpContext c, int company, SavedVoucher s) =>
@@ -192,6 +231,7 @@ public static class RestRoutes
                 VoucherRow v => ApiMap.ToDto(v, chart),
                 Party p => ApiMap.ToDto(p, chart),
                 Item i => ApiMap.ToDto(i),
+                OpeningBills b => ApiMap.ToDto(b),
                 _ => null,
             };
             throw new ServiceException(ServiceError.Conflict, e.Message, current);

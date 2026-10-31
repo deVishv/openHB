@@ -48,6 +48,16 @@ dotnet run --project src/OpenHisabKitab.Client
 - This PC's settings, keybindings, and trusted hosts are in `%LOCALAPPDATA%\OpenHisabKitab`. Use `--profile <folder>` to keep them elsewhere, for example to run a second client.
 - UI smoke tests drive the real app and need a desktop: set `OHK_UI_TESTS=1`, then run `dotnet test tests/OpenHisabKitab.Client.UiTests`.
 
+### Entering vouchers
+
+- Masters: `ACCT` (chart of accounts and opening balances), `PRTY` (customers and suppliers, with opening bills), `ITEM` (goods and services).
+- Vouchers: `SALE` (F6), `PURC` (F7), `RCPT` (F8), `PYMT` (F9), `JRNL` (F10), `CRNT`, `DBNT`, and `CNTR`. Tab and Enter move to the next field; Enter on the last field adds a line. Ctrl+S saves and shows the number the host gave.
+- Bills: a receipt, payment, or note for a party is allocated to its open bills, oldest first, as soon as the amount is typed. Ctrl+B opens the bills to change it; what is not allocated stays on account.
+- A party that does not exist yet: type its name and press Enter, and `PRTY` opens over the voucher.
+- `FIND text` (F3) finds vouchers by number, party, amount, or narration; Enter opens one to edit, and Alt+Left returns. Ctrl+Shift+Delete cancels the open voucher.
+- `LOCK date` locks the books up to that date. In `CMPY`, Edit changes the selected company's name, address, and GSTIN.
+- REST: `GET /api/v1/companies/{company}/parties/{id}/open-bills`, `GET` and `PUT .../parties/{id}/opening-bills`, `PUT /api/v1/companies/{company}`, and `GET .../vouchers?search=text`. Voucher bodies take `allocations` and a `requestId`, so a retried save never makes a second voucher. MCP adds the `open_bills` tool.
+
 ## Local REST API and MCP server
 
 Scripts and AI assistants on the host PC can read the books, and enter vouchers if allowed, through a REST API and an MCP server. Both are off by default.

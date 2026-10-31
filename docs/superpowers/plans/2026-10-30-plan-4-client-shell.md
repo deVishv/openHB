@@ -58,7 +58,8 @@
   - Dates are shown through `Client.Model.Formatting.DateText.Format(DateOnly, string dateFormat)`, honouring `ui.dateFormat`.
   - Dates are typed through `Core.Time.DateInput`.
 - **Calls to the host.**
-  - Every unary call has a 30 second deadline. `Changes.Watch` has none.
+  - Every unary call has a 30 second deadline, computed as `DateTime.UtcNow + 30 s`, never from the injected `TimeProvider`. gRPC checks deadlines against the system clock, and `FakeTimeProvider` starts in 2000. `Changes.Watch` has no deadline.
+  - `TimeProvider` drives only the retry delays and today's date.
   - Every call sends `ohk-version`. `SetupOwner` and `Login` also send `ohk-machine: Environment.MachineName`. Every call after login sends `authorization: Bearer {token}`.
 - **Machine files** live in `ClientPaths.Root`:
   - The root is `%LOCALAPPDATA%\OpenHisabKitab`, or the folder given by `--profile <folder>` on the command line.
@@ -556,7 +557,7 @@ Also add:
 - Create: `tests/OpenHisabKitab.Client.Model.Tests/ClientTestHost.cs`, `Connection/HostConnectionTests.cs`, `Connection/TrustTests.cs`, `Connection/HostAddressTests.cs`
 
 **Interfaces:**
-- Consumes: `ProductVersion.Current` and `CertificateFingerprint.Of` (Task 1). Tests also consume `HostFactory` from `Host.Tests`, which is linked as a source file (`<Compile Include="..\OpenHisabKitab.Host.Tests\Grpc\HostFactory.cs" Link="HostFactory.cs" />`) so the test projects do not reference each other.
+- Consumes: `ProductVersion.Current` and `CertificateFingerprint.Of` (Task 1). Tests also consume `HostFactory` from `Host.Tests`, which is linked as a source file (`<Compile Include="..\OpenHisabKitab.Host.Tests\Grpc\HostFactory.cs" Link="HostFactory.cs" />`) so the test projects do not reference each other. Everything it and the client tests use from Host is public (`IRemoteAddressAccessor`, `IListenerAccessor`, `HostApp`, `SessionStore`, `ApiTokenService`, `ChangeSource`), so no `InternalsVisibleTo` is needed.
 - Produces:
 
 ```csharp
@@ -623,6 +624,7 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
   - `Aborted` becomes `Conflict`.
   - Anything else becomes `Refused`, carrying the host's detail.
   - The token is kept on `NeedsLogin`, so tabs stay. `LoginAsync` replaces it.
+  - A `LoginAsync` that follows a lost session raises `Reconnected`, as the retry loop does, because change events were missed while logged out.
 - **The retry loop** waits 1, 2, 4, 8, 15, then 30 seconds and keeps 30, all on `TimeProvider`. Each attempt calls `GetInfo`.
   - When the host answers and a session exists, it calls `Companies.List`. Success sets `Connected` and raises `Reconnected`. `Unauthenticated` sets `NeedsLogin`.
   - A changed certificate stops the loop with `CertificateChanged`.
@@ -632,7 +634,7 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
   - `bool Offline { get; set; }` makes every channel's handler throw `HttpRequestException`, which Grpc reports as `Unavailable`.
   - `Task<HostConnection> LoggedInOwnerAsync()` sets up and logs in `owner` with password `owner-password-1`.
   - `FakeTimeProvider Time`, `HostAddress Address`, and `HostConnection Connection(string? clientVersion = null)`.
-  - `Task EndAllSessionsAsync()` logs out every session of `owner` through a second connection, as a host restart would.
+  - `void EndAllSessions()` calls `Services.GetRequiredService<SessionStore>().RemoveAll()`, which is exactly what a host restart does to sessions.
   - `HostClients OtherOwnerClient()` and `Metadata Headers()` give a second logged in Owner for changes made "by another PC".
   - `Task Settle()` waits for pending retry and watch work.
   - Tasks 7 and 8 add `ShellViewModel Shell()` (not logged in) and `Task<ShellViewModel> LoggedInShellAsync(string[] open, string? company = null)`, which create company `A Traders` when `company` is given. Both register the factories built so far.
@@ -670,7 +672,7 @@ public sealed class HostConnection(IChannelFactory channels, KnownHosts known, T
 {
     using var t = new ClientTestHost();
     var c = await t.LoggedInOwnerAsync();
-    await t.EndAllSessionsAsync();          // logs the token out with a second client, as a host restart would
+    t.EndAllSessions();                     // as a host restart would
     var ex = await Assert.ThrowsAsync<HostException>(() => c.CallAsync((h, o) => h.Companies.ListAsync(new Empty(), o)));
     Assert.Equal((HostErrorKind.NeedsLogin, "Log in again."), (ex.Kind, ex.Message));
     Assert.Equal(ConnectionState.NeedsLogin, c.State);
@@ -853,6 +855,7 @@ public sealed partial class TabsViewModel : ObservableObject
 { public ObservableCollection<TabViewModel> Tabs { get; } public TabViewModel? Active { get; set; }
   public void Show(IScreen screen, string command, bool newTab); public Task<bool> CloseActiveAsync(IConfirm confirm);
   public void Next(); public void Previous(); public void GoTo(int number); public Task BackAsync(); public Task ForwardAsync(); }
+// tab.new (Ctrl+T) sets ShellViewModel.NextRunInNewTab and focuses the prompt; the next prompt run opens a new tab and clears it.
 public sealed partial class PromptViewModel : ObservableObject
 { public string Text { get; set; } public IReadOnlyList<FunctionInfo> Suggestions { get; }
   public int SelectedSuggestion { get; set; } public void Complete(); }   // Complete puts the selected code and a space
@@ -881,6 +884,7 @@ public sealed partial class ShellViewModel : ObservableObject
     - Closing a tab with unsaved edits asks `Discard unsaved changes?` once. No closes nothing.
     - `GoTo(n)` beyond the count does nothing.
     - Back and Forward re-run the stored command text into a new screen instance. They ask first when the current screen has unsaved edits.
+    - `tab.new` (Ctrl+T) opens no empty tab. It focuses the prompt, and the next run from the prompt opens a new tab, as Shift+Enter does. Esc in the prompt clears this.
   - **Esc.** Esc calls `Screen.Cancel()`. When that returns false, Esc acts as Back.
   - **Keys.** `HandleKeyAsync` resolves the chord through `ctx.Keys.Current`:
     - `run.{CODE}` runs the code in the active tab.
@@ -939,6 +943,7 @@ public async Task Unbuilt_or_unknown_codes_show_one_line_and_open_nothing(string
 
 Also add:
 - `Tab_numbers_close_up_after_a_close`.
+- `Ctrl_t_then_enter_opens_a_new_tab`.
 - `Ctrl_digit_beyond_count_does_nothing`.
 - `Esc_goes_back_when_the_screen_does_not_handle_it`.
 - `Rfsh_reloads_the_active_tab_and_clears_changed`.
@@ -993,6 +998,7 @@ public sealed partial class StatusBarViewModel : ObservableObject
 
 - **Panels.**
   - `Panel` is `None` only while `Connected` or `Reconnecting`. Reconnecting keeps the shell usable, with the status line showing it.
+  - While `Panel` is not `None`, `HandleKeyAsync` returns false for every binding, and typing anywhere is off. F keys, Ctrl+W, and typed letters must never act on the shell under the login panel. The panel's own Enter and Esc work as normal buttons.
   - `NeedsLogin` after a lost session shows the login panel over the shell. Tabs and typed text stay.
   - After a login, `ShellViewModel` reloads both stores, then:
     - reopens the last company for this host from `state.json`, when the user can still open it;
@@ -1029,7 +1035,7 @@ public sealed partial class StatusBarViewModel : ObservableObject
 {
     using var t = new ClientTestHost();
     var shell = await t.LoggedInShellAsync(open: ["HELP", "CMPY"]);
-    await t.EndAllSessionsAsync();
+    t.EndAllSessions();
     await shell.RunAsync("rfsh", false);                    // the next call finds the session gone
     Assert.Equal((SessionPanel.Login, "owner", 2), (shell.Session.Panel, shell.Session.UserName, shell.Tabs.Tabs.Count));
     await shell.Session.LoginAsync("owner-password-1");
@@ -1049,6 +1055,7 @@ public sealed partial class StatusBarViewModel : ObservableObject
 
 Also add:
 - `Passwords_that_differ_are_refused_before_calling_the_host`.
+- `Shell_keys_are_off_while_a_panel_is_up`: with the login panel showing, `ctrl+w` and `f1` return false and change no tab.
 - `Auto_reload_reloads_instead_of_marking`.
 - `Unreachable_shows_trying_again_in_status`.
 - `Load_error_shows_in_status`.
@@ -1107,8 +1114,13 @@ public static class KeyInput { public static KeyChord? From(KeyEventArgs e); pub
 - **Keys.**
   - Window `PreviewKeyDown` calls `KeyInput.From`, then `HandleKeyAsync`. When that returns true, the event is handled.
   - Window `PreviewTextInput` with focus outside any `TextBox` focuses `Prompt` and appends the text (spec 6.2, "Typing anywhere").
+  - `KeyInput.From` reads `e.SystemKey` when `e.Key` is `Key.System`, because WPF reports Alt chords and F10 that way. F10 is bound to `run.JRNL` and must not open the menu bar when it is bound. A bare Alt still opens the menu.
   - `KeyInput.Context` gives `promptFocus` for the `Prompt` box, `inputFocus` for any other `TextBox`, `PasswordBox`, or `ComboBox`, and `gridFocus` for a `DataGrid`.
-- **Accessibility.** Every control sets `AutomationProperties.Name` through `{t:Txt}`.
+- **Accessibility.**
+  - Every control sets `AutomationProperties.Name` through `{t:Txt}`.
+  - **Display scaling** (spec 6.6): `app.manifest` declares `<dpiAwareness>PerMonitorV2</dpiAwareness>`.
+  - **Text scaling** (spec 6.6): `ThemeResources` multiplies `ui.fontSize` by the Windows text scale. This is `HKCU\Software\Microsoft\Accessibility\TextScaleFactor`, from 100 to 225 percent, or 100 when missing. The result is rounded to a whole pixel and is not capped at 28. Read it through `TextScale.Percent()` in `Client/Theme`.
+  - **Disabled controls** show `DisabledText` and also lose their raised bevel, keeping a flat 1 px border, so disabled is not shown by colour alone (spec 6.6).
 - **Composition in `App.xaml.cs`:**
   - It reads `--profile`, then builds `ClientPaths`, `MachineFiles`, `HostConnection(new TlsChannelFactory(), ...)`, the stores, `ShellContext`, the router with the factories from Tasks 10 to 13, and `ShellViewModel`.
   - It restores and saves `WindowPlacement` through `state.json`.
@@ -1349,14 +1361,14 @@ public void Classic_theme_meets_wcag_aa(string fore, string back, double minimum
 - [ ] **Step 3: Docs.**
   - `README.md` gains a "Client" section: how to run the host and the client, the `--profile` switch, and that `SETG` and `USER` now turn on the API and create tokens.
   - `CLAUDE.md` gains: `UI tests: set OHK_UI_TESTS=1, then dotnet test tests/OpenHisabKitab.Client.UiTests.`
-- [ ] **Step 4: Owner review.** Add a "Plan 4: Client shell" section above Plan 3 in `docs/owner-review.md`, holding the items below and any decision made while building. Mark Plan 3 item 10 done.
+- [ ] **Step 4: Owner review.** Add any decision made while building to the "Plan 4: Client shell" section of `docs/owner-review.md`, which was written with this plan. Mark Plan 3 item 10 done.
 - [ ] **Step 5: Final verification.**
   - `dotnet build OpenHisabKitab.slnx -c Release` has 0 warnings.
   - `dotnet test OpenHisabKitab.slnx -c Release --no-build` passes all tests, with the UI tests skipped.
   - The UI tests pass with the variable set.
 - [ ] **Step 6: Commit** `test: keyboard-only UI smoke tests; docs and owner review for plan 4`
 
-## Owner review items (copy into `docs/owner-review.md` in Task 14)
+## Owner review items (also in `docs/owner-review.md`)
 
 Each line says what was decided and what it costs if wrong.
 
@@ -1370,6 +1382,7 @@ Each line says what was decided and what it costs if wrong.
 8. **`when` clauses support `!`, `&&`, and `||`, with no parentheses,** and only the keys `promptFocus`, `inputFocus`, `gridFocus`, and `paletteOpen`. Cost if wrong: a richer parser.
 9. **`DATE` refuses a date outside the open company's financial years.** Cost if wrong: allow it and warn.
 10. **The MCP wrong-type message** (deferred from Plan 3) stays deferred. The MCP SDK masks the error before the tool runs, and fixing it needs SDK work, not client work. Cost if wrong: assistants see a vague error for a number sent as a string.
+11. **Ctrl+T opens no empty tab.** It focuses the prompt, and the next command opens in a new tab. Cost if wrong: an empty tab state in the shell.
 
 ## Done when
 

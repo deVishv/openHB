@@ -2,6 +2,22 @@
 
 Items that need the owner's check. Newest plan first. Mark an item done by deleting it or writing "OK" after it.
 
+## Plan 4: Client shell
+
+Decisions made while planning (`docs/superpowers/plans/2026-10-30-plan-4-client-shell.md`). Each has its cost if wrong. Item 1 is cheapest to change before Task 7 is built, the rest before their task.
+
+1. **Plan 4 builds the shell and the system screens `HELP`, `DATE`, `RFSH`, `CMPY`, `SETG`, `KEYS`, and `USER`.** Other codes show `{CODE} is not in this version yet.` Masters, vouchers, and reports screens are next. `AUDT`, `LOCK`, `BKUP`, `FIND`, and `PRNT` follow with them. Cost if wrong: reorder later plans.
+2. **Product version 0.1.0,** shared by client and host. Cost if wrong: one property.
+3. **`CMPY` cannot edit a company profile,** because the host has no update call yet. Cost if wrong: one host method and a form.
+4. **Paged list calls and client caches for parties and items** wait for the screens that use them. No Plan 4 screen lists vouchers, parties, or items. Cost if wrong: none now. Adding fields to the protos later stays compatible.
+5. **User keybindings are stored as the user setting `keybindings`** in `host.db`, so they follow the user to any PC, like the other user settings. Cost if wrong: a separate table.
+6. **Window placement lives in `state.json`, not in the settings list,** because no one types it. Cost if wrong: one setting.
+7. **`connection.host` and `connection.port` apply at the next connect,** not at once. Cost if wrong: a live reconnect.
+8. **`when` clauses support `!`, `&&`, and `||`, with no parentheses,** and only the keys `promptFocus`, `inputFocus`, `gridFocus`, and `paletteOpen`. Cost if wrong: a richer parser.
+9. **`DATE` refuses a date outside the open company's financial years.** Cost if wrong: allow it and warn.
+10. **The MCP wrong-type message** (deferred from Plan 3) stays deferred. The MCP SDK masks the error before the tool runs, and fixing it needs SDK work, not client work. Cost if wrong: assistants see a vague error for a number sent as a string.
+11. **Ctrl+T opens no empty tab.** It focuses the prompt, and the next command opens in a new tab. Cost if wrong: an empty tab state in the shell.
+
 ## Plan 3: Local REST API and MCP server
 
 Decisions made while planning (`docs/superpowers/plans/2026-10-29-plan-3-rest-and-mcp.md`). Each has its cost if wrong. Cheapest to change before Tasks 2 and 4 are built.

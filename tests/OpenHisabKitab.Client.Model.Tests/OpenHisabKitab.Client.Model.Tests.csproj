@@ -23,6 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The real host in memory, shared with Host.Tests by linking rather than referencing a test project. -->
+    <Compile Include="..\OpenHisabKitab.Host.Tests\Grpc\HostFactory.cs" Link="HostFactory.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\OpenHisabKitab.Client.Model\OpenHisabKitab.Client.Model.csproj" />
     <ProjectReference Include="..\..\src\OpenHisabKitab.Host\OpenHisabKitab.Host.csproj" />
   </ItemGroup>

@@ -11,6 +11,11 @@
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Grpc.Net.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OpenHisabKitab.Client.Model.Tests" />
   </ItemGroup>
 
   <ItemGroup>

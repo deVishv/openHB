@@ -1361,16 +1361,16 @@ public void Classic_theme_meets_wcag_aa(string fore, string back, double minimum
 - [ ] **Step 3: Docs.**
   - `README.md` gains a "Client" section: how to run the host and the client, the `--profile` switch, and that `SETG` and `USER` now turn on the API and create tokens.
   - `CLAUDE.md` gains: `UI tests: set OHK_UI_TESTS=1, then dotnet test tests/OpenHisabKitab.Client.UiTests.`
-- [ ] **Step 4: Owner review.** Add any decision made while building to the "Plan 4: Client shell" section of `docs/owner-review.md`, which was written with this plan. Mark Plan 3 item 10 done.
+- [ ] **Step 4: Owner review.** Add to `docs/owner-review.md` only a major decision made while building. Record smaller ones under "Builder decisions" below.
 - [ ] **Step 5: Final verification.**
   - `dotnet build OpenHisabKitab.slnx -c Release` has 0 warnings.
   - `dotnet test OpenHisabKitab.slnx -c Release --no-build` passes all tests, with the UI tests skipped.
   - The UI tests pass with the variable set.
 - [ ] **Step 6: Commit** `test: keyboard-only UI smoke tests; docs and owner review for plan 4`
 
-## Owner review items (also in `docs/owner-review.md`)
+## Builder decisions
 
-Each line says what was decided and what it costs if wrong.
+Only item 1 needs the owner, and it is in `docs/owner-review.md`. The rest are the builder's calls, kept here for the record.
 
 1. **Plan 4 builds the shell and the system screens `HELP`, `DATE`, `RFSH`, `CMPY`, `SETG`, `KEYS`, and `USER`.** Other codes show `{CODE} is not in this version yet.` Masters, vouchers, and reports screens are next. `AUDT`, `LOCK`, `BKUP`, `FIND`, and `PRNT` follow with them. Cost if wrong: reorder later plans.
 2. **Product version 0.1.0,** shared by client and host. Cost if wrong: one property.
@@ -1389,4 +1389,4 @@ Each line says what was decided and what it costs if wrong.
 - Every task's tests pass in Release, with 0 warnings.
 - With the host running, `dotnet run --project src/OpenHisabKitab.Client` connects, trusts, sets up the Owner, and creates a company. In `SETG` the Owner turns on `api.enabled` and sees the restart notice. In `USER` the Owner creates a token, and after a host restart the REST API accepts it.
 - The UI smoke tests pass with `OHK_UI_TESTS=1`.
-- The owner review list is updated.
+- `docs/owner-review.md` holds any new major decision.

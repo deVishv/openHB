@@ -208,4 +208,19 @@
   <data name="LayerNotRead" xml:space="preserve"><value>Your settings could not be read from the host yet. Try again when connected.</value></data>
   <data name="HostTooSlow" xml:space="preserve"><value>The host took too long to answer. Try again.</value></data>
   <data name="FileLine" xml:space="preserve"><value>{0} line {1}: {2}</value></data>
+  <data name="DeleteLedgerQuestion" xml:space="preserve"><value>Delete ledger {0}?</value></data>
+  <data name="EnterName" xml:space="preserve"><value>Enter a name.</value></data>
+  <data name="AmountInvalid" xml:space="preserve"><value>Enter an amount like 12,345.60.</value></data>
+  <data name="ChooseGroup" xml:space="preserve"><value>Choose a group.</value></data>
+  <data name="RequiredMarker" xml:space="preserve"><value>Required</value></data>
+  <data name="OpeningDifference" xml:space="preserve"><value>Opening difference {0}</value></data>
+  <data name="AccountsHeading" xml:space="preserve"><value>Chart of accounts</value></data>
+  <data name="IsGroupLabel" xml:space="preserve"><value>_Group, not a ledger</value></data>
+  <data name="NameLabel" xml:space="preserve"><value>_Name</value></data>
+  <data name="UnderGroupLabel" xml:space="preserve"><value>_Under group</value></data>
+  <data name="OpeningLabel" xml:space="preserve"><value>_Opening</value></data>
+  <data name="SideLabel" xml:space="preserve"><value>Si_de</value></data>
+  <data name="NewButton" xml:space="preserve"><value>_New</value></data>
+  <data name="DeleteButton" xml:space="preserve"><value>_Delete</value></data>
+  <data name="SaveRecordButton" xml:space="preserve"><value>_Save</value></data>
 </root>

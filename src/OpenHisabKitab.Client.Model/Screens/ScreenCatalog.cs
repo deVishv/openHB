@@ -14,6 +14,7 @@ public static class ScreenCatalog
         ["SETG"] = Now(SettingsViewModel.Create),
         ["KEYS"] = Now(KeysViewModel.Create),
         ["USER"] = Now(UsersViewModel.Create),
+        ["ACCT"] = Now(AccountsViewModel.Create),
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

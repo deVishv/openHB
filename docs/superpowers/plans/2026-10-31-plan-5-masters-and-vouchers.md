@@ -1293,7 +1293,7 @@ These are the builder's calls, kept here for the record. The major ones are in `
 6. **`FIND` lists newest first,** 100 rows a page. Cost if wrong: the sort order.
 7. **A voucher opened from `FIND` runs as `{CODE} {number}`,** so Back, Forward, and the tab title work as for any command. Cost if wrong: none.
 8. **Cancelling a voucher from the screen sends an empty reason.** The audit record still names the user and the time. Cost if wrong: one text field.
-9. **MCP wrong-type spike result:** to be filled in by Task 8 Step 1.
+9. **MCP wrong-type spike result:** SDK 2.3.0 has `WithRequestFilters(f => f.AddCallToolFilter(...))`. A call-tool filter wrapping `next` catches the binding `JsonException`, whose path is relative to the failing argument. `McpArgumentErrors` then finds that argument by binding each one against its declared parameter type, and words the message in the existing `$.path must be ...` form. Cost if wrong: one filter.
 
 ## Done when
 

@@ -6,13 +6,16 @@ namespace OpenHisabKitab.Client.Model.Shell;
 /// <summary>What a typed command leads to: a screen, a status line, a refresh of the active tab, or nothing.</summary>
 public sealed record RouteResult(IScreen? Screen, string? Status, bool Refresh, string? Command);
 
+/// <summary>Makes a function's screen. It may ask the host first, and may act and return null, as "CMPY A Traders" does.</summary>
+public delegate Task<IScreen?> ScreenFactory(ParsedCommand cmd, ShellContext ctx);
+
 /// <summary>
 /// Turns prompt text into a screen (spec 6.2). A factory may act and return null, as DATE with a valid date does. Codes in
 /// the catalog with no factory yet say so in one line.
 /// </summary>
-public sealed class FunctionRouter(IReadOnlyDictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> built)
+public sealed class FunctionRouter(IReadOnlyDictionary<string, ScreenFactory> built)
 {
-    public RouteResult Route(string input, ShellContext ctx)
+    public async Task<RouteResult> RouteAsync(string input, ShellContext ctx)
     {
         var words = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return new RouteResult(null, null, false, null);
@@ -21,7 +24,7 @@ public sealed class FunctionRouter(IReadOnlyDictionary<string, Func<ParsedComman
         if (cmd.Code == "RFSH") return new RouteResult(null, null, true, null);
         if (!built.TryGetValue(cmd.Code, out var factory)) return new RouteResult(null, Format(Resources.Text.NotInThisVersion, cmd.Code), false, null);
         var command = string.Join(' ', [cmd.Code, .. cmd.Args]);
-        return new RouteResult(factory(cmd, ctx), null, false, command);
+        return new RouteResult(await factory(cmd, ctx), null, false, command);
     }
 
     static string Format(string format, string arg) => string.Format(CultureInfo.InvariantCulture, format, arg);

@@ -132,4 +132,17 @@
   <data name="PurposeLabel" xml:space="preserve"><value>Purpose</value></data>
   <data name="DateLabel" xml:space="preserve"><value>_Working date</value></data>
   <data name="ApplyButton" xml:space="preserve"><value>_Apply</value></data>
+  <data name="OpenedCompany" xml:space="preserve"><value>Opened {0} FY {1}.</value></data>
+  <data name="CompaniesLabel" xml:space="preserve"><value>_Companies</value></data>
+  <data name="YearsLabel" xml:space="preserve"><value>_Years</value></data>
+  <data name="OpenButton" xml:space="preserve"><value>_Open</value></data>
+  <data name="AddYearButton" xml:space="preserve"><value>Add _year</value></data>
+  <data name="NewCompanyHeading" xml:space="preserve"><value>New company</value></data>
+  <data name="CompanyNameLabel" xml:space="preserve"><value>_Name</value></data>
+  <data name="StateLabel" xml:space="preserve"><value>_State</value></data>
+  <data name="RegistrationLabel" xml:space="preserve"><value>_Registration</value></data>
+  <data name="GstinLabel" xml:space="preserve"><value>_GSTIN</value></data>
+  <data name="AddressLabel" xml:space="preserve"><value>A_ddress</value></data>
+  <data name="FirstYearLabel" xml:space="preserve"><value>_First year starting</value></data>
+  <data name="CreateButton" xml:space="preserve"><value>C_reate</value></data>
 </root>

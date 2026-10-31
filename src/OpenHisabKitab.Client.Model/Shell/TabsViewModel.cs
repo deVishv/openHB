@@ -8,7 +8,7 @@ namespace OpenHisabKitab.Client.Model.Shell;
 /// The tab strip (spec 6.1). Tabs are numbered 1 to n in strip order. Back and forward re-run a tab's earlier commands
 /// into new screens, so a tab holds only the screen it shows.
 /// </summary>
-public sealed partial class TabsViewModel(Func<string, IScreen?> recreate, Func<IScreen, Task> load, IConfirm confirm) : ObservableObject
+public sealed partial class TabsViewModel(Func<string, Task<IScreen?>> recreate, Func<IScreen, Task> load, IConfirm confirm) : ObservableObject
 {
     public ObservableCollection<TabViewModel> Tabs { get; } = [];
 
@@ -57,7 +57,7 @@ public sealed partial class TabsViewModel(Func<string, IScreen?> recreate, Func<
     {
         if (Active is not { } tab) return;
         if (!(tab.Screen.HasUnsavedEdits ? await confirm.AskAsync(Text.DiscardChanges) : true)) return;
-        if (pop(tab) is not { } command || recreate(command) is not { } screen) return;
+        if (pop(tab) is not { } command || await recreate(command) is not { } screen) return;
         show(tab, screen, command);
         await load(screen);
     }

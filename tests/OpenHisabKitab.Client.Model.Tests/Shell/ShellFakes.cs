@@ -55,11 +55,11 @@ public static class Keys
     public static KeyChord Chord(string text) => KeyChord.TryParse(text, out var c) ? c : throw new ArgumentException(text);
 
     /// <summary>Factories that open a FakeScreen for each code, keeping every screen made.</summary>
-    public static Dictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> Fakes(List<FakeScreen> made, bool unsaved, params string[] codes) =>
-        codes.ToDictionary(c => c, c => (Func<ParsedCommand, ShellContext, IScreen?>)((cmd, _) =>
+    public static Dictionary<string, ScreenFactory> Fakes(List<FakeScreen> made, bool unsaved, params string[] codes) =>
+        codes.ToDictionary(c => c, c => (ScreenFactory)((cmd, _) =>
         {
             var s = new FakeScreen(c, unsaved, string.Join(' ', cmd.Args));
             made.Add(s);
-            return s;
+            return Task.FromResult<IScreen?>(s);
         }));
 }

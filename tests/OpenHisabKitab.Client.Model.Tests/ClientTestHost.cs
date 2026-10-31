@@ -68,7 +68,7 @@ public sealed class ClientTestHost : IDisposable
         }, o))).Company;
 
     /// <summary>A shell over a connection that is not logged in, with stores read from this PC's files only.</summary>
-    public ShellViewModel Shell(IReadOnlyDictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> built, IConfirm confirm)
+    public ShellViewModel Shell(IReadOnlyDictionary<string, ScreenFactory> built, IConfirm confirm)
     {
         var connection = Connection();
         var files = new MachineFiles(new ClientPaths(ClientFolder));
@@ -88,15 +88,15 @@ public sealed class ClientTestHost : IDisposable
     /// <summary>A shell whose screens are fakes for HELP, CMPY, SETG, DATE; each load makes one host call, as real screens do.</summary>
     public ShellViewModel Shell(IConfirm? confirm = null)
     {
-        Func<ParsedCommand, ShellContext, IScreen?> Fake(string code) => (cmd, ctx) =>
+        ScreenFactory Fake(string code) => (cmd, ctx) => Task.FromResult<IScreen?>(
             new FakeScreen(code, subject: string.Join(' ', cmd.Args),
-                onLoad: () => ctx.Host.CallAsync((h, o) => h.Companies.ListAsync(new Contracts.V1.Empty(), o)));
+                onLoad: () => ctx.Host.CallAsync((h, o) => h.Companies.ListAsync(new Contracts.V1.Empty(), o))));
         return Shell(new[] { "HELP", "CMPY", "SETG", "DATE" }.ToDictionary(c => c, Fake), confirm ?? new FakeConfirm(true));
     }
 
     /// <summary>A logged in Owner's shell with tabs open for the codes given, and company "A Traders" open when named.</summary>
     public async Task<ShellViewModel> LoggedInShellAsync(string[] open, string? company = null,
-        IReadOnlyDictionary<string, Func<ParsedCommand, ShellContext, IScreen?>>? built = null, IConfirm? confirm = null)
+        IReadOnlyDictionary<string, ScreenFactory>? built = null, IConfirm? confirm = null)
     {
         var shell = built is null ? Shell(confirm) : Shell(built, confirm ?? new FakeConfirm(true));
         var feed = factory.Services.GetRequiredService<ChangeFeed>();
@@ -115,6 +115,21 @@ public sealed class ClientTestHost : IDisposable
         }
         foreach (var code in open) await shell.RunAsync(code, newTab: true);
         await Eventually(() => feed.SubscriberCount > watching);   // the change stream is live
+        return shell;
+    }
+
+    /// <summary>A shell logged in as a new user with the role and companies given, created by the Owner.</summary>
+    public async Task<ShellViewModel> UserShellAsync(string name, string role, params int[] companies)
+    {
+        var admin = OtherOwnerClient().Admin;
+        var id = (int)(await admin.CreateUserAsync(new CreateUserRequest { Name = name, Password = Password, Role = role }, Headers())).Id;
+        await admin.SetUserCompaniesAsync(new SetUserCompaniesRequest { UserId = id, Companies = { companies } }, Headers());
+        var shell = Shell();
+        shell.Session.HostName = Address.Name;
+        await shell.Session.ConnectAsync();
+        shell.Session.UserName = name;
+        await shell.Session.LoginAsync(Password);
+        while (shell.Tabs.Tabs.Count > 0) await shell.Tabs.CloseActiveAsync(new FakeConfirm(true));
         return shell;
     }
 

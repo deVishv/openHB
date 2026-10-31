@@ -6,9 +6,13 @@ namespace OpenHisabKitab.Client.Model.Screens;
 /// <summary>Every function that has a screen in this build. A catalog code missing here says "{CODE} is not in this version yet.".</summary>
 public static class ScreenCatalog
 {
-    public static Dictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> Built() => new()
+    public static Dictionary<string, ScreenFactory> Built() => new()
     {
-        ["HELP"] = HelpViewModel.Create,
-        ["DATE"] = DateViewModel.Create,
+        ["HELP"] = Now(HelpViewModel.Create),
+        ["DATE"] = Now(DateViewModel.Create),
+        ["CMPY"] = CompanyViewModel.CreateAsync,
     };
+
+    /// <summary>A factory that needs nothing from the host.</summary>
+    static ScreenFactory Now(Func<ParsedCommand, ShellContext, IScreen?> make) => (cmd, ctx) => Task.FromResult(make(cmd, ctx));
 }

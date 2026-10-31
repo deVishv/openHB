@@ -12,6 +12,7 @@
             <!-- One DataTemplate per screen view model. -->
             <DataTemplate DataType="{x:Type s:HelpViewModel}"><v:HelpView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:DateViewModel}"><v:DateView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:CompanyViewModel}"><v:CompanyView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

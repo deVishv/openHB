@@ -25,7 +25,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
         Context = ctx;
         this.router = router;
         this.confirm = confirm;
-        Tabs = new TabsViewModel(command => router.Route(command, ctx).Screen, LoadAsync, confirm);
+        Tabs = new TabsViewModel(async command => (await router.RouteAsync(command, ctx)).Screen, LoadAsync, confirm);
         Palette = new PaletteViewModel(command => RunAsync(command, newTab: false));
         FKeys = FKeyRow.From(ctx.Keys.Current);
         ctx.Keys.Changed += () => FKeys = FKeyRow.From(ctx.Keys.Current);
@@ -97,7 +97,7 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
     public async Task RunAsync(string input, bool newTab)
     {
         Status.Message = null;
-        var route = router.Route(input, Context);
+        var route = await router.RouteAsync(input, Context);
         var inNewTab = newTab || nextRunInNewTab;
         nextRunInNewTab = false;
         Prompt.Text = "";

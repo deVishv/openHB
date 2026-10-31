@@ -1,13 +1,17 @@
 <Application x:Class="OpenHisabKitab.Client.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="clr-namespace:OpenHisabKitab.Client.Model.Screens;assembly=OpenHisabKitab.Client.Model"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="Theme/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- One DataTemplate per screen view model is added here as each screen is built. -->
+            <!-- One DataTemplate per screen view model. -->
+            <DataTemplate DataType="{x:Type s:HelpViewModel}"><v:HelpView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:DateViewModel}"><v:DateView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

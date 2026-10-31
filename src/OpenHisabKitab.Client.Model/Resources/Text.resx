@@ -64,4 +64,72 @@
   <data name="ConfirmTitle" xml:space="preserve"><value>Confirm</value></data>
   <data name="SessionPanel" xml:space="preserve"><value>Connection</value></data>
   <data name="ChangedMarker" xml:space="preserve"><value>Changed</value></data>
+  <data name="Purpose_HELP" xml:space="preserve"><value>Lists all functions and shortcuts. HELP CODE shows one function.</value></data>
+  <data name="Purpose_SETG" xml:space="preserve"><value>Searchable settings, as a form or as JSON.</value></data>
+  <data name="Purpose_KEYS" xml:space="preserve"><value>Searchable keybindings, as a form or as JSON.</value></data>
+  <data name="Purpose_CMPY" xml:space="preserve"><value>Create, select, and edit companies and financial years.</value></data>
+  <data name="Purpose_USER" xml:space="preserve"><value>Users, roles, and permissions.</value></data>
+  <data name="Purpose_AUDT" xml:space="preserve"><value>Filter and view the log, and verify the chain.</value></data>
+  <data name="Purpose_LOCK" xml:space="preserve"><value>Lock or unlock the books up to a date.</value></data>
+  <data name="Purpose_BKUP" xml:space="preserve"><value>Back up now, restore, and set the backup schedule.</value></data>
+  <data name="Purpose_DATE" xml:space="preserve"><value>Set the default date for new vouchers and reports.</value></data>
+  <data name="Purpose_FIND" xml:space="preserve"><value>Search vouchers by number, party, amount, or narration.</value></data>
+  <data name="Purpose_RFSH" xml:space="preserve"><value>Reload the current tab.</value></data>
+  <data name="Purpose_PRNT" xml:space="preserve"><value>Print the current tab or save it as PDF.</value></data>
+  <data name="Purpose_ACCT" xml:space="preserve"><value>Chart of accounts: groups and ledgers.</value></data>
+  <data name="Purpose_PRTY" xml:space="preserve"><value>Customers and suppliers, with GSTIN, state, addresses, and credit days.</value></data>
+  <data name="Purpose_ITEM" xml:space="preserve"><value>Goods and services, with HSN/SAC code, GST rate, unit, and default price.</value></data>
+  <data name="Purpose_SALE" xml:space="preserve"><value>Enter and edit sales invoices.</value></data>
+  <data name="Purpose_PURC" xml:space="preserve"><value>Enter and edit purchase invoices.</value></data>
+  <data name="Purpose_CRNT" xml:space="preserve"><value>Enter and edit credit notes.</value></data>
+  <data name="Purpose_DBNT" xml:space="preserve"><value>Enter and edit debit notes.</value></data>
+  <data name="Purpose_RCPT" xml:space="preserve"><value>Enter and edit receipts.</value></data>
+  <data name="Purpose_PYMT" xml:space="preserve"><value>Enter and edit payments.</value></data>
+  <data name="Purpose_JRNL" xml:space="preserve"><value>Enter and edit journal vouchers.</value></data>
+  <data name="Purpose_CNTR" xml:space="preserve"><value>Enter and edit contra vouchers between cash and bank.</value></data>
+  <data name="Purpose_DAYB" xml:space="preserve"><value>Vouchers by date.</value></data>
+  <data name="Purpose_LEDG" xml:space="preserve"><value>One ledger's statement with running balance.</value></data>
+  <data name="Purpose_TRLB" xml:space="preserve"><value>Opening, debits, credits, and closing for every ledger.</value></data>
+  <data name="Purpose_PNLS" xml:space="preserve"><value>Income, expenses, and net profit for a period.</value></data>
+  <data name="Purpose_BSHT" xml:space="preserve"><value>Follows the Schedule III layout, with an option to show it grouped by the chart of accounts instead.</value></data>
+  <data name="Purpose_CFLO" xml:space="preserve"><value>Cash flow by the indirect method.</value></data>
+  <data name="Purpose_OUTS" xml:space="preserve"><value>Receivables and payables, bill by bill, with ageing buckets set in settings.</value></data>
+  <data name="Purpose_GST1" xml:space="preserve"><value>Builds every GSTR-1 table from the vouchers and exports JSON in the GST portal's offline upload format.</value></data>
+  <data name="Purpose_GS3B" xml:space="preserve"><value>Summary by table, for entering on the portal. Exports to PDF and CSV.</value></data>
+  <data name="Purpose_G2BR" xml:space="preserve"><value>Imports the GSTR-2B JSON downloaded from the portal and matches it against purchases.</value></data>
+  <data name="Purpose_EINV" xml:space="preserve"><value>Exports selected invoices as e-invoice JSON and imports the IRP response file.</value></data>
+  <data name="Cmd_prompt_focus" xml:space="preserve"><value>Focus the prompt</value></data>
+  <data name="Cmd_prompt_run" xml:space="preserve"><value>Run in this tab</value></data>
+  <data name="Cmd_prompt_runNewTab" xml:space="preserve"><value>Run in a new tab</value></data>
+  <data name="Cmd_screen_cancel" xml:space="preserve"><value>Cancel or go back</value></data>
+  <data name="Cmd_screen_save" xml:space="preserve"><value>Save</value></data>
+  <data name="Cmd_screen_find" xml:space="preserve"><value>Find in this screen</value></data>
+  <data name="Cmd_tab_new" xml:space="preserve"><value>New tab</value></data>
+  <data name="Cmd_tab_close" xml:space="preserve"><value>Close tab</value></data>
+  <data name="Cmd_tab_next" xml:space="preserve"><value>Next tab</value></data>
+  <data name="Cmd_tab_previous" xml:space="preserve"><value>Previous tab</value></data>
+  <data name="Cmd_tab_goto" xml:space="preserve"><value>Go to tab {0}</value></data>
+  <data name="Cmd_nav_back" xml:space="preserve"><value>Back</value></data>
+  <data name="Cmd_nav_forward" xml:space="preserve"><value>Forward</value></data>
+  <data name="Cmd_palette_open" xml:space="preserve"><value>Search functions and settings</value></data>
+  <data name="Category_System" xml:space="preserve"><value>System</value></data>
+  <data name="Category_Masters" xml:space="preserve"><value>Masters</value></data>
+  <data name="Category_Vouchers" xml:space="preserve"><value>Vouchers</value></data>
+  <data name="Category_Reports" xml:space="preserve"><value>Reports</value></data>
+  <data name="Category_Gst" xml:space="preserve"><value>GST</value></data>
+  <data name="WorkingDateSet" xml:space="preserve"><value>Working date {0}.</value></data>
+  <data name="EnterDate" xml:space="preserve"><value>Enter a date like 15-04-2026, 15-4, or today.</value></data>
+  <data name="NoYearHolds" xml:space="preserve"><value>No financial year holds {0}. Add one in CMPY.</value></data>
+  <data name="HelpFilter" xml:space="preserve"><value>_Filter</value></data>
+  <data name="HelpFunctions" xml:space="preserve"><value>Functions</value></data>
+  <data name="HelpShortcuts" xml:space="preserve"><value>Shortcuts</value></data>
+  <data name="CodeColumn" xml:space="preserve"><value>Code</value></data>
+  <data name="NameColumn" xml:space="preserve"><value>Name</value></data>
+  <data name="CategoryColumn" xml:space="preserve"><value>Category</value></data>
+  <data name="KeyColumn" xml:space="preserve"><value>Key</value></data>
+  <data name="CommandColumn" xml:space="preserve"><value>Command</value></data>
+  <data name="WhenColumn" xml:space="preserve"><value>When</value></data>
+  <data name="PurposeLabel" xml:space="preserve"><value>Purpose</value></data>
+  <data name="DateLabel" xml:space="preserve"><value>_Working date</value></data>
+  <data name="ApplyButton" xml:space="preserve"><value>_Apply</value></data>
 </root>

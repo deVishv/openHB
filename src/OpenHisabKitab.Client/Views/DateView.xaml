@@ -1,0 +1,20 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.DateView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+    </UserControl.Resources>
+    <StackPanel HorizontalAlignment="Left" MinWidth="320">
+        <DockPanel>
+            <Label Content="{t:Txt DateLabel}" Target="{Binding ElementName=DateBox}" />
+            <Button DockPanel.Dock="Right" Content="{t:Txt ApplyButton}" AutomationProperties.Name="{t:Name ApplyButton}"
+                    IsDefault="{Binding IsKeyboardFocusWithin, ElementName=DateBox}" Click="OnApply" />
+            <TextBox x:Name="DateBox" Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                     AutomationProperties.Name="{t:Name DateLabel}" />
+        </DockPanel>
+        <TextBlock Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Polite" />
+    </StackPanel>
+</UserControl>

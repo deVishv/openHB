@@ -18,7 +18,21 @@ public sealed class ShellContext
 
     public CompanyEntry? Company { get; private set; }
 
-    public FinancialYear? Year { get; set; }
+    FinancialYear? year;
+
+    /// <summary>The open financial year. Changing it moves the title (spec 6.1).</summary>
+    public FinancialYear? Year
+    {
+        get => year;
+        set
+        {
+            year = value;
+            CompanyChanged?.Invoke();
+        }
+    }
+
+    /// <summary>The open company's financial years, oldest first.</summary>
+    public IReadOnlyList<FinancialYear> Years { get; private set; } = [];
 
     /// <summary>The default date for new vouchers and reports (spec 6.3, DATE).</summary>
     public DateOnly WorkingDate
@@ -40,11 +54,11 @@ public sealed class ShellContext
 
     public bool Has(string permission) => Host.Session?.Permissions.Contains(permission) ?? false;
 
-    public void OpenCompany(CompanyEntry company, FinancialYear year)
+    public void OpenCompany(CompanyEntry company, FinancialYear year, IReadOnlyList<FinancialYear>? years = null)
     {
         Company = company;
+        Years = years ?? [year];
         Year = year;
-        CompanyChanged?.Invoke();
     }
 
     public void Report(string message) => Reported?.Invoke(message);

@@ -7,7 +7,7 @@ using OpenHisabKitab.Client.Model.Theme;
 using OpenHisabKitab.Client.Theme;
 using OpenHisabKitab.Client.Views;
 using OpenHisabKitab.Contracts;
-using OpenHisabKitab.Core.Commands;
+using OpenHisabKitab.Client.Model.Screens;
 
 namespace OpenHisabKitab.Client;
 
@@ -16,9 +16,6 @@ public partial class App : Application
 {
     HostConnection? connection;
     ShellViewModel? shell;
-
-    /// <summary>Every function with a screen. Codes not here say "{CODE} is not in this version yet.".</summary>
-    static Dictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> Screens() => [];
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -43,7 +40,7 @@ public partial class App : Application
         };
 
         var window = new MainWindow(files);
-        shell = new ShellViewModel(ctx, new FunctionRouter(Screens()), new DialogConfirm(window));
+        shell = new ShellViewModel(ctx, new FunctionRouter(ScreenCatalog.Built()), new DialogConfirm(window));
         window.Attach(shell);
         MainWindow = window;
         window.Show();

@@ -12,8 +12,8 @@ public static class CompanyOpener
     public static async Task OpenAsync(ShellContext ctx, CompanyEntry company)
     {
         var years = await ctx.Host.CallAsync((h, o) => h.Companies.ListYearsAsync(new CompanyRef { Company = company.Id }, o));
-        var year = Pick(years.Years.Select(y => new FinancialYear(y.StartYear)).ToList(), ctx.WorkingDate);
-        ctx.OpenCompany(company, year);
+        var all = years.Years.Select(y => new FinancialYear(y.StartYear)).OrderBy(y => y.StartYear).ToList();
+        ctx.OpenCompany(company, Pick(all, ctx.WorkingDate), all);
         Remember(ctx, company.Id);
         await ctx.Settings.LoadAsync(company.Id);
     }

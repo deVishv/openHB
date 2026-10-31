@@ -10,4 +10,10 @@
   <data name="VersionMismatch" xml:space="preserve"><value>Install Open Hisab Kitab {0} to connect.</value></data>
   <data name="EnterHostName" xml:space="preserve"><value>Enter the host name or IP address.</value></data>
   <data name="EnterPort" xml:space="preserve"><value>Enter a port from 1 to 65535.</value></data>
+  <data name="UnknownFunction" xml:space="preserve"><value>Unknown function: {0}</value></data>
+  <data name="NotInThisVersion" xml:space="preserve"><value>{0} is not in this version yet.</value></data>
+  <data name="NothingToRefresh" xml:space="preserve"><value>Nothing to refresh.</value></data>
+  <data name="DiscardChanges" xml:space="preserve"><value>Discard unsaved changes?</value></data>
+  <data name="TitleNoCompany" xml:space="preserve"><value>Open Hisab Kitab</value></data>
+  <data name="TitleWithCompany" xml:space="preserve"><value>Open Hisab Kitab: {0} FY {1}</value></data>
 </root>

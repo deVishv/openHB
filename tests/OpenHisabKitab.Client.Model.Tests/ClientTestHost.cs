@@ -3,6 +3,9 @@ using Grpc.Core;
 using Grpc.Net.Client;
 using Microsoft.Extensions.DependencyInjection;
 using OpenHisabKitab.Client.Model.Connection;
+using OpenHisabKitab.Client.Model.Settings;
+using OpenHisabKitab.Client.Model.Shell;
+using OpenHisabKitab.Core.Commands;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Host.Application;
 using OpenHisabKitab.Host.Tests.Grpc;
@@ -61,6 +64,21 @@ public sealed class ClientTestHost : IDisposable
         {
             Name = name, State = "27", Registration = "Regular", Gstin = "27AAPFU0939F1ZV", Address = "Pune", FirstFyStartYear = 2026,
         }, o))).Company;
+
+    /// <summary>A shell over a connection that is not logged in, with stores read from this PC's files only.</summary>
+    public ShellViewModel Shell(IReadOnlyDictionary<string, Func<ParsedCommand, ShellContext, IScreen?>> built, IConfirm confirm)
+    {
+        var connection = Connection();
+        var files = new MachineFiles(new ClientPaths(ClientFolder));
+        var ctx = new ShellContext
+        {
+            Host = connection, Settings = new SettingsStore(files, connection), Keys = new KeybindingStore(files, connection), Time = Time,
+            WorkingDate = DateOnly.FromDateTime(Time.GetLocalNow().DateTime),
+        };
+        ctx.Settings.LoadAsync(null).GetAwaiter().GetResult();
+        ctx.Keys.LoadAsync().GetAwaiter().GetResult();
+        return new ShellViewModel(ctx, new FunctionRouter(built), confirm);
+    }
 
     /// <summary>Ends every session, as a host restart does.</summary>
     public void EndAllSessions() => factory.Services.GetRequiredService<SessionStore>().RemoveAll();

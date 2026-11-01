@@ -84,12 +84,14 @@ public sealed class AppSession : IAsyncDisposable
     {
         Find("Set up the Owner.", ControlType.Text);
         // The panel focuses its first field; a window that opened behind another must first come to the front.
-        Window.SetForeground();
+        BringToFront();
         var user = Find("User", ControlType.Edit);
         if (!user.Properties.HasKeyboardFocus.ValueOrDefault) user.Focus();
         WaitFor(() => user.Properties.HasKeyboardFocus.ValueOrDefault, "The User field did not take focus.");
         // Input sent the instant a window comes to the front can be dropped, so each field gets a moment.
         Thread.Sleep(300);
+        // Keystrokes go to whichever window is in front: never type unless it is this client.
+        BringToFront();
         foreach (var (text, next) in new[] { ("owner", VirtualKeyShort.TAB), (Password, VirtualKeyShort.TAB), (Password, VirtualKeyShort.ENTER) })
         {
             Keyboard.Type(text);
@@ -101,6 +103,26 @@ public sealed class AppSession : IAsyncDisposable
             FlaUI.Core.Capturing.Capture.Element(Window).ToFile(Path.Combine(Path.GetTempPath(), "ohk-ui-setup-failed.png"));
         WaitFor(() => StatusTexts().Any(t => t.StartsWith("Connected to", StringComparison.Ordinal)),
             "Setup did not connect. Visible text: " + string.Join(" | ", StatusTexts().Where(t => t.Length > 0)));
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern nint GetForegroundWindow();
+
+    bool InFront() => GetForegroundWindow() == Window.Properties.NativeWindowHandle.ValueOrDefault;
+
+    /// <summary>
+    /// Brings the client in front and waits until Windows really gives it the keyboard. Windows can refuse a new window the
+    /// foreground, and keystrokes then go to the terminal instead; a test that cannot get the window in front fails rather than type there.
+    /// </summary>
+    public void BringToFront()
+    {
+        for (var i = 0; i < 10 && !InFront(); i++)
+        {
+            Window.SetForeground();
+            Window.Focus();
+            Thread.Sleep(200);
+        }
+        Assert.True(InFront(), "The client window could not be brought to the front, so no keys were typed. Keep other windows from taking focus during UI tests.");
     }
 
     public AutomationElement Find(string name, ControlType type) =>

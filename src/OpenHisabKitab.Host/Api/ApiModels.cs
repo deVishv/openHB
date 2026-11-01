@@ -149,7 +149,8 @@ public static class ApiMap
 
 public sealed record IdDto(long Id);
 
-public sealed record SavedDto(long Id, string Number, long RowVersion);
+/// <summary>AlreadySaved is true when a retried save found the voucher its requestId had already made.</summary>
+public sealed record SavedDto(long Id, string Number, long RowVersion, bool AlreadySaved = false);
 
 public sealed record GroupRequest(string Name, int ParentId);
 

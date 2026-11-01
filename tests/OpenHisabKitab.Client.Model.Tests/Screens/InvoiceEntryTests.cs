@@ -212,4 +212,56 @@ public sealed class InvoiceEntryTests : IDisposable
         await Open(shell.Context, "SALE");
         Assert.True(t.Requests.Count - before <= 3);
     }
+    [Fact]
+    public async Task A_note_changed_after_its_suggestion_is_allocated_again_on_save()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await Party(shell, "Ravi Stores", "27");
+        var sale = await Open(shell.Context, "SALE");
+        sale.Party.Set(party);
+        FillLine(sale.Lines[0], Sales(shell.Context), "1000", "0");
+        await sale.SaveAsync();
+        var note = await Open(shell.Context, "CRNT");
+        note.Party.Set(party);
+        FillLine(note.Lines[0], Sales(shell.Context), "300", "0");
+        await note.SuggestBillsAsync();
+        note.Lines[0].Quantity = "0.5";
+        await note.SaveAsync();
+        Assert.Null(note.Message);
+        var v = await t.OtherOwnerClient().Vouchers.GetByNumberAsync(new VoucherNumberRef { Company = shell.Context.Company!.Id, Type = "CreditNote", Number = "CN/26-27/00001" }, t.Headers());
+        Assert.Equal(150_00, v.Allocations.Single().Paise);
+    }
+
+    [Theory]
+    [InlineData("Regular", "PURC", "04", "04", "18", false)]
+    [InlineData("Regular", "SALE", "29", "29", "12", false)]
+    [InlineData("Composition", "SALE", "27", "27", "18", false)]
+    [InlineData("Composition", "PURC", "27", "27", "18", true)]
+    public async Task Screen_totals_equal_the_stored_voucher(string registration, string code, string partyState, string pos, string rate, bool reverseCharge)
+    {
+        var shell = await t.LoggedInShellAsync([], company: null);
+        var id = (await shell.Context.Host.CallAsync((h, o) => h.Companies.CreateAsync(new CompanyProfileMsg
+        {
+            Name = "Co", State = "27", Registration = registration, Gstin = "27AAPFU0939F1ZV", Address = "Pune", FirstFyStartYear = 2026,
+        }, o))).Company;
+        await CompanyOpener.OpenAsync(shell.Context, new CompanyEntry { Id = id, Name = "Co" });
+        var party = await Party(shell, "P", partyState, code == "SALE" ? "TradeReceivables" : "TradePayables");
+        var s = await Open(shell.Context, code);
+        s.Party.Set(party);
+        s.PlaceOfSupply = s.States.Single(x => x.Code == pos);
+        s.ReverseCharge = reverseCharge;
+        var ledger = shell.Context.Lookups.Ledgers(LedgerUse.Any).Single(l => l.Required == (code == "SALE" ? "Sales" : "Purchases"));
+        FillLine(s.Lines[0], ledger, "999.99", rate);
+        s.Lines[0].Quantity = "3";
+        var shown = s.TotalsView;
+        Assert.Null(shown.Problem);
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var number = shell.Status.Message!["Saved ".Length..].TrimEnd('.');
+        var v = await t.OtherOwnerClient().Vouchers.GetByNumberAsync(new VoucherNumberRef { Company = id, Type = code == "SALE" ? "Sale" : "Purchase", Number = number }, t.Headers());
+        var lines = v.Invoice.Lines;
+        Assert.Equal((lines.Sum(l => l.TaxablePaise), lines.Sum(l => l.CgstPaise), lines.Sum(l => l.SgstPaise), lines.Sum(l => l.UtgstPaise), lines.Sum(l => l.IgstPaise), v.Invoice.RoundOffPaise),
+            (shown.Taxable.Paise, shown.Cgst.Paise, shown.Sgst.Paise, shown.Utgst.Paise, shown.Igst.Paise, shown.RoundOff.Paise));
+        Assert.Equal(Math.Abs(v.Postings.Single(p => p.Ledger == party.Id).Paise), shown.Total.Paise);
+    }
 }

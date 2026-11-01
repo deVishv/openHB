@@ -111,4 +111,24 @@ public sealed class PartiesTests : IDisposable
         await t.Eventually(() => discarded);
         Assert.Equal("Discard this party?", confirm.LastQuestion);
     }
+    [Fact]
+    public async Task Saving_twice_keeps_the_stored_opening_bills()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var s = await Prty(shell.Context);
+        Fill(s, "Ravi Stores");
+        s.OpeningBills.Add(new OpeningBillLine { Number = "OB-1", Date = "15-03-2026", Amount = "10,000" });
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var party = shell.Context.Lookups.Ledgers(Model.Lookups.LedgerUse.Party).Count == 0
+            ? (await t.OtherOwnerClient().Masters.ListPartiesAsync(new ListRequest { Company = shell.Context.Company!.Id }, t.Headers())).Parties.Single().Ledger
+            : shell.Context.Lookups.Ledgers(Model.Lookups.LedgerUse.Party).Single().Id;
+        var first = (await t.OtherOwnerClient().Masters.GetOpeningBillsAsync(new LedgerRef { Company = shell.Context.Company!.Id, Ledger = party }, t.Headers())).Bills.Single().Id;
+        Assert.Equal(first, s.OpeningBills[0].Id);
+        s.OpeningBills[0].Amount = "12,000";
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var after = (await t.OtherOwnerClient().Masters.GetOpeningBillsAsync(new LedgerRef { Company = shell.Context.Company!.Id, Ledger = party }, t.Headers())).Bills.Single();
+        Assert.Equal((first, 12000_00L), (after.Id, after.AmountPaise));
+    }
 }

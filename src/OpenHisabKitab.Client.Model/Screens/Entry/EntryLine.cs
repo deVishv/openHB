@@ -16,7 +16,12 @@ public sealed partial class EntryLine : ObservableObject
         Ledger = new LookupField<LedgerOption>(ledgers, l => l.Name);
         Ledger.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(LookupField<LedgerOption>.Value)) Changed?.Invoke();
+            if (e.PropertyName != nameof(LookupField<LedgerOption>.Value)) return;
+            // Another party's bills never stay on the line.
+            Allocations = [];
+            Settles = Money.Zero;
+            ChosenByHand = false;
+            Changed?.Invoke();
         };
     }
 
@@ -38,6 +43,9 @@ public sealed partial class EntryLine : ObservableObject
 
     /// <summary>Bill numbers by id, for AllocationText.</summary>
     internal IReadOnlyDictionary<(string Source, long Id), string> BillNumbers { get; set; } = new Dictionary<(string, long), string>();
+
+    /// <summary>True once the user changed the allocation in the bills panel, or for a stored voucher's own; the suggestion then leaves it alone.</summary>
+    internal bool ChosenByHand { get; set; }
 
     /// <summary>The settlement the allocations were made for, for the on account amount.</summary>
     internal Money Settles { get; set; }

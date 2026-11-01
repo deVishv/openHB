@@ -133,13 +133,23 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
             if (line.Allocations.Count > 0) line.Allocations = [];
             return;
         }
-        if (line.Allocations.Count > 0 && line.Settles == amount) return;
-        await RunAsync(async () =>
-        {
-            var panel = await PanelAsync(line, amount);
-            panel.SuggestOldestFirst();
-            Apply(line, panel, amount);
-        });
+        if (line.ChosenByHand || line.Allocations.Count > 0 && line.Settles == amount) return;
+        await RunAsync(() => SuggestAsync(line, amount));
+    }
+
+    async Task SuggestAsync(EntryLine line, Money amount)
+    {
+        var panel = await PanelAsync(line, amount);
+        panel.SuggestOldestFirst();
+        Apply(line, panel, amount, byHand: false);
+    }
+
+    // Owner decision 1: the suggestion is applied automatically, so a line saved straight from its amount is still allocated.
+    async Task SuggestUnallocatedAsync()
+    {
+        foreach (var line in Lines)
+            if (SettlesBills(line, out var amount) && !line.ChosenByHand && (line.Allocations.Count == 0 || line.Settles != amount))
+                await SuggestAsync(line, amount);
     }
 
     protected override async Task OpenBillsAsync()
@@ -153,7 +163,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
 
     protected override void CloseBills()
     {
-        if (Bills is { } panel && openFor is { } f) Apply(f.Line, panel, f.Amount);
+        if (Bills is { } panel && openFor is { } f) Apply(f.Line, panel, f.Amount, byHand: true);
         openFor = null;
         Bills = null;
     }
@@ -169,10 +179,11 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
         return new BillsPanelViewModel(party.Name, party.Id, amount, [.. bills.Bills], line.Allocations, Ctx.Settings.Current.Text("ui.dateFormat"));
     }
 
-    void Apply(EntryLine line, BillsPanelViewModel panel, Money amount)
+    void Apply(EntryLine line, BillsPanelViewModel panel, Money amount, bool byHand)
     {
         line.Settles = amount;
         line.Allocations = panel.Result();
+        line.ChosenByHand = byHand;
         Edited();
     }
 
@@ -196,6 +207,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
 
     protected override async Task<SavedReply?> SaveNewAsync(DateOnly date)
     {
+        await SuggestUnallocatedAsync();
         if (Build(date) is not { } journal) return null;
         journal.RequestId = RequestId;
         return await Ctx.Host.CallAsync((h, o) => h.Vouchers.SaveJournalAsync(new JournalRequest { Company = Ctx.Company!.Id, Journal = journal }, o));
@@ -203,6 +215,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
 
     protected override async Task<SavedReply?> SaveEditAsync(DateOnly date, VoucherMsg existing)
     {
+        await SuggestUnallocatedAsync();
         if (Build(date) is not { } journal) return null;
         return await Ctx.Host.CallAsync((h, o) => h.Vouchers.EditJournalAsync(new EditJournalRequest
         {
@@ -277,7 +290,9 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
             var line = NewLine();
             line.Ledger.Set(Ctx.Lookups.Ledgers(LedgerUse.Any).FirstOrDefault(l => l.Id == p.Ledger));
             var amount = new Money(Math.Abs(p.Paise));
-            if (HasAccount) line.Amount = IndianNumberFormat.Format(amount);
+            // RCPT lines are credits and PYMT lines debits. A line on the other side (a second debit on a receipt, such as
+            // bank charges) shows with a minus, which Build reads back as the same posting.
+            if (HasAccount) line.Amount = IndianNumberFormat.Format(new Money(Code == "RCPT" ? -p.Paise : p.Paise), NegativeStyle.Minus);
             else if (p.Paise > 0) line.Debit = IndianNumberFormat.Format(amount);
             else line.Credit = IndianNumberFormat.Format(amount);
             var mine = v.Allocations.Where(a => a.Party == p.Ledger).ToList();
@@ -285,6 +300,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
             {
                 line.Settles = amount;
                 line.Allocations = mine;
+                line.ChosenByHand = true;
             }
             Lines.Add(line);
         }

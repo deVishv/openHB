@@ -72,6 +72,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             var c = tx.Connection!;
             if (ChartRepository.HasPostings(c, id) || ChartRepository.Openings(c).ContainsKey(id))
                 throw new ServiceException(ServiceError.Invalid, $"Ledger {before.Name} has entries and cannot be deleted.");
+            if (PartyRepository.Get(c, id) is not null && BillRepository.OpeningBills(c, id).Count > 0)
+                throw new ServiceException(ServiceError.Invalid, $"Party {before.Name} has opening bills. Remove them in PRTY first.");
             ChartRepository.DeleteLedger(tx, id);
             return (id.Value, "ledger", before, (object?)null, 0);
         });

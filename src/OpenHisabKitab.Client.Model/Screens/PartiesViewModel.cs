@@ -226,8 +226,9 @@ public sealed partial class PartiesViewModel : ScreenViewModel, IScreenCommands,
             if (bills is { Rows: { } rows })
             {
                 var set = new SetOpeningBillsRequest { Company = company, Party = id, Version = billsVersion, Bills = { rows } };
-                billsVersion = (await Ctx.Host.CallAsync((h, o) => h.Masters.SetOpeningBillsAsync(set, o))).Version;
-                billsAsLoaded = BillsText();
+                await Ctx.Host.CallAsync((h, o) => h.Masters.SetOpeningBillsAsync(set, o));
+                // The stored bills come back with their ids, so the next save updates them instead of replacing them.
+                await LoadBillsAsync(id);
             }
             OnPropertyChanged(nameof(HasUnsavedEdits));
             if (saved is not null) await saved(id);
@@ -243,8 +244,14 @@ public sealed partial class PartiesViewModel : ScreenViewModel, IScreenCommands,
         Load(party, value.Name);
         _ = RunAsync(async () =>
         {
-            var list = await Ctx.Host.CallAsync((h, o) => h.Masters.GetOpeningBillsAsync(new LedgerRef { Company = Ctx.Company!.Id, Ledger = value.Ledger }, o));
-            if (Selected?.Ledger != value.Ledger) return;
+            if (Selected?.Ledger == value.Ledger) await LoadBillsAsync(value.Ledger);
+        });
+    }
+
+    async Task LoadBillsAsync(int ledger)
+    {
+        {
+            var list = await Ctx.Host.CallAsync((h, o) => h.Masters.GetOpeningBillsAsync(new LedgerRef { Company = Ctx.Company!.Id, Ledger = ledger }, o));
             billsVersion = list.Version;
             OpeningBills.Clear();
             foreach (var b in list.Bills)
@@ -255,7 +262,7 @@ public sealed partial class PartiesViewModel : ScreenViewModel, IScreenCommands,
                 });
             billsAsLoaded = BillsText();
             Summarise();
-        });
+        }
     }
 
     partial void OnFormGstinChanged(string value)

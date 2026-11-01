@@ -34,6 +34,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
             if (Party.Value is { } p && Ctx.Lookups.Parties.TryGetValue(p.Id, out var party))
                 PlaceOfSupply = StateOption.All.FirstOrDefault(s => s.Code == party.State) ?? PlaceOfSupply;
             Allocations = [];
+            allocationsByHand = false;
             Changed();
         };
         Direction = code == "PURC" ? Received : Issued;
@@ -108,6 +109,9 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     IReadOnlyDictionary<(string, long), string> billNumbers = new Dictionary<(string, long), string>();
 
+    // True once the user changed the allocation in the bills panel, or for a stored note's own; the suggestion leaves it alone.
+    bool allocationsByHand;
+
     public string AllocationText => Allocations.Count == 0 ? ""
         : string.Join("; ", [.. Allocations.Select(a => $"{billNumbers.GetValueOrDefault((a.BillSource, a.BillId), "")} {IndianNumberFormat.Format(new Money(a.Paise))}"),
             Format(Text.OnAccountLower, IndianNumberFormat.Format(TotalsView.Total - new Money(Allocations.Sum(a => a.Paise))))]);
@@ -167,6 +171,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         Lines.Clear();
         Lines.Add(NewLine());
         Allocations = [];
+        allocationsByHand = false;
         CurrentLine = null;
         Recalculate();
     }
@@ -233,6 +238,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     /// <summary>For a note that settles bills: the oldest first suggestion with the original invoice first, from one call.</summary>
     public async Task SuggestBillsAsync()
     {
+        if (allocationsByHand) return;
         if (!Settles)
         {
             Allocations = [];
@@ -258,6 +264,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         if (Bills is { } panel)
         {
             Allocations = panel.Result();
+            allocationsByHand = true;
             Edited();
         }
         Bills = null;
@@ -296,8 +303,15 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     // ---- Saving ------------------------------------------------------------------------------------------------
 
+    // Owner decision 1: applied automatically, and again when the total changed after the suggestion.
+    async Task SuggestIfStaleAsync()
+    {
+        if (!allocationsByHand && Settles && new Money(Allocations.Sum(a => a.Paise)) != TotalsView.Total) await SuggestBillsAsync();
+    }
+
     protected override async Task<SavedReply?> SaveNewAsync(DateOnly date)
     {
+        await SuggestIfStaleAsync();
         if (Build(date) is not { } invoice) return null;
         invoice.RequestId = RequestId;
         return await Ctx.Host.CallAsync((h, o) => h.Vouchers.SaveInvoiceAsync(new InvoiceRequest { Company = Ctx.Company!.Id, Invoice = invoice }, o));
@@ -305,6 +319,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     protected override async Task<SavedReply?> SaveEditAsync(DateOnly date, VoucherMsg existing)
     {
+        await SuggestIfStaleAsync();
         if (Build(date) is not { } invoice) return null;
         return await Ctx.Host.CallAsync((h, o) => h.Vouchers.EditInvoiceAsync(new EditInvoiceRequest
         {
@@ -397,6 +412,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         if (Lines.Count == 0) Lines.Add(NewLine());
         Recalculate();
         Allocations = [.. v.Allocations];
+        allocationsByHand = Allocations.Count > 0;
         if (Allocations.Count > 0 && Party.Value is { } p)
         {
             var bills = await Ctx.Host.CallAsync((h, o) => h.Vouchers.OpenBillsAsync(new OpenBillsRequest { Company = Ctx.Company!.Id, Party = p.Id, ExcludingVoucher = v.Id }, o));

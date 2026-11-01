@@ -216,8 +216,12 @@ public static class RestRoutes
 
     static Created<IdDto> Created(HttpContext c, IdDto id) => TypedResults.Created($"{c.Request.Path}/{id.Id}", id);
 
-    static Created<SavedDto> Saved(HttpContext c, int company, SavedVoucher s) =>
-        TypedResults.Created($"/api/v1/companies/{company}/vouchers/{s.Id}", new SavedDto(s.Id, s.DisplayNumber, s.RowVersion));
+    // A retry that found its voucher answers 200 with alreadySaved, not 201, so an integrator can tell it from a new save.
+    static Results<Created<SavedDto>, Ok<SavedDto>> Saved(HttpContext c, int company, SavedVoucher s)
+    {
+        var dto = new SavedDto(s.Id, s.DisplayNumber, s.RowVersion, s.AlreadySaved);
+        return s.AlreadySaved ? TypedResults.Ok(dto) : TypedResults.Created($"/api/v1/companies/{company}/vouchers/{s.Id}", dto);
+    }
 
     // A conflict carries the current record; it leaves in wire form, with ledger names from the company's chart.
     static async Task<T> Conflicts<T>(HttpContext c, MasterService masters, int company, Func<Task<T>> work)

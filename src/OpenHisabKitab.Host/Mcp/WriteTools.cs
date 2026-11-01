@@ -27,7 +27,7 @@ public sealed class WriteTools(IHttpContextAccessor http, MasterService masters,
     public Task<CallToolResult> CreateVoucher(int company, JournalRequest voucher) => McpResults.Run(log, "create_voucher", async () =>
     {
         var s = await vouchers.SaveJournalAsync(Caller, company, ApiParse.Journal(voucher, "$.voucher"));
-        return (object)new SavedDto(s.Id, s.DisplayNumber, s.RowVersion);
+        return (object)new SavedDto(s.Id, s.DisplayNumber, s.RowVersion, s.AlreadySaved);
     });
 
     [McpServerTool(Name = "create_invoice", Destructive = false),
@@ -36,7 +36,7 @@ public sealed class WriteTools(IHttpContextAccessor http, MasterService masters,
     public Task<CallToolResult> CreateInvoice(int company, InvoiceRequest invoice) => McpResults.Run(log, "create_invoice", async () =>
     {
         var s = await vouchers.SaveInvoiceAsync(Caller, company, ApiParse.Invoice(invoice, "$.invoice"));
-        return (object)new SavedDto(s.Id, s.DisplayNumber, s.RowVersion);
+        return (object)new SavedDto(s.Id, s.DisplayNumber, s.RowVersion, s.AlreadySaved);
     });
 
     [McpServerTool(Name = "create_party", Destructive = false),

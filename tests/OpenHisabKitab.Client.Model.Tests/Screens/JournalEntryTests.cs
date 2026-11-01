@@ -301,4 +301,65 @@ public sealed class JournalEntryTests : IDisposable
         await Open(shell.Context, "JRNL");
         Assert.True(t.Requests.Count - before <= 3);
     }
+    [Fact]
+    public async Task Resaving_a_receipt_with_two_debits_keeps_every_line()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await NewParty(shell, "Ravi Stores");
+        var company = shell.Context.Company!.Id;
+        var other = t.OtherOwnerClient();
+        var chart = await other.Masters.GetChartAsync(new CompanyRef { Company = company }, t.Headers());
+        var bank = (int)(await other.Masters.AddLedgerAsync(new AddLedgerRequest { Company = company, Name = "HDFC Bank", Group = chart.Groups.Single(g => g.Kind == "BankAccounts").Id }, t.Headers())).Id;
+        var charges = (int)(await other.Masters.AddLedgerAsync(new AddLedgerRequest { Company = company, Name = "Bank charges", Group = chart.Groups.Single(g => g.Kind == "OtherExpenses").Id }, t.Headers())).Id;
+        await other.Vouchers.SaveJournalAsync(new JournalRequest
+        {
+            Company = company,
+            Journal = new JournalMsg
+            {
+                Type = "Receipt", Date = "2026-05-10",
+                Lines = { new PostingLineMsg { Ledger = bank, Paise = 9900_00 }, new PostingLineMsg { Ledger = charges, Paise = 100_00 }, new PostingLineMsg { Ledger = party, Paise = -10000_00 } },
+            },
+        }, t.Headers());
+        await t.Eventually(() => shell.Context.Lookups.Chart.Ledgers.Any(l => l.Id == charges));
+        var edit = await Open(shell.Context, "RCPT RCT/26-27/00001");
+        edit.Narration = "fixed";
+        await edit.SaveAsync();
+        Assert.Null(edit.Message);
+        var v = await other.Vouchers.GetByNumberAsync(new VoucherNumberRef { Company = company, Type = "Receipt", Number = "RCT/26-27/00001" }, t.Headers());
+        Assert.Equal([(bank, 9900_00L), (charges, 100_00L), (party, -10000_00L)],
+            v.Postings.Select(p => (p.Ledger, p.Paise)).OrderByDescending(x => x.Item2));
+    }
+
+    [Fact]
+    public async Task Saving_straight_from_the_amount_still_allocates_oldest_first()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await NewParty(shell, "Ravi Stores");
+        var sale = await Sale(shell, party, 10000_00, "2026-05-01");
+        var s = await Open(shell.Context, "RCPT");
+        s.Account!.Set(Required(shell.Context, "Cash"));
+        Line(s.Lines[0], Ledger(shell.Context, "Ravi Stores"), amount: "4,000");
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var v = await t.OtherOwnerClient().Vouchers.GetByNumberAsync(new VoucherNumberRef { Company = shell.Context.Company!.Id, Type = "Receipt", Number = "RCT/26-27/00001" }, t.Headers());
+        Assert.Equal((sale.Id, 4000_00L), (v.Allocations.Single().BillId, v.Allocations.Single().Paise));
+    }
+
+    [Fact]
+    public async Task Changing_a_lines_party_drops_its_allocations()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var ravi = await NewParty(shell, "Ravi Stores");
+        await NewParty(shell, "Blr Mart");
+        await Sale(shell, ravi, 10000_00, "2026-05-01");
+        var s = await Open(shell.Context, "RCPT");
+        s.Account!.Set(Required(shell.Context, "Cash"));
+        Line(s.Lines[0], Ledger(shell.Context, "Ravi Stores"), amount: "1,000");
+        await s.LineAmountCommittedAsync(s.Lines[0]);
+        Assert.NotEmpty(s.Lines[0].Allocations);
+        s.Lines[0].Ledger.Set(Ledger(shell.Context, "Blr Mart"));
+        Assert.Empty(s.Lines[0].Allocations);
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+    }
 }

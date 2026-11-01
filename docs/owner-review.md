@@ -34,6 +34,10 @@ Major decisions and data checks that need the owner. Smaller decisions are the b
    - **The fix.** Each new voucher carries a request id. A repeat from the same user, for the same type, returns the first voucher, marked "already saved". The screen then shows that saved voucher with `Already saved as {number}. Showing the saved version.`, so any change typed in between is not mistaken for saved. Another user's or type's use of the id is refused.
    - **The other option** is to refuse the repeat outright. The user then has to look the voucher up in `FIND`. Ok
 
+### Decided while building, say OK or change
+
+7. **A composition company's typed GST rate** (Plan 5, Task 14). A rate typed on a sale line is stored, but no tax is charged or shown in the totals, because composition companies issue bills of supply (spec 13). Recommended: keep it. The other option is to force the rate to 0 on the line as it is typed.
+
 ### Check before the first public release
 
 5. **Export invoice fields** (Task 5): port code of 6 letters or digits, and shipping bill number of 3 to 7 digits. Each is optional at entry. Confirm against the GSTR-1 offline schema when Plan 7 adds the GST files.

@@ -128,4 +128,11 @@ public sealed class OpeningBillsTests : IDisposable
             await Refused(ServiceError.Invalid, () => Set(stored with { Amount = Money.Parse("199.99") })));
         await Set(stored with { Amount = Money.Parse("200.00") });
     }
+    [Fact]
+    public async Task A_party_with_opening_bills_cannot_be_deleted()
+    {
+        await Set(Bill("OB-1", "100.00"));
+        Assert.Equal("Party Ravi Stores has opening bills. Remove them in PRTY first.",
+            await Refused(ServiceError.Invalid, () => host.Masters.RemoveLedgerAsync(owner, company, party)));
+    }
 }

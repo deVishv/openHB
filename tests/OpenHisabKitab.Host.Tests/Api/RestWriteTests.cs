@@ -246,4 +246,19 @@ public sealed class RestWriteTests : IDisposable
         Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
         Assert.Equal("A Traders LLP", (await rw.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{co}")).GetProperty("name").GetString());
     }
+    [Fact]
+    public async Task Rest_retry_with_the_same_request_id_says_already_saved()
+    {
+        var body = new
+        {
+            type = "receipt", date = "2026-05-10", narration = "", requestId = "retry-1",
+            lines = new[] { new { ledgerId = b.Cash.Value, amount = "5.00" }, new { ledgerId = b.Sales.Value, amount = "-5.00" } },
+        };
+        var first = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.False((await first.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadySaved").GetBoolean());
+        var again = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.True((await again.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadySaved").GetBoolean());
+    }
 }

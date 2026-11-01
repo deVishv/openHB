@@ -30,53 +30,56 @@
                          AutomationProperties.Name="{t:Name NarrationLabel}" />
             </Grid>
 
-            <!-- Footer: live totals and the difference until it reaches zero (spec 6.4). -->
-            <DockPanel DockPanel.Dock="Bottom" Margin="2">
-                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                    <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
-                    <Button Content="{t:Txt BillsButton}" AutomationProperties.Name="{t:Name BillsButton}" Click="OnBills" Margin="4,0,0,0"
-                            Visibility="{Binding HasAccount, Converter={StaticResource Bool}}" />
-                    <Button Content="{t:Txt CancelVoucherButton}" AutomationProperties.Name="{t:Name CancelVoucherButton}" Click="OnCancelVoucher" Margin="4,0,0,0"
-                            Visibility="{Binding IsEditing, Converter={StaticResource Bool}}" />
-                </StackPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Difference}" FontFamily="{DynamicResource NumberFont}" FontWeight="Bold" Margin="12,0,0,0"
-                           AutomationProperties.LiveSetting="Polite" />
-                <TextBlock Text="{Binding Totals}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.LiveSetting="Polite" />
-            </DockPanel>
-
-            <Grid DockPanel.Dock="Top" Margin="2,6,2,0">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <TextBlock Text="{t:Txt LedgerColumn}" />
-                <TextBlock Grid.Column="1" Text="{t:Txt AmountColumn}" TextAlignment="Right" Visibility="{Binding HasAccount, Converter={StaticResource Bool}}" />
-                <TextBlock Grid.Column="1" Text="{t:Txt DebitColumn}" TextAlignment="Right" Visibility="{Binding HasDebitCredit, Converter={StaticResource Bool}}" />
-                <TextBlock Grid.Column="2" Text="{t:Txt CreditColumn}" TextAlignment="Right" Visibility="{Binding HasDebitCredit, Converter={StaticResource Bool}}" />
+            <!-- In reading order, so Tab goes from the header into the lines and reaches the footer last (spec 6.4). -->
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="2,6,2,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <TextBlock Text="{t:Txt LedgerColumn}" />
+                    <TextBlock Grid.Column="1" Text="{t:Txt AmountColumn}" TextAlignment="Right" Visibility="{Binding HasAccount, Converter={StaticResource Bool}}" />
+                    <TextBlock Grid.Column="1" Text="{t:Txt DebitColumn}" TextAlignment="Right" Visibility="{Binding HasDebitCredit, Converter={StaticResource Bool}}" />
+                    <TextBlock Grid.Column="2" Text="{t:Txt CreditColumn}" TextAlignment="Right" Visibility="{Binding HasDebitCredit, Converter={StaticResource Bool}}" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <ItemsControl x:Name="Lines" ItemsSource="{Binding Lines}" v:EntryGrid.IsEntryGrid="True" Focusable="False"
+                                  AutomationProperties.Name="{t:Name LedgerColumn}" IsEnabled="{Binding IsCancelled, Converter={x:Static v:Negate.Instance}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <v:LookupBox DataContext="{Binding Ledger}" AutomationName="{t:Name LedgerColumn}" CreateRequested="OnCreateParty" />
+                                        <TextBox Grid.Column="1" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
+                                                 AutomationProperties.Name="{t:Name AmountColumn}" LostKeyboardFocus="OnAmountCommitted"
+                                                 Visibility="{Binding DataContext.HasAccount, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
+                                        <TextBox Grid.Column="1" Text="{Binding Debit, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
+                                                 AutomationProperties.Name="{t:Name DebitColumn}"
+                                                 Visibility="{Binding DataContext.HasDebitCredit, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
+                                        <TextBox Grid.Column="2" Text="{Binding Credit, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
+                                                 AutomationProperties.Name="{t:Name CreditColumn}"
+                                                 Visibility="{Binding DataContext.HasDebitCredit, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding AllocationText}" FontFamily="{DynamicResource NumberFont}" Margin="12,0,0,2"
+                                               Visibility="{Binding AllocationText, Converter={StaticResource Present}}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <!-- Footer: live totals and the difference until it reaches zero (spec 6.4). -->
+                <DockPanel Grid.Row="2" Margin="2">
+                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                        <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
+                        <Button Content="{t:Txt BillsButton}" AutomationProperties.Name="{t:Name BillsButton}" Click="OnBills" Margin="4,0,0,0"
+                                Visibility="{Binding HasAccount, Converter={StaticResource Bool}}" />
+                        <Button Content="{t:Txt CancelVoucherButton}" AutomationProperties.Name="{t:Name CancelVoucherButton}" Click="OnCancelVoucher" Margin="4,0,0,0"
+                                Visibility="{Binding IsEditing, Converter={StaticResource Bool}}" />
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding Difference}" FontFamily="{DynamicResource NumberFont}" FontWeight="Bold" Margin="12,0,0,0"
+                               AutomationProperties.LiveSetting="Polite" />
+                    <TextBlock Text="{Binding Totals}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.LiveSetting="Polite" />
+                </DockPanel>
             </Grid>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                <ItemsControl x:Name="Lines" ItemsSource="{Binding Lines}" v:EntryGrid.IsEntryGrid="True" Focusable="False"
-                              AutomationProperties.Name="{t:Name LedgerColumn}" IsEnabled="{Binding IsCancelled, Converter={x:Static v:Negate.Instance}}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="3*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <v:LookupBox DataContext="{Binding Ledger}" AutomationName="{t:Name LedgerColumn}" CreateRequested="OnCreateParty" />
-                                    <TextBox Grid.Column="1" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
-                                             AutomationProperties.Name="{t:Name AmountColumn}" LostKeyboardFocus="OnAmountCommitted"
-                                             Visibility="{Binding DataContext.HasAccount, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
-                                    <TextBox Grid.Column="1" Text="{Binding Debit, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
-                                             AutomationProperties.Name="{t:Name DebitColumn}"
-                                             Visibility="{Binding DataContext.HasDebitCredit, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
-                                    <TextBox Grid.Column="2" Text="{Binding Credit, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right"
-                                             AutomationProperties.Name="{t:Name CreditColumn}"
-                                             Visibility="{Binding DataContext.HasDebitCredit, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Bool}}" />
-                                </Grid>
-                                <TextBlock Text="{Binding AllocationText}" FontFamily="{DynamicResource NumberFont}" Margin="12,0,0,2"
-                                           Visibility="{Binding AllocationText, Converter={StaticResource Present}}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
         </DockPanel>
 
         <!-- Sub screens over the voucher: a new party (PRTY), or the bills of a line's party. Esc returns. -->

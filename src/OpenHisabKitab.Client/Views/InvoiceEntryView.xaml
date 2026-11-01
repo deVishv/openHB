@@ -79,68 +79,71 @@
                 </StackPanel>
             </WrapPanel>
 
-            <!-- Footer: live taxable value, each tax in use, round off, total; a line problem in the host's words. -->
-            <StackPanel DockPanel.Dock="Bottom" Margin="2">
-                <DockPanel>
-                    <Label DockPanel.Dock="Left" Content="{t:Txt NarrationLabel}" Target="{Binding ElementName=Narration}" />
-                    <TextBox x:Name="Narration" Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name NarrationLabel}" />
-                </DockPanel>
-                <TextBlock Text="{Binding AllocationText}" FontFamily="{DynamicResource NumberFont}" Visibility="{Binding AllocationText, Converter={StaticResource Present}}" />
-                <TextBlock Text="{Binding Difference}" FontWeight="Bold" Visibility="{Binding Difference, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Polite" />
-                <DockPanel>
-                    <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                        <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
-                        <Button Content="{t:Txt BillsButton}" AutomationProperties.Name="{t:Name BillsButton}" Click="OnBills" Margin="4,0,0,0"
-                                Visibility="{Binding IsNote, Converter={StaticResource Bool}}" />
-                        <Button Content="{t:Txt CancelVoucherButton}" AutomationProperties.Name="{t:Name CancelVoucherButton}" Click="OnCancelVoucher" Margin="4,0,0,0"
-                                Visibility="{Binding IsEditing, Converter={StaticResource Bool}}" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Totals}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
-                </DockPanel>
-            </StackPanel>
-
-            <Grid DockPanel.Dock="Top" Margin="2,6,2,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{t:Txt ItemColumn}" />
-                <TextBlock Grid.Column="1" Text="{t:Txt LedgerColumn}" />
-                <TextBlock Grid.Column="2" Text="{t:Txt DescriptionColumn}" />
-                <TextBlock Grid.Column="3" Text="{t:Txt HsnColumn}" />
-                <TextBlock Grid.Column="4" Text="{t:Txt QuantityColumn}" TextAlignment="Right" />
-                <TextBlock Grid.Column="5" Text="{t:Txt PriceColumn}" TextAlignment="Right" />
-                <TextBlock Grid.Column="6" Text="{t:Txt DiscountColumn}" TextAlignment="Right" />
-                <TextBlock Grid.Column="7" Text="{t:Txt RateColumn}" TextAlignment="Right" />
-                <TextBlock Grid.Column="8" Text="{t:Txt CessColumn}" TextAlignment="Right" />
-                <TextBlock Grid.Column="9" Text="{t:Txt TaxIncludedColumn}" />
+            <!-- In reading order, so Tab goes from the header into the lines and reaches the footer last (spec 6.4). -->
+            <Grid>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="2,6,2,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{t:Txt ItemColumn}" />
+                    <TextBlock Grid.Column="1" Text="{t:Txt LedgerColumn}" />
+                    <TextBlock Grid.Column="2" Text="{t:Txt DescriptionColumn}" />
+                    <TextBlock Grid.Column="3" Text="{t:Txt HsnColumn}" />
+                    <TextBlock Grid.Column="4" Text="{t:Txt QuantityColumn}" TextAlignment="Right" />
+                    <TextBlock Grid.Column="5" Text="{t:Txt PriceColumn}" TextAlignment="Right" />
+                    <TextBlock Grid.Column="6" Text="{t:Txt DiscountColumn}" TextAlignment="Right" />
+                    <TextBlock Grid.Column="7" Text="{t:Txt RateColumn}" TextAlignment="Right" />
+                    <TextBlock Grid.Column="8" Text="{t:Txt CessColumn}" TextAlignment="Right" />
+                    <TextBlock Grid.Column="9" Text="{t:Txt TaxIncludedColumn}" />
+                </Grid>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+                    <ItemsControl x:Name="Lines" ItemsSource="{Binding Lines}" v:EntryGrid.IsEntryGrid="True" Focusable="False"
+                                  AutomationProperties.Name="{t:Name ItemColumn}" IsEnabled="{Binding IsCancelled, Converter={x:Static v:Negate.Instance}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <v:LookupBox DataContext="{Binding Item}" AutomationName="{t:Name ItemColumn}" />
+                                    <v:LookupBox Grid.Column="1" DataContext="{Binding Ledger}" AutomationName="{t:Name LedgerColumn}" />
+                                    <TextBox Grid.Column="2" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name DescriptionColumn}" />
+                                    <TextBox Grid.Column="3" Text="{Binding HsnSac, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name HsnColumn}" />
+                                    <TextBox Grid.Column="4" Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name QuantityColumn}" />
+                                    <TextBox Grid.Column="5" Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name PriceColumn}"
+                                             LostKeyboardFocus="OnAmountCommitted" />
+                                    <TextBox Grid.Column="6" Text="{Binding Discount, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name DiscountColumn}" />
+                                    <TextBox Grid.Column="7" Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name RateColumn}" />
+                                    <TextBox Grid.Column="8" Text="{Binding Cess, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name CessColumn}" />
+                                    <CheckBox Grid.Column="9" IsChecked="{Binding PriceIncludesTax}" VerticalAlignment="Center" Margin="4,0" AutomationProperties.Name="{t:Name TaxIncludedColumn}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+                <!-- Footer: live taxable value, each tax in use, round off, total; a line problem in the host's words. -->
+                <StackPanel Grid.Row="2" Margin="2">
+                    <DockPanel>
+                        <Label DockPanel.Dock="Left" Content="{t:Txt NarrationLabel}" Target="{Binding ElementName=Narration}" />
+                        <TextBox x:Name="Narration" Text="{Binding Narration, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name NarrationLabel}" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding AllocationText}" FontFamily="{DynamicResource NumberFont}" Visibility="{Binding AllocationText, Converter={StaticResource Present}}" />
+                    <TextBlock Text="{Binding Difference}" FontWeight="Bold" Visibility="{Binding Difference, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Polite" />
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
+                            <Button Content="{t:Txt BillsButton}" AutomationProperties.Name="{t:Name BillsButton}" Click="OnBills" Margin="4,0,0,0"
+                                    Visibility="{Binding IsNote, Converter={StaticResource Bool}}" />
+                            <Button Content="{t:Txt CancelVoucherButton}" AutomationProperties.Name="{t:Name CancelVoucherButton}" Click="OnCancelVoucher" Margin="4,0,0,0"
+                                    Visibility="{Binding IsEditing, Converter={StaticResource Bool}}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding Totals}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+                    </DockPanel>
+                </StackPanel>
             </Grid>
-            <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-                <ItemsControl x:Name="Lines" ItemsSource="{Binding Lines}" v:EntryGrid.IsEntryGrid="True" Focusable="False"
-                              AutomationProperties.Name="{t:Name ItemColumn}" IsEnabled="{Binding IsCancelled, Converter={x:Static v:Negate.Instance}}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="0.7*" /><ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <v:LookupBox DataContext="{Binding Item}" AutomationName="{t:Name ItemColumn}" />
-                                <v:LookupBox Grid.Column="1" DataContext="{Binding Ledger}" AutomationName="{t:Name LedgerColumn}" />
-                                <TextBox Grid.Column="2" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name DescriptionColumn}" />
-                                <TextBox Grid.Column="3" Text="{Binding HsnSac, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name HsnColumn}" />
-                                <TextBox Grid.Column="4" Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name QuantityColumn}" />
-                                <TextBox Grid.Column="5" Text="{Binding Price, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name PriceColumn}"
-                                         LostKeyboardFocus="OnAmountCommitted" />
-                                <TextBox Grid.Column="6" Text="{Binding Discount, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name DiscountColumn}" />
-                                <TextBox Grid.Column="7" Text="{Binding Rate, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name RateColumn}" />
-                                <TextBox Grid.Column="8" Text="{Binding Cess, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}" TextAlignment="Right" AutomationProperties.Name="{t:Name CessColumn}" />
-                                <CheckBox Grid.Column="9" IsChecked="{Binding PriceIncludesTax}" VerticalAlignment="Center" Margin="4,0" AutomationProperties.Name="{t:Name TaxIncludedColumn}" />
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </ScrollViewer>
         </DockPanel>
 
         <ContentControl Content="{Binding SubScreen}" Visibility="{Binding SubScreen, Converter={StaticResource Present}}" Background="{DynamicResource FaceBrush}"

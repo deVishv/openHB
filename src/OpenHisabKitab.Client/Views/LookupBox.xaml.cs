@@ -13,7 +13,9 @@ namespace OpenHisabKitab.Client.Views;
 public partial class LookupBox : UserControl
 {
     public static readonly DependencyProperty AutomationNameProperty =
-        DependencyProperty.Register(nameof(AutomationName), typeof(string), typeof(LookupBox), new PropertyMetadata(""));
+        DependencyProperty.Register(nameof(AutomationName), typeof(string), typeof(LookupBox),
+            // The box itself takes focus from its label before handing it on, so it carries the same name for screen readers.
+            new PropertyMetadata("", (d, e) => System.Windows.Automation.AutomationProperties.SetName(d, (string)e.NewValue)));
 
     public static readonly DependencyProperty DisplayPathProperty =
         DependencyProperty.Register(nameof(DisplayPath), typeof(string), typeof(LookupBox),

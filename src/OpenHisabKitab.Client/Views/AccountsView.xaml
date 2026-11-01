@@ -19,7 +19,7 @@
             <DockPanel Margin="2">
                 <Label DockPanel.Dock="Top" Content="{t:Txt AccountsHeading}" Target="{Binding ElementName=ChartList}" FontWeight="Bold" />
                 <ListBox x:Name="ChartList" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name AccountsHeading}"
-                         VirtualizingPanel.IsVirtualizing="True" KeyDown="OnListKeyDown">
+                         VirtualizingPanel.IsVirtualizing="True" KeyDown="OnListKeyDown" SelectionChanged="OnSelected">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />

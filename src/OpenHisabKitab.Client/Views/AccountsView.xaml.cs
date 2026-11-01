@@ -24,6 +24,12 @@ public partial class AccountsView : UserControl
         if (Vm.CanRun("record.delete")) await Vm.RunAsync("record.delete");
     }
 
+    /// <summary>The selected row stays in view, so a ledger just saved shows in the long chart.</summary>
+    void OnSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (ChartList.SelectedItem is { } row) ChartList.ScrollIntoView(row);
+    }
+
     /// <summary>Enter on a row moves to the form to edit it.</summary>
     void OnListKeyDown(object sender, KeyEventArgs e)
     {

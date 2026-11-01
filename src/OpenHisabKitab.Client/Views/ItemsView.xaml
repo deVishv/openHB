@@ -25,7 +25,7 @@
                         <GridView>
                             <GridViewColumn Header="{t:Txt NameColumn}" DisplayMemberBinding="{Binding Name}" Width="220" />
                             <GridViewColumn Header="{t:Txt HsnColumn}" DisplayMemberBinding="{Binding HsnSac}" Width="100" />
-                            <GridViewColumn Header="{t:Txt UnitLabel}" DisplayMemberBinding="{Binding Unit}" Width="60" />
+                            <GridViewColumn Header="{t:Txt UnitColumn}" DisplayMemberBinding="{Binding Unit}" Width="60" />
                         </GridView>
                     </ListView.View>
                 </ListView>

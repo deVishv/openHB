@@ -333,4 +333,5 @@
   <data name="LockButton" xml:space="preserve"><value>_Lock</value></data>
   <data name="UnlockButton" xml:space="preserve"><value>Unloc_k all</value></data>
   <data name="LockHeading" xml:space="preserve"><value>Period lock</value></data>
+  <data name="UnitColumn" xml:space="preserve"><value>Unit</value></data>
 </root>

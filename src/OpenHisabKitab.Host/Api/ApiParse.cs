@@ -66,8 +66,9 @@ public static class ApiParse
             [.. (r.Lines ?? []).Select((l, i) => new PostingLine(new LedgerId(l.LedgerId), Money(l.Amount, $"{root}.lines[{i}].amount")))],
             Allocations(r.Allocations, root), Text(r.RequestId));
 
-    static IReadOnlyList<AllocationRow> Allocations(IReadOnlyList<AllocationRequest>? list, string root) =>
-        [.. (list ?? []).Select((a, i) => new AllocationRow(new LedgerId(a.PartyId),
+    // Null when the field is left out, so an edit keeps the voucher's stored allocations.
+    static IReadOnlyList<AllocationRow>? Allocations(IReadOnlyList<AllocationRequest>? list, string root) =>
+        list is null ? null : [.. list.Select((a, i) => new AllocationRow(new LedgerId(a.PartyId),
             new BillRef(Choice<BillSource>(a.BillSource, $"{root}.allocations[{i}].billSource"), a.BillId),
             Money(a.Amount, $"{root}.allocations[{i}].amount")))];
 

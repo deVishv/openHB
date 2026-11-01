@@ -112,7 +112,7 @@ public static class VoucherRepository
     /// or narration contains the text, when it names one of the party ledgers (on the invoice or in a posting), or when its
     /// debit total equals amount.
     /// </summary>
-    public static IReadOnlyList<VoucherRow> Find(SqliteConnection c, string text, DateRange? range, IReadOnlyCollection<int> partyLedgers,
+    public static IReadOnlyList<VoucherRow> Find(SqliteConnection c, string text, DateRange? range, VoucherType? type, IReadOnlyCollection<int> partyLedgers,
         Money? amount, int? createdBy, (DateOnly Date, long Id)? before, int limit)
     {
         var match = "instr(lower(display_number), lower($t)) > 0 OR instr(lower(narration), lower($t)) > 0";
@@ -135,6 +135,7 @@ public static class VoucherRepository
             args.Add(("$from", Dates.Format(r.From)));
             args.Add(("$to", Dates.Format(r.To)));
         }
+        if (type is { } t) { where += " AND type = $type"; args.Add(("$type", t.ToString())); }
         if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
         if (before is { } b)
         {

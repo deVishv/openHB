@@ -264,4 +264,25 @@ public sealed class InvoiceEntryTests : IDisposable
             (shown.Taxable.Paise, shown.Cgst.Paise, shown.Sgst.Paise, shown.Utgst.Paise, shown.Igst.Paise, shown.RoundOff.Paise));
         Assert.Equal(Math.Abs(v.Postings.Single(p => p.Ledger == party.Id).Paise), shown.Total.Paise);
     }
+    [Fact]
+    public async Task Live_totals_never_choose_a_ledger_for_a_partly_typed_name()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var s = await Open(shell.Context, "SALE");
+        s.Lines[0].Ledger.Text = "Sal";
+        s.Lines[0].Price = "100";
+        s.Lines[0].Quantity = "2";
+        Assert.Null(s.Lines[0].Ledger.Value);
+        Assert.Equal("Sal", s.Lines[0].Ledger.Text);
+    }
+
+    [Fact]
+    public async Task Kind_and_direction_choices_have_plain_names()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var s = await Open(shell.Context, "CRNT");
+        Assert.Equal("Export under LUT", s.KindOptions.Single(k => k.Value == "ExportUnderLut").Label);
+        Assert.Equal("SEZ without tax", s.KindOptions.Single(k => k.Value == "SezWithoutTax").Label);
+        Assert.Equal(["Issued", "Received"], s.DirectionOptions.Select(d => d.Label));
+    }
 }

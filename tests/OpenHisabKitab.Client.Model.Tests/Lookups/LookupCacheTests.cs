@@ -197,4 +197,18 @@ public sealed class LookupCacheTests : IDisposable
         var options = LookupCache.Options(chart, new Dictionary<int, PartyMsg>());
         Assert.False(options.Single().IsCashOrBank);
     }
+    [Fact]
+    public async Task A_failed_refresh_keeps_what_was_loaded()
+    {
+        var connection = await t.LoggedInOwnerAsync();
+        var company = await t.NewCompanyAsync(connection);
+        var cache = new LookupCache(connection);
+        await cache.LoadAsync(company);
+        var ledgers = cache.Ledgers(LedgerUse.Any).Count;
+        t.FailRequest = ("GetChart", 1);
+        await Assert.ThrowsAsync<HostException>(() => cache.RefreshAsync());
+        Assert.Equal(ledgers, cache.Ledgers(LedgerUse.Any).Count);
+        Assert.Equal(company, cache.Company);
+        await t.Settle(connection);
+    }
 }

@@ -35,7 +35,7 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
     {
         RequireJournalType(input.Type);
         return EditAsync(ctx, company, id, rowVersion, input.Type, input.Date, input.Narration,
-            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null), input.Allocations ?? []);
+            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null), input.Allocations);
     }
 
     /// <summary>Cancels a voucher. It keeps its number and posts nothing (spec 5.4).</summary>
@@ -105,7 +105,7 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
     }
 
     async Task<SavedVoucher> EditAsync(CallContext ctx, int company, long id, long rowVersion, VoucherType type, DateOnly date,
-        string narration, Build build, IReadOnlyList<AllocationRow> allocations)
+        string narration, Build build, IReadOnlyList<AllocationRow>? allocations)
     {
         ctx.Require(Permission.EditVoucher);
         ctx.RequireCompany(company);
@@ -121,12 +121,14 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
             CheckOpenings(c);
             var chart = ChartRepository.Load(c);
             var (postings, invoice) = build(tx, chart);
-            CheckAllocations(c, chart, type, postings, allocations, id);
+            // An edit that sends no allocations keeps the stored ones; an empty list frees them.
+            var kept = allocations ?? existing.Allocations;
+            CheckAllocations(c, chart, type, postings, kept, id);
             CheckSettledBillEdit(c, chart, existing, invoice?.Party, postings);
 
             var row = existing with
             {
-                Date = date, Narration = narration.Trim(), Postings = postings, Invoice = invoice, Allocations = allocations, RowVersion = rowVersion + 1,
+                Date = date, Narration = narration.Trim(), Postings = postings, Invoice = invoice, Allocations = kept, RowVersion = rowVersion + 1,
             };
             VoucherRepository.Update(tx, row, rowVersion);
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "edit", "voucher", Text.Key(id), Json(existing), Json(row)));

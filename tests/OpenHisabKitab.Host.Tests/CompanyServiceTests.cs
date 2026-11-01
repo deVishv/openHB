@@ -258,4 +258,15 @@ public sealed class CompanyServiceTests : IDisposable
         var clerk = host.NewUser("clerk", BuiltInRole.DataEntry, id).Context;
         await FailsAsync(ServiceError.PermissionDenied, () => host.Companies.UpdateAsync(clerk, id, TestHost.Profile()));
     }
+    [Fact]
+    public async Task A_stale_company_list_name_is_repaired_when_the_company_is_read()
+    {
+        var id = host.NewCompany();
+        var owner = host.Owner.Context;
+        await host.Companies.UpdateAsync(owner, id, TestHost.Profile() with { Name = "A Traders LLP" });
+        // As if the host.db write after the company file had failed.
+        host.Data.WriteHost(tx => { CompanyListRepository.Rename(tx, id, "A Traders"); return 0; });
+        Assert.Equal("A Traders LLP", host.Companies.Get(owner, id).Name);
+        Assert.Equal("A Traders LLP", host.Companies.List(owner).Single(c => c.Id == id).Name);
+    }
 }

@@ -169,7 +169,10 @@ public sealed record LineRequest(int LedgerId, string Amount);
 /// <summary>Part of a receipt, payment, or note to settle one bill. BillSource and BillId come from open-bills.</summary>
 public sealed record AllocationRequest(int PartyId, string BillSource, long BillId, string Amount);
 
-/// <summary>RequestId, when sent, makes a retried save return the first voucher instead of saving a second.</summary>
+/// <summary>
+/// RequestId, when sent, makes a retried save return the first voucher instead of saving a second. Allocations left out of
+/// an edit keep the voucher's stored ones; an empty list frees them.
+/// </summary>
 public sealed record JournalRequest(
     string Type, string Date, string Narration, IReadOnlyList<LineRequest> Lines, IReadOnlyList<AllocationRequest>? Allocations = null,
     string? RequestId = null);

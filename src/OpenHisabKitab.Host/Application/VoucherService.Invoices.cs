@@ -23,7 +23,7 @@ public sealed partial class VoucherService
     {
         CheckDocumentType(input);
         return EditAsync(ctx, company, id, rowVersion, input.Type, input.Date, input.Narration, (tx, chart) => Calculated(tx, chart, input),
-            input.Allocations ?? []);
+            input.Allocations);
     }
 
     static void CheckDocumentType(InvoiceInput input)

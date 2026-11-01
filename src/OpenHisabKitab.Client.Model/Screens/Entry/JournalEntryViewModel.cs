@@ -163,6 +163,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
 
     protected override void CloseBills()
     {
+        if (Bills is { HasUnreadable: true }) return;
         if (Bills is { } panel && openFor is { } f) Apply(f.Line, panel, f.Amount, byHand: true);
         openFor = null;
         Bills = null;
@@ -176,7 +177,11 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
             Company = Ctx.Company!.Id, Party = party.Id, ExcludingVoucher = Existing?.Id ?? 0,
         }, o));
         line.BillNumbers = bills.Bills.ToDictionary(b => (b.Source, b.Id), b => b.Number);
-        return new BillsPanelViewModel(party.Name, party.Id, amount, [.. bills.Bills], line.Allocations, Ctx.Settings.Current.Text("ui.dateFormat"));
+        // Other lines of this voucher for the same party have already taken part of its bills.
+        var taken = Lines.Where(l => l != line && l.Ledger.Value?.Id == party.Id).SelectMany(l => l.Allocations)
+            .GroupBy(a => (a.BillSource, a.BillId)).ToDictionary(g => g.Key, g => g.Sum(a => a.Paise));
+        var open = bills.Bills.Select(b => taken.TryGetValue((b.Source, b.Id), out var t) ? new BillMsg(b) { SettledPaise = b.SettledPaise + t } : b).ToList();
+        return new BillsPanelViewModel(party.Name, party.Id, amount, open, line.Allocations, Ctx.Settings.Current.Text("ui.dateFormat"));
     }
 
     void Apply(EntryLine line, BillsPanelViewModel panel, Money amount, bool byHand)
@@ -195,7 +200,7 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
         var side = Code == "PYMT" ? PartySide.Payable : PartySide.Receivable;
         var sub = PartiesViewModel.ForNew(Ctx, line.Ledger.Text.Trim(), side, async id =>
         {
-            await Ctx.Lookups.LoadAsync(Ctx.Company!.Id);
+            await Ctx.Lookups.RefreshAsync();
             line.Ledger.Set(Ctx.Lookups.Ledgers(LedgerUse.Any).FirstOrDefault(l => l.Id == id));
             SubScreen = null;
         }, () => SubScreen = null);
@@ -259,8 +264,11 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
                 amount = debit - credit;
             }
             msg.Lines.Add(new PostingLineMsg { Ledger = ledger.Id, Paise = amount.Paise });
-            msg.Allocations.AddRange(line.Allocations);
         }
+        // The host checks allocations by party, one per bill, so lines for the same party are added together.
+        msg.Allocations.AddRange(Lines.Where(l => !l.IsBlank).SelectMany(l => l.Allocations)
+            .GroupBy(a => (a.Party, a.BillSource, a.BillId))
+            .Select(g => new AllocationMsg { Party = g.Key.Party, BillSource = g.Key.BillSource, BillId = g.Key.BillId, Paise = g.Sum(a => a.Paise) }));
         if (HasAccount)
         {
             if (Account!.Value is null && !Account.Commit() || Account.Value is not { } account)

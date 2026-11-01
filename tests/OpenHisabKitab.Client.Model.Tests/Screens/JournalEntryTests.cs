@@ -362,4 +362,45 @@ public sealed class JournalEntryTests : IDisposable
         await s.SaveAsync();
         Assert.Null(s.Message);
     }
+    [Fact]
+    public async Task Two_lines_for_one_party_share_its_bills_and_save()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await NewParty(shell, "Ravi Stores");
+        var first = await Sale(shell, party, 1000_00, "2026-05-01");
+        var second = await Sale(shell, party, 1000_00, "2026-05-02");
+        var s = await Open(shell.Context, "RCPT");
+        s.Account!.Set(Required(shell.Context, "Cash"));
+        Line(s.Lines[0], Ledger(shell.Context, "Ravi Stores"), amount: "600");
+        await s.LineAmountCommittedAsync(s.Lines[0]);
+        var line2 = (EntryLine)s.AddLine();
+        Line(line2, Ledger(shell.Context, "Ravi Stores"), amount: "600");
+        await s.LineAmountCommittedAsync(line2);
+        Assert.Equal([(first.Id, 400_00L), (second.Id, 200_00L)], line2.Allocations.Select(a => (a.BillId, a.Paise)));
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var v = await t.OtherOwnerClient().Vouchers.GetByNumberAsync(new VoucherNumberRef { Company = shell.Context.Company!.Id, Type = "Receipt", Number = "RCT/26-27/00001" }, t.Headers());
+        Assert.Equal([(first.Id, 1000_00L), (second.Id, 200_00L)], v.Allocations.OrderBy(a => a.BillId).Select(a => (a.BillId, a.Paise)));
+    }
+
+    [Fact]
+    public async Task The_bills_panel_stays_open_on_text_it_cannot_read()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await NewParty(shell, "Ravi Stores");
+        await Sale(shell, party, 1000_00, "2026-05-01");
+        var s = await Open(shell.Context, "RCPT");
+        s.Account!.Set(Required(shell.Context, "Cash"));
+        Line(s.Lines[0], Ledger(shell.Context, "Ravi Stores"), amount: "1,000");
+        s.CurrentLine = s.Lines[0];
+        await s.RunAsync("voucher.bills");
+        s.Bills!.Rows.Single().Allocate = "1,0O0";
+        Assert.Equal("Bill INV/26-27/00001: enter an amount like 12,345.60.", s.Bills.Problem);
+        Assert.True(s.Cancel());
+        Assert.NotNull(s.Bills);
+        s.Bills.Rows.Single().Allocate = "1,000";
+        Assert.True(s.Cancel());
+        Assert.Null(s.Bills);
+    }
+
 }

@@ -6,7 +6,7 @@ using OpenHisabKitab.Data.CompanyDb;
 namespace OpenHisabKitab.Host.Application;
 
 /// <summary>What FIND looks for: text in a number, party, amount, or narration, optionally within dates.</summary>
-public sealed record VoucherSearch(string Text, DateRange? Range);
+public sealed record VoucherSearch(string Text, DateRange? Range, VoucherType? Type = null);
 
 /// <summary>Paged lists, FIND (spec 6.3), and opening a voucher by its number.</summary>
 public sealed partial class VoucherService
@@ -40,7 +40,7 @@ public sealed partial class VoucherService
             .Select(l => l.Id.Value)
             .ToList();
         Money? amount = Money.TryParse(text, out var m) ? m : null;
-        var rows = VoucherRepository.Find(c, text, search.Range, matching, amount, ownOnly ? ctx.UserId : null, before, limit + 1);
+        var rows = VoucherRepository.Find(c, text, search.Range, search.Type, matching, amount, ownOnly ? ctx.UserId : null, before, limit + 1);
         return Paging.Cut(rows, limit, v => Paging.DateCursor(v.Date, v.Id));
     }
 

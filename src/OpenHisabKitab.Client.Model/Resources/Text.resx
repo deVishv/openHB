@@ -334,4 +334,17 @@
   <data name="UnlockButton" xml:space="preserve"><value>Unloc_k all</value></data>
   <data name="LockHeading" xml:space="preserve"><value>Period lock</value></data>
   <data name="UnitColumn" xml:space="preserve"><value>Unit</value></data>
+  <data name="KindRegular" xml:space="preserve"><value>Regular</value></data>
+  <data name="KindExportWithTax" xml:space="preserve"><value>Export with tax paid</value></data>
+  <data name="KindExportUnderLut" xml:space="preserve"><value>Export under LUT</value></data>
+  <data name="KindSezWithTax" xml:space="preserve"><value>SEZ with tax paid</value></data>
+  <data name="KindSezWithoutTax" xml:space="preserve"><value>SEZ without tax</value></data>
+  <data name="KindDeemedExport" xml:space="preserve"><value>Deemed export</value></data>
+  <data name="DirectionIssued" xml:space="preserve"><value>Issued</value></data>
+  <data name="DirectionReceived" xml:space="preserve"><value>Received</value></data>
+  <data name="CgstShort" xml:space="preserve"><value>CGST</value></data>
+  <data name="SgstShort" xml:space="preserve"><value>SGST</value></data>
+  <data name="UtgstShort" xml:space="preserve"><value>UTGST</value></data>
+  <data name="IgstShort" xml:space="preserve"><value>IGST</value></data>
+  <data name="BillAmountInvalid" xml:space="preserve"><value>Bill {0}: enter an amount like 12,345.60.</value></data>
 </root>

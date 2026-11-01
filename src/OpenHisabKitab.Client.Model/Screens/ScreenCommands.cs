@@ -10,3 +10,6 @@ public interface IScreenCommands
 
     Task RunAsync(string command);
 }
+
+/// <summary>A choice in a list: the value the screen keeps, and the text the user sees.</summary>
+public sealed record ChoiceOption(string Value, string Label);

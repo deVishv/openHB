@@ -48,6 +48,14 @@ public sealed class LookupCache(HostConnection host)
         Changed?.Invoke();
     }
 
+    /// <summary>Reloads the chart, parties, and items of the open company. Unlike LoadAsync it keeps what is shown until the new lists arrive, so a failure leaves them as they were.</summary>
+    public async Task RefreshAsync(CancellationToken ct = default)
+    {
+        if (Company is not { } company) return;
+        await LoadMastersAsync(company, ct);
+        Changed?.Invoke();
+    }
+
     public void Clear()
     {
         Reset(null);

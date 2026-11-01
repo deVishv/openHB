@@ -59,11 +59,24 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
         return [.. CompanyListRepository.List(c).Where(e => ctx.AllCompanies || ctx.Companies.Contains(e.Id))];
     }
 
+    /// <summary>
+    /// The company file holds the profile. If the company list in host.db still has an older name (an update whose second
+    /// write failed), reading the company puts it right.
+    /// </summary>
     public CompanyProfile Get(CallContext ctx, int id)
     {
         ctx.RequireCompany(id);
-        using var c = hub.Open(id);
-        return CompanyRepository.GetProfile(c);
+        CompanyProfile profile;
+        using (var c = hub.Open(id)) profile = CompanyRepository.GetProfile(c);
+        string? listed;
+        using (var h = data.OpenHost()) listed = CompanyListRepository.Get(h, id)?.Name;
+        if (listed is not null && listed != profile.Name)
+            data.WriteHost(tx =>
+            {
+                CompanyListRepository.Rename(tx, id, profile.Name);
+                return 0;
+            });
+        return profile;
     }
 
     public IReadOnlyList<FinancialYear> Years(CallContext ctx, int id)
@@ -108,14 +121,16 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             var (b, a) = (JsonSerializer.Serialize(current), JsonSerializer.Serialize(profile));
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "edit", "company", Text.Key(id), b, a));
             return (b, a);
-        }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null))).ConfigureAwait(false);
-        // The company list in host.db holds only the name, for display; the company file is the record.
+        }).ConfigureAwait(false);
+        // The company list in host.db holds only the name, for display; the company file is the record. If this write
+        // fails, Get repairs the name the next time the company is read.
         data.WriteHost(tx =>
         {
             CompanyListRepository.Rename(tx, id, profile.Name);
             AuditLog.Append(tx, ctx.Audit(time.GetUtcNow(), "edit", "company", Text.Key(id), before, after));
             return 0;
         });
+        feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null));
     }
 
     /// <summary>The company layer of settings (spec 7): what is stored, not the defaults.</summary>

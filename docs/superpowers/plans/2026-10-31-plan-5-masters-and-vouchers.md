@@ -53,6 +53,7 @@
 - Owner review items 1 to 4 of Plan 5 are approved as recommended: the bill rules, opening bills, company edit, and safe save retries.
 - Execution is **native**: one session builds every task with superpowers:executing-plans, then one fresh reviewer on the most capable model checks the whole branch.
 - The plan docs are committed to `main` before the branch.
+- Approved on 2026-11-01: a composition company's typed GST rate is stored but not charged or shown in the totals. This was owner review item 7, from the Task 14 ruling.
 
 **Roadmap as it now stands.** Plan 1's table used the old numbers; Plan 2 decision 6 renumbered the plans.
 

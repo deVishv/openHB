@@ -293,4 +293,23 @@ public sealed class AllocationTests : IDisposable
     public async Task Bad_export_details_are_refused(string kind, string? port, string? sbn, bool withDate, string message) =>
         Assert.Equal(message, await Refused(() => host.Vouchers.SaveInvoiceAsync(owner, company,
             Export(Enum.Parse<InvoiceKind>(kind), port, sbn, withDate ? June1 : null))));
+    [Fact]
+    public async Task Editing_without_allocations_keeps_the_stored_ones()
+    {
+        var sale = await SaleOf("1000.00");
+        var r = await host.Vouchers.SaveJournalAsync(owner, company, Receipt("400.00", null, A(Bill(sale), "400.00")));
+        var noAllocations = Receipt("400.00") with { Narration = "fixed", Allocations = null };
+        await host.Vouchers.EditJournalAsync(owner, company, r.Id, r.RowVersion, noAllocations);
+        Assert.Equal([A(Bill(sale), "400.00")], host.Vouchers.Get(owner, company, r.Id).Allocations);
+        Assert.Equal(Money.Parse("600.00"), Open(Bill(sale)));
+    }
+
+    [Fact]
+    public async Task Editing_with_an_empty_allocation_list_frees_the_bills()
+    {
+        var sale = await SaleOf("1000.00");
+        var r = await host.Vouchers.SaveJournalAsync(owner, company, Receipt("400.00", null, A(Bill(sale), "400.00")));
+        await host.Vouchers.EditJournalAsync(owner, company, r.Id, r.RowVersion, Receipt("400.00") with { Allocations = [] });
+        Assert.Equal(Money.Parse("1000.00"), Open(Bill(sale)));
+    }
 }

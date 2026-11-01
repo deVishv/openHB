@@ -31,11 +31,11 @@
                 </StackPanel>
                 <StackPanel Margin="0,0,8,0" Width="140" Visibility="{Binding IsNote, Converter={StaticResource Bool}}">
                     <Label Content="{t:Txt DirectionLabel}" Target="{Binding ElementName=Dir}" />
-                    <ComboBox x:Name="Dir" ItemsSource="{Binding Directions}" SelectedItem="{Binding Direction}" AutomationProperties.Name="{t:Name DirectionLabel}" />
+                    <ComboBox x:Name="Dir" ItemsSource="{Binding DirectionOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Direction}" AutomationProperties.Name="{t:Name DirectionLabel}" />
                 </StackPanel>
                 <StackPanel Margin="0,0,8,0" Width="160" Visibility="{Binding ShowsKind, Converter={StaticResource Bool}}">
                     <Label Content="{t:Txt KindLabel}" Target="{Binding ElementName=KindBox}" />
-                    <ComboBox x:Name="KindBox" ItemsSource="{Binding Kinds}" SelectedItem="{Binding Kind}" AutomationProperties.Name="{t:Name KindLabel}" />
+                    <ComboBox x:Name="KindBox" ItemsSource="{Binding KindOptions}" SelectedValuePath="Value" DisplayMemberPath="Label" SelectedValue="{Binding Kind}" AutomationProperties.Name="{t:Name KindLabel}" />
                 </StackPanel>
                 <CheckBox Content="{t:Txt ReverseChargeLabel}" IsChecked="{Binding ReverseCharge}" VerticalAlignment="Bottom" Margin="0,0,8,4"
                           AutomationProperties.Name="{t:Name ReverseChargeLabel}" Visibility="{Binding ShowsReverseCharge, Converter={StaticResource Bool}}" />

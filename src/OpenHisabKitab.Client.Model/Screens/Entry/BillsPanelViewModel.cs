@@ -54,6 +54,10 @@ public sealed partial class BillsPanelViewModel : ObservableObject
     [ObservableProperty]
     public partial string OnAccount { get; private set; } = "";
 
+    /// <summary>True while an amount cannot be read; the panel then stays open on Esc.</summary>
+    [ObservableProperty]
+    public partial bool HasUnreadable { get; private set; }
+
     /// <summary>The first problem, in the host's words, or null.</summary>
     [ObservableProperty]
     public partial string? Problem { get; private set; }
@@ -76,12 +80,14 @@ public sealed partial class BillsPanelViewModel : ObservableObject
     void Recheck()
     {
         var allocations = new List<Allocation>();
+        HasUnreadable = false;
         foreach (var row in Rows)
         {
             if (row.Allocate.Trim().Length == 0) continue;
             if (!Money.TryParse(row.Allocate, out var m))
             {
-                Problem = Text.AmountInvalid;
+                HasUnreadable = true;
+                Problem = Format(Text.BillAmountInvalid, row.Bill.Number);
                 return;
             }
             allocations.Add(new Allocation(Ref(row.Bill), m));

@@ -60,13 +60,19 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     [ObservableProperty]
     public partial StateOption? PlaceOfSupply { get; set; }
 
-    public IReadOnlyList<string> Kinds { get; } = [.. Enum.GetNames<InvoiceKind>()];
+    /// <summary>The sales invoice types of spec 13, by their plain names.</summary>
+    public IReadOnlyList<ChoiceOption> KindOptions { get; } =
+    [
+        new(nameof(InvoiceKind.Regular), Text.KindRegular), new(nameof(InvoiceKind.ExportWithTax), Text.KindExportWithTax),
+        new(nameof(InvoiceKind.ExportUnderLut), Text.KindExportUnderLut), new(nameof(InvoiceKind.SezWithTax), Text.KindSezWithTax),
+        new(nameof(InvoiceKind.SezWithoutTax), Text.KindSezWithoutTax), new(nameof(InvoiceKind.DeemedExport), Text.KindDeemedExport),
+    ];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsExport))]
     public partial string Kind { get; set; } = nameof(InvoiceKind.Regular);
 
-    public IReadOnlyList<string> Directions { get; } = [Issued, Received];
+    public IReadOnlyList<ChoiceOption> DirectionOptions { get; } = [new(Issued, Text.DirectionIssued), new(Received, Text.DirectionReceived)];
 
     /// <summary>"Issued" for documents this business issues (outward), "Received" for those it receives. Fixed for SALE and PURC.</summary>
     [ObservableProperty]
@@ -208,10 +214,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         {
             if (m != Money.Zero) parts.Add($"{label} {IndianNumberFormat.Format(m)}");
         }
-        Add("CGST", TotalsView.Cgst);
-        Add("SGST", TotalsView.Sgst);
-        Add("UTGST", TotalsView.Utgst);
-        Add("IGST", TotalsView.Igst);
+        Add(Text.CgstShort, TotalsView.Cgst);
+        Add(Text.SgstShort, TotalsView.Sgst);
+        Add(Text.UtgstShort, TotalsView.Utgst);
+        Add(Text.IgstShort, TotalsView.Igst);
         Add(Text.CessShort, TotalsView.Cess);
         Add(Text.RoundOffShort, TotalsView.RoundOff);
         parts.Add(Format(Text.TotalLine, IndianNumberFormat.Format(TotalsView.Total)));
@@ -261,6 +267,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     protected override void CloseBills()
     {
+        if (Bills is { HasUnreadable: true }) return;
         if (Bills is { } panel)
         {
             Allocations = panel.Result();
@@ -293,7 +300,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         var side = IsOutward ? PartySide.Receivable : PartySide.Payable;
         var sub = PartiesViewModel.ForNew(Ctx, Party.Text.Trim(), side, async id =>
         {
-            await Ctx.Lookups.LoadAsync(Ctx.Company!.Id);
+            await Ctx.Lookups.RefreshAsync();
             Party.Set(Ctx.Lookups.Ledgers(LedgerUse.Party).FirstOrDefault(l => l.Id == id));
             SubScreen = null;
         }, () => SubScreen = null);
@@ -375,7 +382,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         {
             n++;
             if (line.IsBlank) continue;
-            var (m, problem) = line.ToMsg(n, rateZero: !ShowsTax);
+            var (m, problem) = line.ToMsg(n, rateZero: !ShowsTax, commit: !quiet);
             if (m is null)
             {
                 if (quiet) continue;

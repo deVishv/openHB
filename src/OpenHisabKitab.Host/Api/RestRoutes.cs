@@ -207,8 +207,8 @@ public static class RestRoutes
         string? after = null;
         do
         {
-            var page = vouchers.Find(ctx, company, new VoucherSearch(search, range), new PageRequest(1000, after));
-            rows.AddRange(page.Rows.Where(v => type is null || v.Type == type));
+            var page = vouchers.Find(ctx, company, new VoucherSearch(search, range, type), new PageRequest(1000, after));
+            rows.AddRange(page.Rows);
             after = page.Next;
         } while (after is not null);
         return rows;

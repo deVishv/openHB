@@ -76,10 +76,11 @@ public sealed partial class InvoiceLine : ObservableObject
     }
 
     /// <summary>The line in wire form, or the reason it cannot be read. n is its 1-based number.</summary>
-    internal (InvoiceLineMsg? Line, string? Error) ToMsg(int n, bool rateZero)
+    /// <summary>commit false (live totals) never picks a ledger from what is typed; only a save commits the name.</summary>
+    internal (InvoiceLineMsg? Line, string? Error) ToMsg(int n, bool rateZero, bool commit = true)
     {
         string Bad(string text) => string.Format(System.Globalization.CultureInfo.InvariantCulture, text, n);
-        if (Ledger.Value is null && !Ledger.Commit() || Ledger.Value is not { } ledger) return (null, Bad(Resources.Text.LineChooseLedger));
+        if (Ledger.Value is null && (!commit || !Ledger.Commit()) || Ledger.Value is not { } ledger) return (null, Bad(Resources.Text.LineChooseLedger));
         if (!EntryNumbers.TryQuantity(Quantity.Trim().Length == 0 ? "1" : Quantity, out var qty)) return (null, Bad(Resources.Text.LineQuantityInvalid));
         if (!Money.TryParse(Price, out var price)) return (null, Bad(Resources.Text.LineAmountInvalid));
         var discount = Money.Zero;

@@ -261,4 +261,29 @@ public sealed class RestWriteTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, again.StatusCode);
         Assert.True((await again.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadySaved").GetBoolean());
     }
+    [Fact]
+    public async Task Rest_edit_without_allocations_keeps_them()
+    {
+        var sale = b.BillSale("1000.00");
+        var create = new
+        {
+            type = "receipt", date = "2026-06-10", narration = "",
+            lines = new[] { new { ledgerId = b.Cash.Value, amount = "400.00" }, new { ledgerId = b.Customer.Value, amount = "-400.00" } },
+            allocations = new[] { new { partyId = b.Customer.Value, billSource = "voucher", billId = sale.Id, amount = "400.00" } },
+        };
+        var saved = await (await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", create)).Content.ReadFromJsonAsync<JsonElement>();
+        var id = saved.GetProperty("id").GetInt64();
+        var edit = new
+        {
+            rowVersion = 1,
+            voucher = new
+            {
+                type = "receipt", date = "2026-06-10", narration = "fixed",
+                lines = new[] { new { ledgerId = b.Cash.Value, amount = "400.00" }, new { ledgerId = b.Customer.Value, amount = "-400.00" } },
+            },
+        };
+        Assert.Equal(HttpStatusCode.OK, (await rw.PutAsJsonAsync($"/api/v1/companies/{co}/vouchers/{id}/journal", edit)).StatusCode);
+        var v = await rw.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{co}/vouchers/{id}");
+        Assert.Equal(("fixed", 1), (v.GetProperty("narration").GetString(), v.GetProperty("allocations").GetArrayLength()));
+    }
 }

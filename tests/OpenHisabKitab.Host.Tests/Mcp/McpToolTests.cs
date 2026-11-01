@@ -257,4 +257,14 @@ public sealed class McpToolTests : IDisposable
         var found = Ok(await Call(Client(), "find_vouchers", new { company = co, from = "2026-04-01", to = "2027-03-31", text = "ravi" }));
         Assert.Equal(sale.Id, found.GetProperty("rows").EnumerateArray().Single().GetProperty("id").GetInt64());
     }
+    [Fact]
+    public async Task Mcp_find_vouchers_with_a_type_finds_older_vouchers_of_that_type()
+    {
+        await b.Vouchers.SaveInvoiceAsync(b.Owner, co, new InvoiceInput(VoucherType.Sale, new DateOnly(2026, 4, 5), "rent", b.Customer,
+            TradeDirection.Outward, InvoiceKind.Regular, new StateCode("27"), false, null, null, null, null,
+            [new InvoiceEntryLine(null, b.Sales, "Rod", "7214", new Quantity(1000), Money.Parse("10.00"), Money.Zero, new GstRate(0), new GstRate(0), false)]));
+        for (var i = 0; i < 101; i++) b.Receipt("1.00", new DateOnly(2026, 5, 10), "rent");
+        var found = Ok(await Call(Client(), "find_vouchers", new { company = co, from = "2026-04-01", to = "2027-03-31", type = "sale", text = "rent" }));
+        Assert.Equal("sale", found.GetProperty("rows").EnumerateArray().Single().GetProperty("type").GetString());
+    }
 }

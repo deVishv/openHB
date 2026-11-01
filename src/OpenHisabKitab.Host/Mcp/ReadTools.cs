@@ -100,8 +100,7 @@ public sealed class ReadTools(
             // With text, FIND's search runs, so a party name or an amount finds vouchers too (spec 6.3).
             IEnumerable<Data.CompanyDb.VoucherRow> rows = string.IsNullOrWhiteSpace(text)
                 ? vouchers.List(ctx, company, range, kind)
-                : vouchers.Find(ctx, company, new VoucherSearch(text, range), new PageRequest(McpResults.RowLimit + 1)).Rows
-                    .Where(v => kind is null || v.Type == kind);
+                : vouchers.Find(ctx, company, new VoucherSearch(text, range, kind), new PageRequest(McpResults.RowLimit + 1)).Rows;
             var found = rows
                 .Select(v => new McpVoucherSummary(v.Id, v.Type, v.DisplayNumber, v.Date, v.Narration, v.Cancelled,
                     Money.Sum(v.Postings.Where(p => p.Amount > Money.Zero).Select(p => p.Amount))))

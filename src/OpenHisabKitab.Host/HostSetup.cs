@@ -50,7 +50,8 @@ public static class HostSetup
         s.AddMcpServer(o => o.ServerInfo = new() { Name = "Open Hisab Kitab", Version = HostVersion.Current })
             .WithHttpTransport(o => o.Stateless = true)
             .WithTools<ReadTools>()
-            .WithTools<WriteTools>();
+            .WithTools<WriteTools>()
+            .WithRequestFilters(f => f.AddCallToolFilter(McpArgumentErrors.Filter));
         s.AddGrpc(o =>
         {
             o.Interceptors.Add<ErrorInterceptor>();

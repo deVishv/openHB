@@ -2,6 +2,7 @@ using System.Globalization;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
+using OpenHisabKitab.Core.Bills;
 using OpenHisabKitab.Core.Gst;
 using OpenHisabKitab.Core.Reports;
 using OpenHisabKitab.Core.Time;
@@ -127,7 +128,8 @@ internal static class Wire
     {
         if (m is null) throw Invalid("Enter the voucher.");
         return new JournalInput(Enum<VoucherType>(m.Type, "voucher type"), Date(m.Date), m.Narration,
-            [.. m.Lines.Select(l => new PostingLine(new LedgerId(l.Ledger), new Money(l.Paise)))]);
+            [.. m.Lines.Select(l => new PostingLine(new LedgerId(l.Ledger), new Money(l.Paise)))],
+            [.. m.Allocations.Select(Allocation)], OptionalText(m.RequestId));
     }
 
     public static InvoiceInput Invoice(InvoiceMsg? m)
@@ -140,10 +142,41 @@ internal static class Wire
             OptionalDate(m.OriginalDate),
             [.. m.Lines.Select(l => new InvoiceEntryLine(
                 l.ItemId == 0 ? null : l.ItemId, new LedgerId(l.Ledger), l.Description, l.HsnSac, new Quantity(l.QtyThousandths),
-                new Money(l.UnitPricePaise), new Money(l.DiscountPaise), Rate(l.RateBp), Rate(l.CessBp), l.PriceIncludesTax))]);
+                new Money(l.UnitPricePaise), new Money(l.DiscountPaise), Rate(l.RateBp), Rate(l.CessBp), l.PriceIncludesTax))],
+            new ExportDetails(OptionalText(m.PortCode), OptionalText(m.ShippingBillNumber), OptionalDate(m.ShippingBillDate)),
+            [.. m.Allocations.Select(Allocation)], OptionalText(m.RequestId));
     }
 
-    public static SavedReply ToMsg(SavedVoucher s) => new() { Id = s.Id, DisplayNumber = s.DisplayNumber, RowVersion = s.RowVersion };
+    public static AllocationRow Allocation(AllocationMsg m) =>
+        new(new LedgerId(m.Party), new BillRef(Enum<BillSource>(m.BillSource, "bill source"), m.BillId), new Money(m.Paise));
+
+    public static AllocationMsg ToMsg(AllocationRow a) =>
+        new() { Party = a.Party.Value, BillSource = a.Bill.Source.ToString(), BillId = a.Bill.Id, Paise = a.Amount.Paise };
+
+    public static BillMsg ToMsg(OpenBill b) => new()
+    {
+        Source = b.Ref.Source.ToString(), Id = b.Ref.Id, Party = b.Party.Value, Number = b.Number, Date = Text(b.Date),
+        DueDate = Text(b.DueDate), AmountPaise = b.Amount.Paise, SettledPaise = b.Settled.Paise, PartyDocNumber = b.PartyDocNumber ?? "",
+    };
+
+    public static OpeningBillRow OpeningBill(OpeningBillMsg m) =>
+        new(m.Id, default, m.Number, Date(m.Date), OptionalDate(m.DueDate), new Money(m.AmountPaise));
+
+    public static OpeningBillList ToMsg(OpeningBills b)
+    {
+        var m = new OpeningBillList { Version = b.Version };
+        m.Bills.AddRange(b.Bills.Select(x => new OpeningBillMsg
+        {
+            Id = x.Id, Number = x.Number, Date = Text(x.Date), DueDate = Text(x.DueDate), AmountPaise = x.Amount.Paise,
+        }));
+        return m;
+    }
+
+    public static Application.PageRequest Page(PageMsg? m) =>
+        m is null ? new Application.PageRequest() : new Application.PageRequest(m.Limit, OptionalText(m.After));
+
+    public static SavedReply ToMsg(SavedVoucher s) =>
+        new() { Id = s.Id, DisplayNumber = s.DisplayNumber, RowVersion = s.RowVersion, AlreadySaved = s.AlreadySaved };
 
     public static VoucherMsg ToMsg(VoucherRow v)
     {
@@ -154,6 +187,7 @@ internal static class Wire
             CreatedBy = v.CreatedBy, RowVersion = v.RowVersion,
         };
         m.Postings.AddRange(v.Postings.Select(p => new PostingLineMsg { Ledger = p.Ledger.Value, Paise = p.Amount.Paise }));
+        m.Allocations.AddRange(v.Allocations.Select(ToMsg));
         if (v.Invoice is { } inv)
         {
             m.Invoice = new InvoiceHeaderMsg
@@ -161,7 +195,8 @@ internal static class Wire
                 Party = inv.Party.Value, Direction = inv.Direction.ToString(), Kind = inv.Kind.ToString(),
                 PlaceOfSupply = inv.PlaceOfSupply.Value, ReverseCharge = inv.ReverseCharge, PartyDocNumber = inv.PartyDocNumber ?? "",
                 PartyDocDate = Text(inv.PartyDocDate), OriginalNumber = inv.OriginalNumber ?? "", OriginalDate = Text(inv.OriginalDate),
-                RoundOffPaise = inv.RoundOff.Paise,
+                RoundOffPaise = inv.RoundOff.Paise, PortCode = inv.Export?.PortCode ?? "",
+                ShippingBillNumber = inv.Export?.ShippingBillNumber ?? "", ShippingBillDate = Text(inv.Export?.ShippingBillDate),
             };
             m.Invoice.Lines.AddRange(inv.Lines.Select(l => new StoredInvoiceLineMsg
             {

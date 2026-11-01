@@ -13,9 +13,24 @@ service Vouchers {
   rpc Cancel (CancelRequest) returns (Empty);
   rpc Get (VoucherRef) returns (VoucherMsg);
   rpc List (ListVouchersRequest) returns (VoucherList);
+  // A party's bills with what is still open (spec 13, bill by bill settlement).
+  rpc OpenBills (OpenBillsRequest) returns (BillList);
+  // FIND: number, party, amount, or narration, newest first.
+  rpc Find (FindVouchersRequest) returns (VoucherList);
+  rpc GetByNumber (VoucherNumberRef) returns (VoucherMsg);
 }
 
-message JournalMsg { string type = 1; string date = 2; string narration = 3; repeated PostingLineMsg lines = 4; }
+// bill_source is "Voucher" or "Opening". paise is the amount allocated to that bill.
+message AllocationMsg { int32 party = 1; string bill_source = 2; int64 bill_id = 3; int64 paise = 4; }
+// request_id: the client's id for one save; a retry with it returns the first voucher with already_saved set.
+message JournalMsg {
+  string type = 1;
+  string date = 2;
+  string narration = 3;
+  repeated PostingLineMsg lines = 4;
+  repeated AllocationMsg allocations = 5;
+  string request_id = 6;
+}
 message JournalRequest { int32 company = 1; JournalMsg journal = 2; }
 message EditJournalRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; JournalMsg journal = 4; }
 
@@ -46,10 +61,15 @@ message InvoiceMsg {
   string original_number = 11;
   string original_date = 12;
   repeated InvoiceLineMsg lines = 13;
+  string port_code = 14;
+  string shipping_bill_number = 15;
+  string shipping_bill_date = 16;
+  repeated AllocationMsg allocations = 17;
+  string request_id = 18;
 }
 message InvoiceRequest { int32 company = 1; InvoiceMsg invoice = 2; }
 message EditInvoiceRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; InvoiceMsg invoice = 4; }
-message SavedReply { int64 id = 1; string display_number = 2; int64 row_version = 3; }
+message SavedReply { int64 id = 1; string display_number = 2; int64 row_version = 3; bool already_saved = 4; }
 message CancelRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; string reason = 4; }
 message VoucherRef { int32 company = 1; int64 id = 2; }
 
@@ -74,6 +94,9 @@ message InvoiceHeaderMsg {
   string original_date = 9;
   int64 round_off_paise = 10;
   repeated StoredInvoiceLineMsg lines = 11;
+  string port_code = 12;
+  string shipping_bill_number = 13;
+  string shipping_bill_date = 14;
 }
 // invoice is absent for receipts, payments, journals, and contras.
 message VoucherMsg {
@@ -90,7 +113,26 @@ message VoucherMsg {
   int64 row_version = 11;
   repeated PostingLineMsg postings = 12;
   InvoiceHeaderMsg invoice = 13;
+  repeated AllocationMsg allocations = 14;
 }
 // type is empty for every type.
-message ListVouchersRequest { int32 company = 1; Period period = 2; string type = 3; }
-message VoucherList { repeated VoucherMsg vouchers = 1; }
+message ListVouchersRequest { int32 company = 1; Period period = 2; string type = 3; PageMsg page = 4; }
+// next is empty on the last page.
+message VoucherList { repeated VoucherMsg vouchers = 1; string next = 2; }
+// excluding_voucher 0 means none. due_date is empty when there is none.
+message OpenBillsRequest { int32 company = 1; int32 party = 2; int64 excluding_voucher = 3; }
+message BillMsg {
+  string source = 1;
+  int64 id = 2;
+  int32 party = 3;
+  string number = 4;
+  string date = 5;
+  string due_date = 6;
+  int64 amount_paise = 7;
+  int64 settled_paise = 8;
+  string party_doc_number = 9;
+}
+message BillList { repeated BillMsg bills = 1; }
+// period absent means every year.
+message FindVouchersRequest { int32 company = 1; string text = 2; Period period = 3; PageMsg page = 4; }
+message VoucherNumberRef { int32 company = 1; string type = 2; string number = 3; }

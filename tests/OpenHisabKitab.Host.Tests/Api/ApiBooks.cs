@@ -35,6 +35,13 @@ public sealed class ApiBooks : IDisposable
 
     public HttpClient Client(bool readWrite = false) => F.ApiClient(F.NewToken(readWrite, readWrite ? "rw-script" : "ro-script"));
 
+    /// <summary>A sale of one line at rate 0 to the customer, so its bill amount equals the price.</summary>
+    public SavedVoucher BillSale(string price) =>
+        Vouchers.SaveInvoiceAsync(Owner, Company, new InvoiceInput(VoucherType.Sale, new DateOnly(2026, 6, 1), "", Customer,
+            TradeDirection.Outward, InvoiceKind.Regular, new StateCode("27"), false, null, null, null, null,
+            [new InvoiceEntryLine(null, Sales, "Rod", "7214", new Quantity(1000), Money.Parse(price), Money.Zero, new GstRate(0), new GstRate(0), false)]))
+        .GetAwaiter().GetResult();
+
     public SavedVoucher Receipt(string amount, DateOnly? date = null, string narration = "cash sale") =>
         Vouchers.SaveJournalAsync(Owner, Company, new JournalInput(VoucherType.Receipt, date ?? new DateOnly(2026, 5, 10), narration,
             [new PostingLine(Cash, Money.Parse(amount)), new PostingLine(Sales, -Money.Parse(amount))])).GetAwaiter().GetResult();

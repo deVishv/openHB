@@ -45,6 +45,7 @@ internal sealed class ErrorInterceptor(ILogger<ErrorInterceptor> log) : Intercep
         VoucherRow v => Wire.ToMsg(v),
         Party p => Wire.ToMsg(p),
         Item i => Wire.ToMsg(i),
+        OpeningBills b => Wire.ToMsg(b),
         _ => null,
     };
 

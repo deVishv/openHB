@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Data.Sqlite;
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
@@ -16,28 +17,34 @@ public sealed record InvoiceLineRow(
 public sealed record InvoiceHeader(
     LedgerId Party, TradeDirection Direction, InvoiceKind Kind, StateCode PlaceOfSupply, bool ReverseCharge,
     string? PartyDocNumber, DateOnly? PartyDocDate, string? OriginalNumber, DateOnly? OriginalDate,
-    Money RoundOff, IReadOnlyList<InvoiceLineRow> Lines);
+    Money RoundOff, IReadOnlyList<InvoiceLineRow> Lines, ExportDetails? Export = null);
 
-/// <summary>A stored voucher. Postings are empty once cancelled; the invoice detail is kept for the GSTR-1 document summary.</summary>
+/// <summary>
+/// A stored voucher. Postings and allocations are empty once cancelled; the invoice detail is kept for the GSTR-1 document
+/// summary. Allocations are the bills this voucher settles. RequestId is the client's id for the save that created it.
+/// </summary>
 public sealed record VoucherRow(
     long Id, VoucherType Type, string Series, int FyStartYear, long Number, string DisplayNumber, DateOnly Date,
     string Narration, bool Cancelled, int CreatedBy, long RowVersion,
-    IReadOnlyList<PostingLine> Postings, InvoiceHeader? Invoice);
+    IReadOnlyList<PostingLine> Postings, InvoiceHeader? Invoice, IReadOnlyList<AllocationRow>? Allocations = null, string? RequestId = null)
+{
+    public IReadOnlyList<AllocationRow> Allocations { get; init; } = Allocations ?? [];
+}
 
 public static class VoucherRepository
 {
-    const string Columns = "id, type, series, fy_start, number, display_number, date, narration, cancelled, created_by, row_version";
+    const string Columns = "id, type, series, fy_start, number, display_number, date, narration, cancelled, created_by, row_version, request_id";
 
     /// <summary>Inserts with row version 1. The input's Id and RowVersion are ignored.</summary>
     public static long Insert(SqliteTransaction tx, VoucherRow v)
     {
         var id = Sql.InsertReturningId(tx, """
-            INSERT INTO vouchers(type, series, fy_start, number, display_number, date, narration, cancelled, created_by)
-            VALUES ($type, $series, $fy, $number, $display, $date, $narration, $cancelled, $by)
+            INSERT INTO vouchers(type, series, fy_start, number, display_number, date, narration, cancelled, created_by, request_id)
+            VALUES ($type, $series, $fy, $number, $display, $date, $narration, $cancelled, $by, $request)
             """,
             ("$type", v.Type.ToString()), ("$series", v.Series), ("$fy", v.FyStartYear), ("$number", v.Number),
             ("$display", v.DisplayNumber), ("$date", Dates.Format(v.Date)), ("$narration", v.Narration),
-            ("$cancelled", v.Cancelled ? 1 : 0), ("$by", v.CreatedBy));
+            ("$cancelled", v.Cancelled ? 1 : 0), ("$by", v.CreatedBy), ("$request", v.RequestId));
         WriteDetails(tx, id, v);
         return id;
     }
@@ -55,7 +62,7 @@ public static class VoucherRepository
         return true;
     }
 
-    /// <summary>Marks the voucher cancelled and removes its postings. False when the row version is stale.</summary>
+    /// <summary>Marks the voucher cancelled and removes its postings and allocations. False when the row version is stale.</summary>
     public static bool Cancel(SqliteTransaction tx, long id, long expectedRowVersion)
     {
         var changed = Sql.Execute(tx, """
@@ -63,6 +70,7 @@ public static class VoucherRepository
             """, ("$id", id), ("$rv", expectedRowVersion));
         if (changed == 0) return false;
         Sql.Execute(tx, "DELETE FROM postings WHERE voucher_id = $id", ("$id", id));
+        BillRepository.DeleteAllocations(tx, id);
         return true;
     }
 
@@ -79,6 +87,71 @@ public static class VoucherRepository
         return Load(c, where, [.. args]);
     }
 
+    /// <summary>
+    /// One page in date order: vouchers after the cursor (date, then id), at most limit of them. A createdBy filter limits
+    /// the list to one user's vouchers.
+    /// </summary>
+    public static IReadOnlyList<VoucherRow> ListPage(SqliteConnection c, DateRange range, VoucherType? type, int? createdBy,
+        (DateOnly Date, long Id)? after, int limit)
+    {
+        var where = "date >= $from AND date <= $to";
+        var args = new List<(string, object?)> { ("$from", Dates.Format(range.From)), ("$to", Dates.Format(range.To)), ("$limit", limit) };
+        if (type is { } t) { where += " AND type = $type"; args.Add(("$type", t.ToString())); }
+        if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
+        if (after is { } a)
+        {
+            where += " AND (date > $ad OR (date = $ad AND id > $aid))";
+            args.Add(("$ad", Dates.Format(a.Date)));
+            args.Add(("$aid", a.Id));
+        }
+        return Load(c, $"id IN (SELECT id FROM vouchers WHERE {where} ORDER BY date, id LIMIT $limit)", [.. args]);
+    }
+
+    /// <summary>
+    /// Vouchers matching FIND text, newest first, before the cursor, at most limit of them. A voucher matches when its number
+    /// or narration contains the text, when it names one of the party ledgers (on the invoice or in a posting), or when its
+    /// debit total equals amount.
+    /// </summary>
+    public static IReadOnlyList<VoucherRow> Find(SqliteConnection c, string text, DateRange? range, IReadOnlyCollection<int> partyLedgers,
+        Money? amount, int? createdBy, (DateOnly Date, long Id)? before, int limit)
+    {
+        var match = "instr(lower(display_number), lower($t)) > 0 OR instr(lower(narration), lower($t)) > 0";
+        var args = new List<(string, object?)> { ("$t", text), ("$limit", limit) };
+        if (partyLedgers.Count > 0)
+        {
+            var ids = string.Join(", ", partyLedgers.Select(i => i.ToString(CultureInfo.InvariantCulture)));
+            match += $" OR id IN (SELECT voucher_id FROM invoices WHERE party_ledger_id IN ({ids}))"
+                + $" OR id IN (SELECT voucher_id FROM postings WHERE ledger_id IN ({ids}))";
+        }
+        if (amount is { } m)
+        {
+            match += " OR (SELECT sum(amount_paise) FROM postings p WHERE p.voucher_id = vouchers.id AND p.amount_paise > 0) = $amount";
+            args.Add(("$amount", m.Paise));
+        }
+        var where = $"({match})";
+        if (range is { } r)
+        {
+            where += " AND date >= $from AND date <= $to";
+            args.Add(("$from", Dates.Format(r.From)));
+            args.Add(("$to", Dates.Format(r.To)));
+        }
+        if (createdBy is { } by) { where += " AND created_by = $by"; args.Add(("$by", by)); }
+        if (before is { } b)
+        {
+            where += " AND (date < $bd OR (date = $bd AND id < $bid))";
+            args.Add(("$bd", Dates.Format(b.Date)));
+            args.Add(("$bid", b.Id));
+        }
+        var rows = Load(c, $"id IN (SELECT id FROM vouchers WHERE {where} ORDER BY date DESC, id DESC LIMIT $limit)", [.. args]);
+        return [.. rows.Reverse()];
+    }
+
+    public static VoucherRow? GetByNumber(SqliteConnection c, VoucherType type, string displayNumber) =>
+        Load(c, "type = $type AND display_number = $n", ("$type", type.ToString()), ("$n", displayNumber)).SingleOrDefault();
+
+    public static bool Any(SqliteConnection c) =>
+        Sql.Query(c, "SELECT EXISTS(SELECT 1 FROM vouchers)", r => r.GetInt64(0) != 0).Single();
+
     public static IReadOnlyList<PostingRecord> AllPostings(SqliteConnection c) =>
         Sql.Query(c, "SELECT voucher_id, date, ledger_id, amount_paise FROM postings ORDER BY id", MapPosting);
 
@@ -94,17 +167,20 @@ public static class VoucherRepository
         foreach (var p in v.Postings)
             Sql.Execute(tx, "INSERT INTO postings(voucher_id, date, ledger_id, amount_paise) VALUES ($v, $date, $ledger, $amount)",
                 ("$v", id), ("$date", Dates.Format(v.Date)), ("$ledger", p.Ledger.Value), ("$amount", p.Amount.Paise));
+        BillRepository.WriteAllocations(tx, id, v.Allocations);
 
         if (v.Invoice is not { } inv) return;
         Sql.Execute(tx, """
             INSERT INTO invoices(voucher_id, party_ledger_id, direction, kind, place_of_supply, reverse_charge,
-                party_doc_number, party_doc_date, original_number, original_date, round_off_paise)
-            VALUES ($v, $party, $dir, $kind, $pos, $rc, $pdn, $pdd, $on, $od, $ro)
+                party_doc_number, party_doc_date, original_number, original_date, round_off_paise,
+                port_code, shipping_bill_number, shipping_bill_date)
+            VALUES ($v, $party, $dir, $kind, $pos, $rc, $pdn, $pdd, $on, $od, $ro, $port, $sbn, $sbd)
             """,
             ("$v", id), ("$party", inv.Party.Value), ("$dir", inv.Direction.ToString()), ("$kind", inv.Kind.ToString()),
             ("$pos", inv.PlaceOfSupply.Value), ("$rc", inv.ReverseCharge ? 1 : 0), ("$pdn", inv.PartyDocNumber),
             ("$pdd", Dates.Format(inv.PartyDocDate)), ("$on", inv.OriginalNumber), ("$od", Dates.Format(inv.OriginalDate)),
-            ("$ro", inv.RoundOff.Paise));
+            ("$ro", inv.RoundOff.Paise), ("$port", inv.Export?.PortCode), ("$sbn", inv.Export?.ShippingBillNumber),
+            ("$sbd", Dates.Format(inv.Export?.ShippingBillDate)));
         for (var i = 0; i < inv.Lines.Count; i++)
         {
             var l = inv.Lines[i];
@@ -128,9 +204,10 @@ public static class VoucherRepository
         Sql.Execute(tx, "DELETE FROM postings WHERE voucher_id = $id", ("$id", id));
         Sql.Execute(tx, "DELETE FROM invoice_lines WHERE voucher_id = $id", ("$id", id));
         Sql.Execute(tx, "DELETE FROM invoices WHERE voucher_id = $id", ("$id", id));
+        BillRepository.DeleteAllocations(tx, id);
     }
 
-    // Loads vouchers matching a filter on the vouchers table, with their postings and invoices, in four queries.
+    // Loads vouchers matching a filter on the vouchers table, with their postings, invoices, and allocations, in five queries.
     static IReadOnlyList<VoucherRow> Load(SqliteConnection c, string where, params (string, object?)[] args)
     {
         var ids = $"SELECT id FROM vouchers WHERE {where}";
@@ -151,14 +228,18 @@ public static class VoucherRepository
             .ToLookup(x => x.Voucher, x => x.Line);
         var invoices = Sql.Query(c, $"""
                 SELECT voucher_id, party_ledger_id, direction, kind, place_of_supply, reverse_charge,
-                    party_doc_number, party_doc_date, original_number, original_date, round_off_paise
+                    party_doc_number, party_doc_date, original_number, original_date, round_off_paise,
+                    port_code, shipping_bill_number, shipping_bill_date
                 FROM invoices WHERE voucher_id IN ({ids})
                 """,
                 r => (Voucher: r.GetInt64(0), Header: new InvoiceHeader(
                     new LedgerId(r.GetInt32(1)), Enum.Parse<TradeDirection>(r.GetString(2)), Enum.Parse<InvoiceKind>(r.GetString(3)),
                     new StateCode(r.GetString(4)), r.GetInt64(5) != 0, r.NullableString(6), Dates.ParseNullable(r.NullableString(7)),
-                    r.NullableString(8), Dates.ParseNullable(r.NullableString(9)), new Money(r.GetInt64(10)), [])), args)
+                    r.NullableString(8), Dates.ParseNullable(r.NullableString(9)), new Money(r.GetInt64(10)), [],
+                    r.IsDBNull(11) && r.IsDBNull(12) && r.IsDBNull(13) ? null
+                        : new ExportDetails(r.NullableString(11), r.NullableString(12), Dates.ParseNullable(r.NullableString(13))))), args)
             .ToDictionary(x => x.Voucher, x => x.Header with { Lines = [.. lines[x.Voucher]] });
+        var allocations = BillRepository.AllocationsWhere(c, ids, args).ToLookup(x => x.Voucher, x => x.Row);
 
         return Sql.Query(c, $"SELECT {Columns} FROM vouchers WHERE {where} ORDER BY date, id",
             r =>
@@ -167,7 +248,7 @@ public static class VoucherRepository
                 return new VoucherRow(
                     id, Enum.Parse<VoucherType>(r.GetString(1)), r.GetString(2), r.GetInt32(3), r.GetInt64(4), r.GetString(5),
                     Dates.Parse(r.GetString(6)), r.GetString(7), r.GetInt64(8) != 0, r.GetInt32(9), r.GetInt64(10),
-                    [.. postings[id]], invoices.GetValueOrDefault(id));
+                    [.. postings[id]], invoices.GetValueOrDefault(id), [.. allocations[id]], r.NullableString(11));
             }, args);
     }
 }

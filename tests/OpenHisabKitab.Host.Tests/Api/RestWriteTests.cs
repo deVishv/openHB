@@ -190,4 +190,75 @@ public sealed class RestWriteTests : IDisposable
         Assert.Equal((HttpStatusCode.BadRequest, "GSTIN is not valid."), await Error(await rw.PostAsJsonAsync($"/api/v1/companies/{co}/parties",
             new { name = "X", groupId = receivables, gstin = "27AAAAA0000A1Z0", state = "27", creditDays = 0, address = "" })));
     }
+    [Fact]
+    public async Task Rest_receipt_with_allocations_settles_a_bill()
+    {
+        var sale = b.BillSale("1000.00");
+        var body = new
+        {
+            type = "receipt", date = "2026-06-10", narration = "", requestId = "rest-1",
+            lines = new[] { new { ledgerId = b.Cash.Value, amount = "400.00" }, new { ledgerId = b.Customer.Value, amount = "-400.00" } },
+            allocations = new[] { new { partyId = b.Customer.Value, billSource = "voucher", billId = sale.Id, amount = "400.00" } },
+        };
+        var r = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+        var id = (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64();
+        var v = await rw.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{co}/vouchers/{id}");
+        var a = v.GetProperty("allocations")[0];
+        Assert.Equal(("Ravi Stores", "voucher", "INV/26-27/00001", "400.00"),
+            (a.GetProperty("party").GetString(), a.GetProperty("billSource").GetString(), a.GetProperty("billNumber").GetString(),
+             a.GetProperty("amount").GetString()));
+        var again = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(id, (await again.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64());
+    }
+
+    [Fact]
+    public async Task Rest_allocation_amount_as_a_number_is_refused_with_its_path()
+    {
+        var body = $$"""{"type":"receipt","date":"2026-06-10","narration":"","lines":[{"ledgerId":{{b.Cash.Value}},"amount":"1.00"},{"ledgerId":{{b.Customer.Value}},"amount":"-1.00"}],"allocations":[{"partyId":{{b.Customer.Value}},"billSource":"voucher","billId":1,"amount":"1.0"}]}""";
+        Assert.Equal((HttpStatusCode.BadRequest, "$.allocations[0].amount must be a string like \"12345.60\"."),
+            await Error(await PostJson(rw, $"/api/v1/companies/{co}/vouchers/journal", body)));
+    }
+
+    [Fact]
+    public async Task Rest_opening_bills_get_put_and_conflict()
+    {
+        var path = $"/api/v1/companies/{co}/parties/{b.Customer.Value}/opening-bills";
+        var first = await rw.GetFromJsonAsync<JsonElement>(path);
+        var version = first.GetProperty("version").GetInt64();
+        Assert.Equal(0, first.GetProperty("bills").GetArrayLength());
+        var put = await rw.PutAsJsonAsync(path, new { version, bills = new[] { new { number = "OB-1", date = "2026-03-01", dueDate = "2026-03-31", amount = "500.00" } } });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+        Assert.Equal(version + 1, (await put.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("version").GetInt64());
+        var read = await rw.GetFromJsonAsync<JsonElement>(path);
+        Assert.Equal(("OB-1", "500.00"), (read.GetProperty("bills")[0].GetProperty("number").GetString(), read.GetProperty("bills")[0].GetProperty("amount").GetString()));
+        var stale = await rw.PutAsJsonAsync(path, new { version, bills = Array.Empty<object>() });
+        Assert.Equal(HttpStatusCode.Conflict, stale.StatusCode);
+        var current = (await stale.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("error").GetProperty("current");
+        Assert.Equal(version + 1, current.GetProperty("version").GetInt64());
+    }
+
+    [Fact]
+    public async Task Rest_company_update()
+    {
+        var r = await rw.PutAsJsonAsync($"/api/v1/companies/{co}",
+            new { name = "A Traders LLP", state = "27", registration = "regular", gstin = "27AAPFU0939F1ZV", address = "Pune" });
+        Assert.Equal(HttpStatusCode.NoContent, r.StatusCode);
+        Assert.Equal("A Traders LLP", (await rw.GetFromJsonAsync<JsonElement>($"/api/v1/companies/{co}")).GetProperty("name").GetString());
+    }
+    [Fact]
+    public async Task Rest_retry_with_the_same_request_id_says_already_saved()
+    {
+        var body = new
+        {
+            type = "receipt", date = "2026-05-10", narration = "", requestId = "retry-1",
+            lines = new[] { new { ledgerId = b.Cash.Value, amount = "5.00" }, new { ledgerId = b.Sales.Value, amount = "-5.00" } },
+        };
+        var first = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
+        Assert.False((await first.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadySaved").GetBoolean());
+        var again = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/journal", body);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.True((await again.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("alreadySaved").GetBoolean());
+    }
 }

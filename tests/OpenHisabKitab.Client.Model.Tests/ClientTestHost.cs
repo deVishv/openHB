@@ -50,6 +50,11 @@ public sealed class ClientTestHost : IDisposable
 
     int failCount;
 
+    /// <summary>When set, the reply to the Nth request (1-based) whose path ends with the text is lost after the host handled it.</summary>
+    public (string Path, int Nth)? FailReplyOf { get; set; }
+
+    int replyCount;
+
     /// <summary>While set, Companies.List requests wait for it, so a test can act while one is in flight.</summary>
     public TaskCompletionSource? HoldCompanyList { get; set; }
 
@@ -209,9 +214,20 @@ public sealed class ClientTestHost : IDisposable
                 throw new HttpRequestException("The host is offline.", new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionRefused));
             owner.Requests.Enqueue(new Request(request.RequestUri!.AbsolutePath, Header(request, "ohk-version"), Header(request, "ohk-machine"),
                 request.Headers.Contains("authorization")));
+            if (owner.FailReplyOf is { } lose && request.RequestUri.AbsolutePath.EndsWith(lose.Path, StringComparison.Ordinal)
+                && Interlocked.Increment(ref owner.replyCount) == lose.Nth)
+                return LoseReplyAsync(request, cancellationToken);
             return request.RequestUri.AbsolutePath.EndsWith("Companies/List", StringComparison.Ordinal) && owner.HoldCompanyList is { } hold
                 ? SendLaterAsync(hold.Task, request, cancellationToken)
                 : base.SendAsync(request, cancellationToken);
+        }
+
+        // The host handles the call in full; only its reply is dropped, as when the network fails on the way back.
+        async Task<HttpResponseMessage> LoseReplyAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            using var reply = await base.SendAsync(request, ct);
+            await reply.Content.ReadAsByteArrayAsync(ct);
+            throw new HttpRequestException("Dropped.", new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.ConnectionReset));
         }
 
         async Task<HttpResponseMessage> SendLaterAsync(Task hold, HttpRequestMessage request, CancellationToken ct)

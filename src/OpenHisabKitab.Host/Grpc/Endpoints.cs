@@ -64,6 +64,13 @@ internal sealed class CompaniesEndpoint(CompanyService companies) : Companies.Co
     public override Task<CompanyRef> Create(CompanyProfileMsg request, ServerCallContext context) =>
         Task.FromResult(new CompanyRef { Company = companies.Create(context.Caller(), Wire.Profile(request)) });
 
+    public override async Task<V1Empty> Update(UpdateCompanyRequest request, ServerCallContext context)
+    {
+        await companies.UpdateAsync(context.Caller(), request.Company,
+            Wire.Profile(request.Profile ?? throw new ServiceException(ServiceError.Invalid, "Enter the company.")));
+        return new V1Empty();
+    }
+
     public override Task<CompanyProfileMsg> Get(CompanyRef request, ServerCallContext context) =>
         Task.FromResult(Wire.ToMsg(companies.Get(context.Caller(), request.Company)));
 
@@ -149,12 +156,23 @@ internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBa
         return new IdReply { Id = (await masters.SavePartyAsync(context.Caller(), request.Company, request.Name, new GroupId(request.Group), party)).Value };
     }
 
-    public override Task<PartyList> ListParties(CompanyRef request, ServerCallContext context)
+    public override Task<PartyList> ListParties(ListRequest request, ServerCallContext context)
     {
-        var list = new PartyList();
-        list.Parties.AddRange(masters.Parties(context.Caller(), request.Company).Select(Wire.ToMsg));
+        var page = masters.Parties(context.Caller(), request.Company, Wire.Page(request.Page));
+        var list = new PartyList { Next = page.Next ?? "" };
+        list.Parties.AddRange(page.Rows.Select(Wire.ToMsg));
         return Task.FromResult(list);
     }
+
+    public override Task<OpeningBillList> GetOpeningBills(LedgerRef request, ServerCallContext context) =>
+        Task.FromResult(Wire.ToMsg(masters.OpeningBills(context.Caller(), request.Company, new LedgerId(request.Ledger))));
+
+    public override async Task<VersionReply> SetOpeningBills(SetOpeningBillsRequest request, ServerCallContext context) =>
+        new()
+        {
+            Version = await masters.SetOpeningBillsAsync(context.Caller(), request.Company, new LedgerId(request.Party), request.Version,
+                [.. request.Bills.Select(Wire.OpeningBill)]),
+        };
 
     public override async Task<IdReply> SaveItem(SaveItemRequest request, ServerCallContext context)
     {
@@ -162,10 +180,11 @@ internal sealed class MastersEndpoint(MasterService masters) : Masters.MastersBa
         return new IdReply { Id = await masters.SaveItemAsync(context.Caller(), request.Company, item) };
     }
 
-    public override Task<ItemList> ListItems(CompanyRef request, ServerCallContext context)
+    public override Task<ItemList> ListItems(ListRequest request, ServerCallContext context)
     {
-        var list = new ItemList();
-        list.Items.AddRange(masters.Items(context.Caller(), request.Company).Select(Wire.ToMsg));
+        var page = masters.Items(context.Caller(), request.Company, Wire.Page(request.Page));
+        var list = new ItemList { Next = page.Next ?? "" };
+        list.Items.AddRange(page.Rows.Select(Wire.ToMsg));
         return Task.FromResult(list);
     }
 }
@@ -196,9 +215,33 @@ internal sealed class VouchersEndpoint(VoucherService vouchers) : Vouchers.Vouch
     public override Task<VoucherList> List(ListVouchersRequest request, ServerCallContext context)
     {
         VoucherType? type = request.Type.Length == 0 ? null : Wire.Enum<VoucherType>(request.Type, "voucher type");
-        var list = new VoucherList();
-        list.Vouchers.AddRange(vouchers.List(context.Caller(), request.Company, Wire.Range(request.Period), type).Select(Wire.ToMsg));
+        var page = vouchers.List(context.Caller(), request.Company, Wire.Range(request.Period), type, Wire.Page(request.Page));
+        return Task.FromResult(ToMsg(page));
+    }
+
+    public override Task<BillList> OpenBills(OpenBillsRequest request, ServerCallContext context)
+    {
+        var list = new BillList();
+        list.Bills.AddRange(vouchers.OpenBills(context.Caller(), request.Company, new LedgerId(request.Party),
+            request.ExcludingVoucher == 0 ? null : request.ExcludingVoucher).Select(Wire.ToMsg));
         return Task.FromResult(list);
+    }
+
+    public override Task<VoucherList> Find(FindVouchersRequest request, ServerCallContext context)
+    {
+        Core.Time.DateRange? range = request.Period is null ? null : Wire.Range(request.Period);
+        return Task.FromResult(ToMsg(vouchers.Find(context.Caller(), request.Company, new VoucherSearch(request.Text, range), Wire.Page(request.Page))));
+    }
+
+    public override Task<VoucherMsg> GetByNumber(VoucherNumberRef request, ServerCallContext context) =>
+        Task.FromResult(Wire.ToMsg(vouchers.GetByNumber(context.Caller(), request.Company, Wire.Enum<VoucherType>(request.Type, "voucher type"),
+            request.Number)));
+
+    static VoucherList ToMsg(Page<Data.CompanyDb.VoucherRow> page)
+    {
+        var list = new VoucherList { Next = page.Next ?? "" };
+        list.Vouchers.AddRange(page.Rows.Select(Wire.ToMsg));
+        return list;
     }
 }
 
@@ -226,6 +269,9 @@ internal sealed class AdminEndpoint(AdminService admin, UserService users, HostS
         await admin.LockUpToAsync(context.Caller(), request.Company, Wire.Date(request.Date));
         return new V1Empty();
     }
+
+    public override Task<LockMsg> GetLock(CompanyRef request, ServerCallContext context) =>
+        Task.FromResult(new LockMsg { LockedUpTo = Wire.Text(admin.LockedUpTo(context.Caller(), request.Company)) });
 
     public override async Task<V1Empty> Unlock(CompanyRef request, ServerCallContext context)
     {

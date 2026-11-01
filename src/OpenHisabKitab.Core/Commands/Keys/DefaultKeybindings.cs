@@ -21,6 +21,12 @@ public static class DefaultKeybindings
         Bind("ctrl+s", "screen.save"),
         Bind("ctrl+shift+p", "palette.open"),
         Bind("ctrl+f", "screen.find"),
+        Bind("ctrl+n", "record.new"),
+        Bind("ctrl+delete", "record.delete", "!gridFocus && !inputFocus"),
+        Bind("ctrl+insert", "line.add", "gridFocus"),
+        Bind("ctrl+delete", "line.remove", "gridFocus"),
+        Bind("ctrl+b", "voucher.bills"),
+        Bind("ctrl+shift+delete", "voucher.cancelVoucher"),
         .. FKeys.Select((code, i) => Bind($"f{i + 1}", "run." + code)),
     ];
 

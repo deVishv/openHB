@@ -163,7 +163,7 @@ public sealed class McpToolTests : IDisposable
             type = "receipt", date = "2026-05-10", narration = "",
             lines = new object[] { new { ledgerId = b.Cash.Value, amount = 100.00m }, new { ledgerId = b.Sales.Value, amount = "-100.00" } },
         };
-        Assert.Equal("An error occurred invoking 'create_voucher'.", Error(await Call(api, "create_voucher", new { company = co, voucher = asNumber })));
+        Assert.Equal("$.voucher.lines[0].amount must be a string like \"12345.60\".", Error(await Call(api, "create_voucher", new { company = co, voucher = asNumber })));
         Assert.Empty(b.Vouchers.List(b.Owner, co, ApiBooks.Fy2026, null));
     }
 
@@ -183,7 +183,7 @@ public sealed class McpToolTests : IDisposable
         var tools = (await Rpc(Client(), "tools/list", new { })).GetProperty("tools").EnumerateArray().ToList();
         Assert.Equal(
             ["balance_sheet", "create_invoice", "create_party", "create_voucher", "find_vouchers", "get_voucher", "ledger_statement",
-             "list_companies", "profit_and_loss", "search_ledgers", "trial_balance"],
+             "list_companies", "open_bills", "profit_and_loss", "search_ledgers", "trial_balance"],
             tools.Select(t => t.GetProperty("name").GetString()).Order(StringComparer.Ordinal));
         var create = tools.Single(t => t.GetProperty("name").GetString() == "create_voucher");
         var amount = create.GetProperty("inputSchema").GetProperty("properties").GetProperty("voucher").GetProperty("properties")
@@ -198,5 +198,63 @@ public sealed class McpToolTests : IDisposable
         var r = await Call(Client(), "trial_balance", new { company = 999, from = "2026-04-01", to = "2027-03-31" });
         Assert.True(r.GetProperty("isError").GetBoolean());
         Assert.DoesNotContain("An error occurred", Text(r), StringComparison.Ordinal);
+    }
+    [Fact]
+    public async Task A_number_where_an_amount_string_belongs_names_the_field()
+    {
+        var r = await Call(Client(readWrite: true), "create_voucher", new
+        {
+            company = co,
+            voucher = new
+            {
+                type = "receipt", date = "2026-05-10", narration = "x",
+                lines = new object[] { new { ledgerId = b.Cash.Value, amount = 12345.6 }, new { ledgerId = b.Sales.Value, amount = "-12345.60" } },
+            },
+        });
+        Assert.Equal("$.voucher.lines[0].amount must be a string like \"12345.60\".", Error(r));
+    }
+
+    [Fact]
+    public async Task A_string_where_a_whole_number_belongs_names_the_field()
+    {
+        var r = await Call(Client(), "get_voucher", new { company = co, id = "seven" });
+        Assert.Equal("$.id must be a whole number.", Error(r));
+    }
+
+    [Fact]
+    public async Task A_list_where_an_object_belongs_names_the_field()
+    {
+        var r = await Call(Client(readWrite: true), "create_voucher", new { company = co, voucher = new[] { 1 } });
+        Assert.Equal("$.voucher must be an object.", Error(r));
+    }
+    [Fact]
+    public async Task Mcp_open_bills_and_allocating_create_voucher()
+    {
+        b.F.Set("mcp.allowWrites", "true");
+        var sale = b.BillSale("1000.00");
+        var bills = Ok(await Call(Client(name: "reader"), "open_bills", new { company = co, partyId = b.Customer.Value }));
+        var bill = bills.GetProperty("rows")[0];
+        Assert.Equal(("voucher", sale.Id, "1000.00"),
+            (bill.GetProperty("source").GetString(), bill.GetProperty("id").GetInt64(), bill.GetProperty("open").GetProperty("amount").GetString()));
+        Ok(await Call(Client(readWrite: true), "create_voucher", new
+        {
+            company = co,
+            voucher = new
+            {
+                type = "receipt", date = "2026-06-10", narration = "",
+                lines = new object[] { new { ledgerId = b.Cash.Value, amount = "600.00" }, new { ledgerId = b.Customer.Value, amount = "-600.00" } },
+                allocations = new[] { new { partyId = b.Customer.Value, billSource = "voucher", billId = sale.Id, amount = "600.00" } },
+            },
+        }));
+        Assert.Equal(Money.Parse("400.00"), b.Vouchers.OpenBills(b.Owner, co, b.Customer, null).Single().Open);
+    }
+
+    [Fact]
+    public async Task Mcp_find_vouchers_matches_a_party_name()
+    {
+        var sale = b.BillSale("1000.00");
+        b.Receipt("5.00");
+        var found = Ok(await Call(Client(), "find_vouchers", new { company = co, from = "2026-04-01", to = "2027-03-31", text = "ravi" }));
+        Assert.Equal(sale.Id, found.GetProperty("rows").EnumerateArray().Single().GetProperty("id").GetInt64());
     }
 }

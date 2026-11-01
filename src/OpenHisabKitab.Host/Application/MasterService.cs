@@ -72,6 +72,8 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
             var c = tx.Connection!;
             if (ChartRepository.HasPostings(c, id) || ChartRepository.Openings(c).ContainsKey(id))
                 throw new ServiceException(ServiceError.Invalid, $"Ledger {before.Name} has entries and cannot be deleted.");
+            if (PartyRepository.Get(c, id) is not null && BillRepository.OpeningBills(c, id).Count > 0)
+                throw new ServiceException(ServiceError.Invalid, $"Party {before.Name} has opening bills. Remove them in PRTY first.");
             ChartRepository.DeleteLedger(tx, id);
             return (id.Value, "ledger", before, (object?)null, 0);
         });
@@ -131,6 +133,26 @@ public sealed partial class MasterService(CompanyHub hub, ChangeFeed feed, IBook
         ctx.RequireCompany(company);
         using var c = hub.Open(company);
         return PartyRepository.List(c);
+    }
+
+    /// <summary>One page of parties, by ledger id.</summary>
+    public Page<Party> Parties(CallContext ctx, int company, PageRequest page)
+    {
+        ctx.RequireCompany(company);
+        var limit = Paging.Limit(page);
+        var after = Paging.IdCursor(page.After);
+        using var c = hub.Open(company);
+        return Paging.Cut(PartyRepository.Page(c, after, limit + 1), limit, p => Paging.IdCursor(p.Ledger.Value));
+    }
+
+    /// <summary>One page of items, by id.</summary>
+    public Page<Item> Items(CallContext ctx, int company, PageRequest page)
+    {
+        ctx.RequireCompany(company);
+        var limit = Paging.Limit(page);
+        var after = Paging.IdCursor(page.After);
+        using var c = hub.Open(company);
+        return Paging.Cut(ItemRepository.Page(c, after, limit + 1), limit, i => Paging.IdCursor(i.Id));
     }
 
     /// <summary>Creates an item when Id is 0, otherwise updates it. Returns the item id.</summary>

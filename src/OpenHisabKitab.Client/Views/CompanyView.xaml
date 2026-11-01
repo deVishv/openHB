@@ -17,7 +17,7 @@
             <Grid>
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
-                <TextBlock Grid.ColumnSpan="4" Text="{t:Txt NewCompanyHeading}" FontWeight="Bold" />
+                <TextBlock Grid.ColumnSpan="4" Text="{Binding FormHeading}" FontWeight="Bold" />
                 <Label Grid.Row="1" Content="{t:Txt CompanyNameLabel}" Target="{Binding ElementName=NewName}" />
                 <TextBox x:Name="NewName" Grid.Row="1" Grid.Column="1" Text="{Binding NewName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name CompanyNameLabel}" />
                 <Label Grid.Row="1" Grid.Column="2" Content="{t:Txt StateLabel}" Target="{Binding ElementName=NewState}" />
@@ -32,9 +32,12 @@
                 <Label Grid.Row="3" Content="{t:Txt AddressLabel}" Target="{Binding ElementName=NewAddress}" />
                 <TextBox x:Name="NewAddress" Grid.Row="3" Grid.Column="1" Text="{Binding NewAddress, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AddressLabel}" />
                 <Label Grid.Row="3" Grid.Column="2" Content="{t:Txt FirstYearLabel}" Target="{Binding ElementName=NewFirstYear}" />
-                <TextBox x:Name="NewFirstYear" Grid.Row="3" Grid.Column="3" Text="{Binding NewFirstYear, UpdateSourceTrigger=PropertyChanged}"
+                <TextBox x:Name="NewFirstYear" Grid.Row="3" Grid.Column="3" Text="{Binding NewFirstYear, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding Editing}"
                          FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name FirstYearLabel}" />
-                <Button Grid.Row="4" Grid.Column="3" HorizontalAlignment="Right" Content="{t:Txt CreateButton}" AutomationProperties.Name="{t:Name CreateButton}" Click="OnCreate" />
+                <StackPanel Grid.Row="4" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="{t:Txt EditButton}" AutomationProperties.Name="{t:Name EditButton}" Click="OnEdit" Margin="0,0,4,0" />
+                    <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnCreate" />
+                </StackPanel>
             </Grid>
         </Border>
 

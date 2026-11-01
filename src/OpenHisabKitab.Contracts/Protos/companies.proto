@@ -8,6 +8,7 @@ import "settings.proto";
 service Companies {
   rpc List (Empty) returns (CompanyList);
   rpc Create (CompanyProfileMsg) returns (CompanyRef);
+  rpc Update (UpdateCompanyRequest) returns (Empty);
   rpc Get (CompanyRef) returns (CompanyProfileMsg);
   rpc ListYears (CompanyRef) returns (YearList);
   rpc AddYear (CompanyRef) returns (YearMsg);
@@ -32,3 +33,4 @@ message YearMsg { int32 start_year = 1; string label = 2; }
 message YearList { repeated YearMsg years = 1; }
 message SettingRequest { int32 company = 1; string key = 2; string json = 3; }
 message CompanySettingKey { int32 company = 1; string key = 2; }
+message UpdateCompanyRequest { int32 company = 1; CompanyProfileMsg profile = 2; }

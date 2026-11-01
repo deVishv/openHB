@@ -180,4 +180,51 @@ public sealed class CompanyTests : IDisposable
         Assert.True(screen.IsAffectedBy(new ChangeEventMsg { Company = 1, Kind = "Restore" }));
         Assert.False(screen.IsAffectedBy(new ChangeEventMsg { Company = 1, Kind = "Voucher" }));
     }
+    [Fact]
+    public async Task Edit_renames_the_company_and_the_title()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var screen = (CompanyViewModel)(await Cmpy(shell.Context, "CMPY"))!;
+        screen.Selected = screen.Companies.Single(c => c.Name == "A Traders");
+        await screen.EditSelectedAsync();
+        Assert.True(screen.Editing);
+        Assert.Equal(("A Traders", "27", 2026), (screen.NewName, screen.NewState!.Code, screen.NewFirstYear));
+        screen.NewName = "A Traders LLP";
+        await screen.SaveAsync();
+        Assert.Null(screen.Message);
+        Assert.Equal("Open Hisab Kitab: A Traders LLP FY 2026-27", shell.Title);
+        Assert.Contains(screen.Companies, c => c.Name == "A Traders LLP");
+        await screen.RunAsync("record.new");
+        Assert.False(screen.Editing);
+        Assert.Equal("", screen.NewName);
+    }
+
+    [Fact]
+    public async Task Edit_shows_the_host_refusal_for_a_state_change_after_vouchers()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var company = shell.Context.Company!.Id;
+        var chart = shell.Context.Lookups.Chart;
+        await t.OtherOwnerClient().Vouchers.SaveJournalAsync(new JournalRequest
+        {
+            Company = company,
+            Journal = new JournalMsg
+            {
+                Type = "Receipt", Date = "2026-05-10",
+                Lines =
+                {
+                    new PostingLineMsg { Ledger = chart.Ledgers.Single(l => l.Required == "Cash").Id, Paise = 100 },
+                    new PostingLineMsg { Ledger = chart.Ledgers.Single(l => l.Required == "Sales").Id, Paise = -100 },
+                },
+            },
+        }, t.Headers());
+        var screen = (CompanyViewModel)(await Cmpy(shell.Context, "CMPY"))!;
+        screen.Selected = screen.Companies.Single();
+        await screen.EditSelectedAsync();
+        screen.NewState = screen.States.Single(s => s.Code == "29");
+        screen.NewGstin = "";
+        screen.NewRegistration = "Unregistered";
+        await screen.SaveAsync();
+        Assert.Equal("State and registration cannot change after vouchers are entered.", screen.Message);
+    }
 }

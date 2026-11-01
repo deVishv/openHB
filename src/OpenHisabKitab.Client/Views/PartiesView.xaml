@@ -1,0 +1,93 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.PartiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" TextWrapping="Wrap"
+                   Visibility="{Binding Message, Converter={StaticResource Present}}" AutomationProperties.LiveSetting="Assertive" />
+        <Grid>
+            <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="3*" /></Grid.ColumnDefinitions>
+            <!-- The list is hidden in the sub screen a voucher opens to create a party. -->
+            <DockPanel Margin="2" x:Name="ListSide">
+                <DockPanel DockPanel.Dock="Top">
+                    <Label Content="{t:Txt FilterLabel}" Target="{Binding ElementName=Filter}" />
+                    <TextBox x:Name="Filter" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name FilterLabel}" />
+                </DockPanel>
+                <ListView x:Name="PartyList" ItemsSource="{Binding Parties}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name PartiesHeading}"
+                          KeyDown="OnListKeyDown">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Name}" /></Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="{t:Txt NameColumn}" DisplayMemberBinding="{Binding Name}" Width="180" />
+                            <GridViewColumn Header="{t:Txt GstinColumn}" DisplayMemberBinding="{Binding Gstin}" Width="140" />
+                            <GridViewColumn Header="{t:Txt GroupColumn}" DisplayMemberBinding="{Binding Group}" Width="120" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Focusable="False">
+                <StackPanel Margin="6,2,2,2">
+                    <Label Content="{t:Txt NameLabel}" Target="{Binding ElementName=FormName}" />
+                    <TextBox x:Name="FormName" Text="{Binding FormName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name NameLabel}" />
+                    <Label Content="{t:Txt PartyGroupLabel}" Target="{Binding ElementName=FormGroup}" />
+                    <ComboBox x:Name="FormGroup" ItemsSource="{Binding Groups}" SelectedItem="{Binding FormGroup}" DisplayMemberPath="Name"
+                              AutomationProperties.Name="{t:Name PartyGroupLabel}" />
+                    <Label Content="{t:Txt GstinLabel}" Target="{Binding ElementName=FormGstin}" />
+                    <TextBox x:Name="FormGstin" Text="{Binding FormGstin, UpdateSourceTrigger=PropertyChanged}" CharacterCasing="Upper"
+                             FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name GstinLabel}" />
+                    <Label Content="{t:Txt StateLabel}" Target="{Binding ElementName=FormState}" />
+                    <ComboBox x:Name="FormState" ItemsSource="{Binding States}" SelectedItem="{Binding FormState}" DisplayMemberPath="Label"
+                              AutomationProperties.Name="{t:Name StateLabel}" />
+                    <Label Content="{t:Txt CreditDaysLabel}" Target="{Binding ElementName=FormDays}" />
+                    <TextBox x:Name="FormDays" Text="{Binding FormCreditDays, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                             AutomationProperties.Name="{t:Name CreditDaysLabel}" />
+                    <Label Content="{t:Txt AddressLabel}" Target="{Binding ElementName=FormAddress}" />
+                    <TextBox x:Name="FormAddress" Text="{Binding FormAddress, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="False"
+                             AutomationProperties.Name="{t:Name AddressLabel}" />
+
+                    <!-- Opening bills (spec 13): number, date, due date, amount. Enter moves on; Enter on the last amount adds a bill. -->
+                    <Label Content="{t:Txt OpeningBillsHeading}" Target="{Binding ElementName=Bills}" FontWeight="Bold" Margin="0,8,0,0" />
+                    <Grid Margin="0,0,0,2">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <TextBlock Text="{t:Txt BillNumberColumn}" />
+                        <TextBlock Grid.Column="1" Text="{t:Txt DateColumn}" />
+                        <TextBlock Grid.Column="2" Text="{t:Txt DueDateColumn}" />
+                        <TextBlock Grid.Column="3" Text="{t:Txt AmountColumn}" TextAlignment="Right" />
+                    </Grid>
+                    <ItemsControl x:Name="Bills" ItemsSource="{Binding OpeningBills}" v:EntryGrid.IsEntryGrid="True" IsEnabled="{Binding CanEditOpenings}"
+                                  AutomationProperties.Name="{t:Name OpeningBillsHeading}" Focusable="False">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="2*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name BillNumberColumn}" />
+                                    <TextBox Grid.Column="1" Text="{Binding Date, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                                             AutomationProperties.Name="{t:Name DateColumn}" />
+                                    <TextBox Grid.Column="2" Text="{Binding DueDate, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                                             AutomationProperties.Name="{t:Name DueDateColumn}" />
+                                    <TextBox Grid.Column="3" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" FontFamily="{DynamicResource NumberFont}"
+                                             TextAlignment="Right" AutomationProperties.Name="{t:Name AmountColumn}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button HorizontalAlignment="Left" Content="{t:Txt AddLineButton}" AutomationProperties.Name="{t:Name AddLineButton}" Click="OnAddLine"
+                            Visibility="{Binding CanEditOpenings, Converter={StaticResource Bool}}" />
+                    <TextBlock Text="{Binding OpeningSummary}" FontFamily="{DynamicResource NumberFont}" Margin="0,4"
+                               Visibility="{Binding OpeningSummary, Converter={StaticResource Present}}" />
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnSave" />
+                        <Button Content="{t:Txt NewButton}" AutomationProperties.Name="{t:Name NewButton}" Click="OnNew" Margin="4,0,0,0" x:Name="NewButton" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</UserControl>

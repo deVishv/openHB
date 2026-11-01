@@ -208,4 +208,130 @@
   <data name="LayerNotRead" xml:space="preserve"><value>Your settings could not be read from the host yet. Try again when connected.</value></data>
   <data name="HostTooSlow" xml:space="preserve"><value>The host took too long to answer. Try again.</value></data>
   <data name="FileLine" xml:space="preserve"><value>{0} line {1}: {2}</value></data>
+  <data name="DeleteLedgerQuestion" xml:space="preserve"><value>Delete ledger {0}?</value></data>
+  <data name="EnterName" xml:space="preserve"><value>Enter a name.</value></data>
+  <data name="AmountInvalid" xml:space="preserve"><value>Enter an amount like 12,345.60.</value></data>
+  <data name="ChooseGroup" xml:space="preserve"><value>Choose a group.</value></data>
+  <data name="RequiredMarker" xml:space="preserve"><value>Required</value></data>
+  <data name="OpeningDifference" xml:space="preserve"><value>Opening difference {0}</value></data>
+  <data name="AccountsHeading" xml:space="preserve"><value>Chart of accounts</value></data>
+  <data name="IsGroupLabel" xml:space="preserve"><value>_Group, not a ledger</value></data>
+  <data name="NameLabel" xml:space="preserve"><value>_Name</value></data>
+  <data name="UnderGroupLabel" xml:space="preserve"><value>_Under group</value></data>
+  <data name="OpeningLabel" xml:space="preserve"><value>_Opening</value></data>
+  <data name="SideLabel" xml:space="preserve"><value>Side</value></data>
+  <data name="NewButton" xml:space="preserve"><value>New</value></data>
+  <data name="DeleteButton" xml:space="preserve"><value>Delete</value></data>
+  <data name="SaveRecordButton" xml:space="preserve"><value>Save</value></data>
+  <data name="RateInvalid" xml:space="preserve"><value>Enter a rate like 18 or 0.25.</value></data>
+  <data name="DiscardParty" xml:space="preserve"><value>Discard this party?</value></data>
+  <data name="CreditDaysInvalid" xml:space="preserve"><value>Enter credit days as a whole number, 0 to 3650.</value></data>
+  <data name="OpeningBillsSummary" xml:space="preserve"><value>Opening balance {0}; bills {1}; on account {2}</value></data>
+  <data name="LineDateInvalid" xml:space="preserve"><value>Line {0}: enter the date as dd-mm-yyyy.</value></data>
+  <data name="LineAmountInvalid" xml:space="preserve"><value>Line {0}: enter an amount like 12,345.60.</value></data>
+  <data name="ItemsHeading" xml:space="preserve"><value>Items</value></data>
+  <data name="PartiesHeading" xml:space="preserve"><value>Parties</value></data>
+  <data name="FilterLabel" xml:space="preserve"><value>_Filter</value></data>
+  <data name="HsnSacLabel" xml:space="preserve"><value>_HSN or SAC</value></data>
+  <data name="IsServiceLabel" xml:space="preserve"><value>Ser_vice</value></data>
+  <data name="UnitLabel" xml:space="preserve"><value>_Unit</value></data>
+  <data name="RateLabel" xml:space="preserve"><value>GST _rate</value></data>
+  <data name="CessLabel" xml:space="preserve"><value>C_ess rate</value></data>
+  <data name="DefaultPriceLabel" xml:space="preserve"><value>Default _price</value></data>
+  <data name="PartyGroupLabel" xml:space="preserve"><value>Gro_up</value></data>
+  <data name="CreditDaysLabel" xml:space="preserve"><value>_Credit days</value></data>
+  <data name="OpeningBillsHeading" xml:space="preserve"><value>Opening bills</value></data>
+  <data name="BillNumberColumn" xml:space="preserve"><value>Number</value></data>
+  <data name="DateColumn" xml:space="preserve"><value>Date</value></data>
+  <data name="DueDateColumn" xml:space="preserve"><value>Due date</value></data>
+  <data name="AmountColumn" xml:space="preserve"><value>Amount</value></data>
+  <data name="AddLineButton" xml:space="preserve"><value>Add line</value></data>
+  <data name="HsnColumn" xml:space="preserve"><value>HSN or SAC</value></data>
+  <data name="RateColumn" xml:space="preserve"><value>Rate</value></data>
+  <data name="GstinColumn" xml:space="preserve"><value>GSTIN</value></data>
+  <data name="GroupColumn" xml:space="preserve"><value>Group</value></data>
+  <data name="SavedVoucher" xml:space="preserve"><value>Saved {0}.</value></data>
+  <data name="AlreadySavedShowing" xml:space="preserve"><value>Already saved as {0}. Showing the saved version.</value></data>
+  <data name="DiscardVoucher" xml:space="preserve"><value>Discard this voucher?</value></data>
+  <data name="CancelVoucherQuestion" xml:space="preserve"><value>Cancel voucher {0}?</value></data>
+  <data name="CancelledVoucher" xml:space="preserve"><value>Cancelled {0}.</value></data>
+  <data name="CancelledMarker" xml:space="preserve"><value>Cancelled</value></data>
+  <data name="DebitCreditTotals" xml:space="preserve"><value>Debit {0}  Credit {1}</value></data>
+  <data name="DifferenceLine" xml:space="preserve"><value>Difference {0}</value></data>
+  <data name="TotalLine" xml:space="preserve"><value>Total {0}</value></data>
+  <data name="OnAccountLower" xml:space="preserve"><value>on account {0}</value></data>
+  <data name="OnAccountLine" xml:space="preserve"><value>On account {0}</value></data>
+  <data name="BillsHeading" xml:space="preserve"><value>Bills of {0}</value></data>
+  <data name="AllocationNotPositive" xml:space="preserve"><value>Enter an allocation more than zero.</value></data>
+  <data name="AllocationDuplicate" xml:space="preserve"><value>Bill {0} is allocated twice.</value></data>
+  <data name="AllocationMoreThanOpen" xml:space="preserve"><value>Bill {0} has only {1} open.</value></data>
+  <data name="AllocationMoreThanSettlement" xml:space="preserve"><value>Allocations are more than the {0} this voucher settles for {1}.</value></data>
+  <data name="VoucherDateInvalid" xml:space="preserve"><value>Enter the date as dd-mm-yyyy.</value></data>
+  <data name="LineChooseLedger" xml:space="preserve"><value>Line {0}: choose a ledger.</value></data>
+  <data name="ChooseReceivedIn" xml:space="preserve"><value>Choose the cash or bank account received in.</value></data>
+  <data name="ChoosePaidFrom" xml:space="preserve"><value>Choose the cash or bank account paid from.</value></data>
+  <data name="ReceivedInLabel" xml:space="preserve"><value>Received _in</value></data>
+  <data name="PaidFromLabel" xml:space="preserve"><value>Paid _from</value></data>
+  <data name="NarrationLabel" xml:space="preserve"><value>_Narration</value></data>
+  <data name="VoucherDateLabel" xml:space="preserve"><value>_Date</value></data>
+  <data name="LedgerColumn" xml:space="preserve"><value>Ledger</value></data>
+  <data name="DebitColumn" xml:space="preserve"><value>Debit</value></data>
+  <data name="CreditColumn" xml:space="preserve"><value>Credit</value></data>
+  <data name="AllocateColumn" xml:space="preserve"><value>Allocate</value></data>
+  <data name="OpenColumn" xml:space="preserve"><value>Open</value></data>
+  <data name="CancelVoucherButton" xml:space="preserve"><value>Cancel voucher</value></data>
+  <data name="BillsButton" xml:space="preserve"><value>Bills</value></data>
+  <data name="UnregisteredReverseCharge" xml:space="preserve"><value>An unregistered company cannot pay reverse charge. Register for GST first.</value></data>
+  <data name="NoInputTaxCredit" xml:space="preserve"><value>This company cannot take input tax credit. Enter the purchase with rate 0 and the full amount.</value></data>
+  <data name="InvoiceNoLines" xml:space="preserve"><value>Enter at least one line.</value></data>
+  <data name="InvoiceQuantity" xml:space="preserve"><value>quantity must be more than zero.</value></data>
+  <data name="InvoiceNegativePrice" xml:space="preserve"><value>price cannot be negative.</value></data>
+  <data name="InvoiceNegativeDiscount" xml:space="preserve"><value>discount cannot be negative.</value></data>
+  <data name="InvoiceDiscountTooBig" xml:space="preserve"><value>discount is more than the amount.</value></data>
+  <data name="InvoiceLineProblem" xml:space="preserve"><value>Line {0}: {1}</value></data>
+  <data name="TaxableTotal" xml:space="preserve"><value>Taxable {0}</value></data>
+  <data name="CessShort" xml:space="preserve"><value>Cess</value></data>
+  <data name="RoundOffShort" xml:space="preserve"><value>Round off</value></data>
+  <data name="ChooseParty" xml:space="preserve"><value>Choose the party.</value></data>
+  <data name="LineQuantityInvalid" xml:space="preserve"><value>Line {0}: enter a quantity with up to 3 decimals.</value></data>
+  <data name="LineRateInvalid" xml:space="preserve"><value>Line {0}: enter a rate like 18 or 0.25.</value></data>
+  <data name="PartyLabel" xml:space="preserve"><value>_Party</value></data>
+  <data name="PlaceOfSupplyLabel" xml:space="preserve"><value>Place of _supply</value></data>
+  <data name="KindLabel" xml:space="preserve"><value>_Kind</value></data>
+  <data name="DirectionLabel" xml:space="preserve"><value>Di_rection</value></data>
+  <data name="ReverseChargeLabel" xml:space="preserve"><value>Re_verse charge</value></data>
+  <data name="PartyDocNumberLabel" xml:space="preserve"><value>Supplier's _invoice no.</value></data>
+  <data name="PartyDocDateLabel" xml:space="preserve"><value>Supplier's dat_e</value></data>
+  <data name="OriginalNumberLabel" xml:space="preserve"><value>_Original invoice</value></data>
+  <data name="OriginalDateLabel" xml:space="preserve"><value>Original da_te</value></data>
+  <data name="PortCodeLabel" xml:space="preserve"><value>Port _code</value></data>
+  <data name="ShippingBillNumberLabel" xml:space="preserve"><value>Shipping _bill</value></data>
+  <data name="ShippingBillDateLabel" xml:space="preserve"><value>Shipping bill date</value></data>
+  <data name="ItemColumn" xml:space="preserve"><value>Item</value></data>
+  <data name="QuantityColumn" xml:space="preserve"><value>Quantity</value></data>
+  <data name="PriceColumn" xml:space="preserve"><value>Price</value></data>
+  <data name="DiscountColumn" xml:space="preserve"><value>Discount</value></data>
+  <data name="CessColumn" xml:space="preserve"><value>Cess</value></data>
+  <data name="TaxIncludedColumn" xml:space="preserve"><value>With tax</value></data>
+  <data name="NoVouchersMatch" xml:space="preserve"><value>No vouchers match {0}.</value></data>
+  <data name="FindLabel" xml:space="preserve"><value>_Find</value></data>
+  <data name="SearchButton" xml:space="preserve"><value>_Search</value></data>
+  <data name="MoreButton" xml:space="preserve"><value>_More</value></data>
+  <data name="TypeColumn" xml:space="preserve"><value>Type</value></data>
+  <data name="NumberColumn" xml:space="preserve"><value>Number</value></data>
+  <data name="PartyColumn" xml:space="preserve"><value>Party</value></data>
+  <data name="NarrationColumn" xml:space="preserve"><value>Narration</value></data>
+  <data name="StatusColumn" xml:space="preserve"><value>Status</value></data>
+  <data name="FoundHeading" xml:space="preserve"><value>Vouchers found</value></data>
+  <data name="EditCompanyHeading" xml:space="preserve"><value>Edit company</value></data>
+  <data name="EditButton" xml:space="preserve"><value>_Edit</value></data>
+  <data name="LockedUpTo" xml:space="preserve"><value>Locked up to {0}</value></data>
+  <data name="NotLocked" xml:space="preserve"><value>Not locked</value></data>
+  <data name="UnlockAfterQuestion" xml:space="preserve"><value>Unlock vouchers after {0}?</value></data>
+  <data name="UnlockAllQuestion" xml:space="preserve"><value>Unlock all periods?</value></data>
+  <data name="LockDateLabel" xml:space="preserve"><value>Lock _up to</value></data>
+  <data name="LockButton" xml:space="preserve"><value>_Lock</value></data>
+  <data name="UnlockButton" xml:space="preserve"><value>Unloc_k all</value></data>
+  <data name="LockHeading" xml:space="preserve"><value>Period lock</value></data>
+  <data name="UnitColumn" xml:space="preserve"><value>Unit</value></data>
 </root>

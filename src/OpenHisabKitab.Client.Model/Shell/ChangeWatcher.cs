@@ -44,6 +44,8 @@ public sealed class ChangeWatcher(ShellContext ctx, TabsViewModel tabs, Action<A
     {
         if (ctx.Company?.Id != change.Company) return;
         if (change.Kind == "Settings") await ctx.Settings.LoadAsync(ctx.Company.Id);
+        try { await ctx.Lookups.OnChangeAsync(change); }
+        catch (HostException e) { ctx.Report(e.Message); }
         var autoReload = ctx.Settings.Current.Bool("reports.autoReload");
         foreach (var tab in tabs.Tabs.ToList().Where(t => t.Screen.IsAffectedBy(change)))
         {

@@ -211,4 +211,51 @@ public sealed class CompanyServiceTests : IDisposable
         var ex = Assert.Throws<ServiceException>(() => fresh.Open(id));
         Assert.Equal("This file needs a newer Open Hisab Kitab.", ex.Message);
     }
+    [Fact]
+    public async Task Update_changes_name_address_and_gstin_and_renames_in_the_company_list()
+    {
+        var id = host.NewCompany();
+        var owner = host.Owner.Context;
+        var next = TestHost.Profile() with { Name = "A Traders LLP", Address = "2 FC Road, Pune", Gstin = TestHost.G("27AAACR5055K1Z7") };
+        await host.Companies.UpdateAsync(owner, id, next);
+        Assert.Equal(next, host.Companies.Get(owner, id));
+        Assert.Equal("A Traders LLP", host.Companies.List(owner).Single(c => c.Id == id).Name);
+        using var c = host.Hub.Open(id);
+        Assert.Equal(("edit", "company"), AuditLog.Read(c, new AuditFilter(Limit: 1)).Select(e => (e.Entry.Action, e.Entry.Entity)).Single());
+        using var h = host.Data.OpenHost();
+        Assert.Equal(("edit", "company"), AuditLog.Read(h, new AuditFilter(Limit: 1)).Select(e => (e.Entry.Action, e.Entry.Entity)).Single());
+    }
+
+    [Fact]
+    public async Task Update_refuses_a_state_change_once_vouchers_exist()
+    {
+        var id = host.NewCompany();
+        var owner = host.Owner.Context;
+        var chart = host.Masters.Chart(owner, id);
+        var composition = TestHost.Profile() with { Registration = GstRegistration.Composition };
+        await host.Companies.UpdateAsync(owner, id, composition);
+        await host.Vouchers.SaveJournalAsync(owner, id, new JournalInput(VoucherType.Receipt, new DateOnly(2026, 5, 1), "",
+            [new PostingLine(chart.Required(RequiredLedger.Cash), Money.Parse("1.00")), new PostingLine(chart.Required(RequiredLedger.Sales), Money.Parse("-1.00"))]));
+        var e = await FailsAsync(ServiceError.Invalid, () => host.Companies.UpdateAsync(owner, id, TestHost.Profile()));
+        Assert.Equal("State and registration cannot change after vouchers are entered.", e.Message);
+        await host.Companies.UpdateAsync(owner, id, composition with { Name = "Renamed" });
+    }
+
+    [Fact]
+    public async Task Update_refuses_a_first_year_change()
+    {
+        var id = host.NewCompany();
+        var e = await FailsAsync(ServiceError.Invalid, () => host.Companies.UpdateAsync(host.Owner.Context, id, TestHost.Profile() with { FirstFyStartYear = 2025 }));
+        Assert.Equal("The first financial year cannot change.", e.Message);
+    }
+
+    [Fact]
+    public async Task Update_checks_the_gstin_and_needs_manage_companies()
+    {
+        var id = host.NewCompany();
+        var e = await FailsAsync(ServiceError.Invalid, () => host.Companies.UpdateAsync(host.Owner.Context, id, TestHost.Profile() with { Gstin = null }));
+        Assert.Equal("Enter the GSTIN.", e.Message);
+        var clerk = host.NewUser("clerk", BuiltInRole.DataEntry, id).Context;
+        await FailsAsync(ServiceError.PermissionDenied, () => host.Companies.UpdateAsync(clerk, id, TestHost.Profile()));
+    }
 }

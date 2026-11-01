@@ -48,4 +48,11 @@ public sealed class SettingsCatalogTests
     [Fact]
     public void Category_is_the_text_before_the_first_dot() =>
         Assert.Equal("ui", SettingsCatalog.Find("ui.fontSize")!.Category);
+    [Fact]
+    public void PricesIncludeTax_is_a_company_boolean()
+    {
+        var d = SettingsCatalog.Find("invoice.pricesIncludeTax")!;
+        Assert.Equal((SettingType.Boolean, "false", SettingScope.Company, "New invoice lines take prices with tax included."),
+            (d.Type, d.DefaultJson, d.Scope, d.Description));
+    }
 }

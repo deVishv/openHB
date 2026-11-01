@@ -19,7 +19,8 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
     // Builds a voucher's postings, and its invoice detail for GST documents, from the input and the current chart.
     delegate (IReadOnlyList<PostingLine> Postings, InvoiceHeader? Invoice) Build(SqliteTransaction tx, ChartOfAccounts chart);
 
-    sealed record Outcome(SavedVoucher Saved, IReadOnlyList<PostingRecord> Postings);
+    // Repeat is true when a retried save found its earlier voucher: nothing changed, so nothing is published.
+    sealed record Outcome(SavedVoucher Saved, IReadOnlyList<PostingRecord> Postings, bool Repeat = false);
 
     static readonly HashSet<VoucherType> JournalTypes = [VoucherType.Receipt, VoucherType.Payment, VoucherType.Journal, VoucherType.Contra];
 
@@ -27,14 +28,14 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
     {
         RequireJournalType(input.Type);
         return SaveAsync(ctx, company, input.Type, input.Date, input.Narration,
-            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null));
+            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null), input.Allocations ?? [], input.RequestId);
     }
 
     public Task<SavedVoucher> EditJournalAsync(CallContext ctx, int company, long id, long rowVersion, JournalInput input)
     {
         RequireJournalType(input.Type);
         return EditAsync(ctx, company, id, rowVersion, input.Type, input.Date, input.Narration,
-            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null));
+            (_, chart) => (CheckedLines(input.Type, input.Date, input.Lines, chart), null), input.Allocations ?? []);
     }
 
     /// <summary>Cancels a voucher. It keeps its number and posts nothing (spec 5.4).</summary>
@@ -47,6 +48,7 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
             var c = tx.Connection!;
             var existing = Existing(ctx, c, id, rowVersion);
             CheckLock(c, existing.Date);
+            CheckNotSettled(c, existing.Id);
             VoucherRepository.Cancel(tx, id, rowVersion);
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "cancel", "voucher", Text.Key(id), Json(existing),
                 JsonSerializer.Serialize(new { Cancelled = true, Reason = reason.Trim() })));
@@ -72,33 +74,38 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
         return VoucherRepository.List(c, range, type, ownOnly ? ctx.UserId : null);
     }
 
-    async Task<SavedVoucher> SaveAsync(CallContext ctx, int company, VoucherType type, DateOnly date, string narration, Build build)
+    async Task<SavedVoucher> SaveAsync(CallContext ctx, int company, VoucherType type, DateOnly date, string narration, Build build,
+        IReadOnlyList<AllocationRow> allocations, string? requestId)
     {
         ctx.Require(Permission.CreateVoucher);
         ctx.RequireCompany(company);
+        if (requestId is { Length: > 64 }) throw new ServiceException(ServiceError.Invalid, "Request id is too long.");
         var outcome = await hub.WriteAsync(company, tx =>
         {
             var c = tx.Connection!;
+            if (requestId is not null && Repeated(ctx, c, type, requestId) is { } repeat) return repeat;
             var fy = CheckYear(c, date);
             CheckLock(c, date);
             CheckOpenings(c);
-            var (postings, invoice) = build(tx, ChartRepository.Load(c));
+            var chart = ChartRepository.Load(c);
+            var (postings, invoice) = build(tx, chart);
+            CheckAllocations(c, chart, type, postings, allocations, null);
             var (series, number) = NumberSeriesRepository.Take(tx, type, fy);
             string display;
             try { display = series.Format(fy, number); }
             catch (SeriesExhaustedException) { throw new ServiceException(ServiceError.Invalid, $"Series {series.Prefix(fy)} is full."); }
 
             var row = new VoucherRow(0, type, NumberSeriesRepository.DefaultSeries, fy.StartYear, number, display, date,
-                narration.Trim(), false, ctx.UserId, 1, postings, invoice);
+                narration.Trim(), false, ctx.UserId, 1, postings, invoice, allocations, requestId);
             var id = VoucherRepository.Insert(tx, row);
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "create", "voucher", Text.Key(id), null, Json(row with { Id = id })));
             return new Outcome(new SavedVoucher(id, display, 1), Records(id, date, postings));
-        }, o => Published(company, o.Saved.Id, o.Postings));
+        }, o => { if (!o.Repeat) Published(company, o.Saved.Id, o.Postings); });
         return outcome.Saved;
     }
 
     async Task<SavedVoucher> EditAsync(CallContext ctx, int company, long id, long rowVersion, VoucherType type, DateOnly date,
-        string narration, Build build)
+        string narration, Build build, IReadOnlyList<AllocationRow> allocations)
     {
         ctx.Require(Permission.EditVoucher);
         ctx.RequireCompany(company);
@@ -112,9 +119,15 @@ public sealed partial class VoucherService(CompanyHub hub, ChangeFeed feed, IBoo
             CheckLock(c, existing.Date);
             CheckLock(c, date);
             CheckOpenings(c);
-            var (postings, invoice) = build(tx, ChartRepository.Load(c));
+            var chart = ChartRepository.Load(c);
+            var (postings, invoice) = build(tx, chart);
+            CheckAllocations(c, chart, type, postings, allocations, id);
+            CheckSettledBillEdit(c, chart, existing, invoice?.Party, postings);
 
-            var row = existing with { Date = date, Narration = narration.Trim(), Postings = postings, Invoice = invoice, RowVersion = rowVersion + 1 };
+            var row = existing with
+            {
+                Date = date, Narration = narration.Trim(), Postings = postings, Invoice = invoice, Allocations = allocations, RowVersion = rowVersion + 1,
+            };
             VoucherRepository.Update(tx, row, rowVersion);
             hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "edit", "voucher", Text.Key(id), Json(existing), Json(row)));
             return new Outcome(new SavedVoucher(id, existing.DisplayNumber, rowVersion + 1), Records(id, date, postings));

@@ -4,7 +4,7 @@ option csharp_namespace = "OpenHisabKitab.Contracts.V1";
 
 import "common.proto";
 
-// A stale row_version fails with ABORTED; the trailer "ohk-current-bin" holds the current PartyMsg or ItemMsg.
+// A stale row_version fails with ABORTED; the trailer "ohk-current-bin" holds the current PartyMsg, ItemMsg, or OpeningBillList.
 service Masters {
   rpc GetChart (CompanyRef) returns (ChartMsg);
   rpc AddGroup (AddGroupRequest) returns (IdReply);
@@ -14,10 +14,14 @@ service Masters {
   rpc RemoveLedger (LedgerRef) returns (Empty);
   rpc SetOpening (SetOpeningRequest) returns (Empty);
   rpc SaveParty (SavePartyRequest) returns (IdReply);
-  rpc ListParties (CompanyRef) returns (PartyList);
+  rpc ListParties (ListRequest) returns (PartyList);
   rpc SaveItem (SaveItemRequest) returns (IdReply);
-  rpc ListItems (CompanyRef) returns (ItemList);
+  rpc ListItems (ListRequest) returns (ItemList);
+  rpc GetOpeningBills (LedgerRef) returns (OpeningBillList);
+  rpc SetOpeningBills (SetOpeningBillsRequest) returns (VersionReply);
 }
+
+message ListRequest { int32 company = 1; PageMsg page = 2; }
 
 // parent 0 means a top level group. required is empty for ordinary ledgers.
 message GroupMsg { int32 id = 1; string name = 2; int32 parent = 3; string nature = 4; string kind = 5; }
@@ -32,7 +36,7 @@ message SetOpeningRequest { int32 company = 1; int32 ledger = 2; int64 paise = 3
 // ledger 0 creates a new party. gstin is empty for unregistered parties.
 message PartyMsg { int32 ledger = 1; string gstin = 2; string state = 3; int32 credit_days = 4; string address = 5; int64 row_version = 6; }
 message SavePartyRequest { int32 company = 1; string name = 2; int32 group = 3; PartyMsg party = 4; }
-message PartyList { repeated PartyMsg parties = 1; }
+message PartyList { repeated PartyMsg parties = 1; string next = 2; }
 
 // id 0 creates a new item.
 message ItemMsg {
@@ -47,4 +51,11 @@ message ItemMsg {
   int64 row_version = 9;
 }
 message SaveItemRequest { int32 company = 1; ItemMsg item = 2; }
-message ItemList { repeated ItemMsg items = 1; }
+message ItemList { repeated ItemMsg items = 1; string next = 2; }
+
+// id 0 is a new bill. due_date is empty when there is none.
+message OpeningBillMsg { int64 id = 1; string number = 2; string date = 3; string due_date = 4; int64 amount_paise = 5; }
+// version changes on every save of the bills; the party's row_version does not.
+message OpeningBillList { repeated OpeningBillMsg bills = 1; int64 version = 2; }
+message SetOpeningBillsRequest { int32 company = 1; int32 party = 2; int64 version = 3; repeated OpeningBillMsg bills = 4; }
+message VersionReply { int64 version = 1; }

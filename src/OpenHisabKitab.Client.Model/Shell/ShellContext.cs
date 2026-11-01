@@ -1,4 +1,5 @@
 using OpenHisabKitab.Client.Model.Connection;
+using OpenHisabKitab.Client.Model.Lookups;
 using OpenHisabKitab.Client.Model.Settings;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Time;
@@ -15,6 +16,14 @@ public sealed class ShellContext
     public required SettingsStore Settings { get; init; }
     public required KeybindingStore Keys { get; init; }
     public required TimeProvider Time { get; init; }
+
+    LookupCache? lookups;
+
+    /// <summary>The open company's chart, parties, items, profile, and company settings, loaded when it opens.</summary>
+    public LookupCache Lookups => lookups ??= new LookupCache(Host);
+
+    /// <summary>Runs a command in this tab, or a new one when the flag is true, as typing it at the prompt does. The shell sets it.</summary>
+    public Func<string, bool, Task>? Run { get; set; }
 
     /// <summary>The keyboard Yes/No box, for screens that ask before a change such as revoking a token. The shell sets it.</summary>
     public IConfirm Confirm { get; set; } = null!;
@@ -62,6 +71,8 @@ public sealed class ShellContext
 
     public void OpenCompany(CompanyEntry company, FinancialYear year, IReadOnlyList<FinancialYear>? years = null)
     {
+        // Another company's lookups must never show under this one, even for a moment.
+        if (Company?.Id != company.Id) Lookups.Clear();
         Company = company;
         Years = years ?? [year];
         Year = year;
@@ -74,6 +85,7 @@ public sealed class ShellContext
     {
         Company = null;
         Years = [];
+        Lookups.Clear();
         Year = null;
     }
 }

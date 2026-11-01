@@ -14,6 +14,19 @@ public static class ScreenCatalog
         ["SETG"] = Now(SettingsViewModel.Create),
         ["KEYS"] = Now(KeysViewModel.Create),
         ["USER"] = Now(UsersViewModel.Create),
+        ["ACCT"] = Now(AccountsViewModel.Create),
+        ["ITEM"] = Now(ItemsViewModel.Create),
+        ["PRTY"] = Now((cmd, ctx) => PartiesViewModel.Create(cmd, ctx)),
+        ["FIND"] = FindViewModel.CreateAsync,
+        ["LOCK"] = Now(LockViewModel.Create),
+        ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
+        ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
+        ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,
+        ["DBNT"] = Entry.InvoiceEntryViewModel.CreateAsync,
+        ["RCPT"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["PYMT"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["JRNL"] = Entry.JournalEntryViewModel.CreateAsync,
+        ["CNTR"] = Entry.JournalEntryViewModel.CreateAsync,
     };
 
     /// <summary>A factory that needs nothing from the host.</summary>

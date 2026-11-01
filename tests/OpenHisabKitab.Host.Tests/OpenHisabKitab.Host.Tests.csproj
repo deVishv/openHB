@@ -26,6 +26,7 @@
     <Using Include="OpenHisabKitab.Core.Vouchers" />
     <Using Include="OpenHisabKitab.Core.Gst" />
     <Using Include="OpenHisabKitab.Core.Reports" />
+    <Using Include="OpenHisabKitab.Core.Bills" />
     <Using Include="OpenHisabKitab.Data" />
     <Using Include="OpenHisabKitab.Data.Audit" />
     <Using Include="OpenHisabKitab.Data.HostDb" />

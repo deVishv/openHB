@@ -53,6 +53,7 @@
 - Owner review items 1 to 4 of Plan 5 are approved as recommended: the bill rules, opening bills, company edit, and safe save retries.
 - Execution is **native**: one session builds every task with superpowers:executing-plans, then one fresh reviewer on the most capable model checks the whole branch.
 - The plan docs are committed to `main` before the branch.
+- Approved on 2026-11-01: a composition company's typed GST rate is stored but not charged or shown in the totals. This was owner review item 7, from the Task 14 ruling.
 
 **Roadmap as it now stands.** Plan 1's table used the old numbers; Plan 2 decision 6 renumbered the plans.
 
@@ -1293,7 +1294,7 @@ These are the builder's calls, kept here for the record. The major ones are in `
 6. **`FIND` lists newest first,** 100 rows a page. Cost if wrong: the sort order.
 7. **A voucher opened from `FIND` runs as `{CODE} {number}`,** so Back, Forward, and the tab title work as for any command. Cost if wrong: none.
 8. **Cancelling a voucher from the screen sends an empty reason.** The audit record still names the user and the time. Cost if wrong: one text field.
-9. **MCP wrong-type spike result:** to be filled in by Task 8 Step 1.
+9. **MCP wrong-type spike result:** SDK 2.3.0 has `WithRequestFilters(f => f.AddCallToolFilter(...))`. A call-tool filter wrapping `next` catches the binding `JsonException`, whose path is relative to the failing argument. `McpArgumentErrors` then finds that argument by binding each one against its declared parameter type, and words the message in the existing `$.path must be ...` form. Cost if wrong: one filter.
 
 ## Done when
 

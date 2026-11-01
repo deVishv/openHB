@@ -86,6 +86,10 @@ public sealed class GstData
     public bool IsValidRate(GstRate rate, DateOnly on) =>
         rates.Any(r => r.BasisPoints == rate.BasisPoints && r.From <= on && (r.To is null || on <= r.To));
 
+    /// <summary>The valid rates on a date, ascending.</summary>
+    public IReadOnlyList<GstRate> RatesOn(DateOnly on) =>
+        [.. rates.Where(r => r.From <= on && (r.To is null || on <= r.To)).Select(r => r.BasisPoints).Distinct().Order().Select(bp => new GstRate(bp))];
+
     /// <summary>Invoice value above which an inter state B2C invoice is reported individually (B2CL).</summary>
     public Money B2clThreshold(DateOnly on)
     {

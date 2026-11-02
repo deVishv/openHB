@@ -88,6 +88,15 @@ public sealed class HostSettingsServiceTests : IDisposable
     public void Backup_settings_are_validated(string key, string json, string message) =>
         Assert.Equal(message, Fails(ServiceError.Invalid, () => Set(key, json)).Message);
 
+    // A network or device path would make the host open it, sending its own credentials to another machine.
+    [Theory]
+    [InlineData(@"\\nas\share\backups")]
+    [InlineData(@"\\?\C:\backups")]
+    [InlineData(@"\\.\pipe\x")]
+    public void Backup_folder_must_be_on_a_drive_of_this_pc(string path) =>
+        Assert.Equal("backup.folder must be a folder on a drive of this PC.",
+            Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(path))).Message);
+
     [Fact]
     public void Backup_settings_store_and_the_folder_is_made()
     {
@@ -96,6 +105,7 @@ public sealed class HostSettingsServiceTests : IDisposable
         var folder = Path.Combine(h.Folder, "elsewhere", "copies");
         Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(folder));
         Assert.True(Directory.Exists(folder));
+        Assert.True(new DirectoryInfo(folder).GetAccessControl().AreAccessRulesProtected);
         Assert.Equal(folder, h.Data.BackupFolder);
         Set("backup.folder", "\"\"");
         Assert.Equal(Path.Combine(h.Folder, "Backups"), h.Data.BackupFolder);

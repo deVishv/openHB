@@ -42,6 +42,18 @@ public sealed class VoucherRepositoryTests : IDisposable
         [new PostingLine(cash, Money.FromRupees(rupees)), new PostingLine(sales, Money.FromRupees(-rupees))], null);
 
     [Fact]
+    public void Heads_reads_number_type_and_narration_in_one_query()
+    {
+        var a = Write(tx => VoucherRepository.Insert(tx, Receipt(1, new(2026, 5, 1), 100)));
+        var b = Write(tx => VoucherRepository.Insert(tx, Receipt(2, new(2026, 5, 2), 200) with { Narration = "second" }));
+        var heads = VoucherRepository.Heads(c, [a, b, 999]);
+        Assert.Equal(2, heads.Count);
+        Assert.Equal(new VoucherHead(a, VoucherType.Receipt, "RCT/26-27/00001", "cash sale"), heads[a]);
+        Assert.Equal("second", heads[b].Narration);
+        Assert.Empty(VoucherRepository.Heads(c, []));
+    }
+
+    [Fact]
     public void Take_counts_up_from_one()
     {
         var first = Write(tx => NumberSeriesRepository.Take(tx, VoucherType.Receipt, Fy));

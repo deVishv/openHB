@@ -264,6 +264,58 @@ internal static class Wire
 
     static ReportRowMsg Row(ReportRow r) => new() { Ledger = r.Ledger.Value, Amount = r.Amount.Paise };
 
+    public static LayoutStyle Style(string text) => text.Trim() switch
+    {
+        "" => LayoutStyle.ScheduleIII,
+        var t when t.Equals("ScheduleIII", StringComparison.OrdinalIgnoreCase) => LayoutStyle.ScheduleIII,
+        var t when t.Equals("Chart", StringComparison.OrdinalIgnoreCase) => LayoutStyle.Chart,
+        _ => throw Invalid("style must be ScheduleIII or Chart."),
+    };
+
+    public static LayoutMsg ToMsg(StatementLayout s)
+    {
+        var m = new LayoutMsg { Style = s.Style.ToString(), HasPrevious = s.HasPrevious };
+        m.Lines.AddRange(s.Lines.Select(l => new LayoutLineMsg
+        {
+            Side = l.Side.ToString(), Kind = l.Kind.ToString(), Depth = l.Depth, Label = l.Label, Group = l.Group?.Value ?? 0,
+            Ledger = l.Ledger?.Value ?? 0, Current = l.Current.Paise, Previous = l.Previous?.Paise ?? 0,
+        }));
+        return m;
+    }
+
+    public static CashFlowMsg ToMsg(CashFlowStatement c)
+    {
+        var m = new CashFlowMsg
+        {
+            Period = ToMsg(c.Period), Operating = c.Operating.Paise, Investing = c.Investing.Paise, Financing = c.Financing.Paise,
+            NetChange = c.NetChange.Paise, OpeningCash = c.OpeningCash.Paise, ClosingCash = c.ClosingCash.Paise,
+        };
+        m.Lines.AddRange(c.Lines.Select(l => new CashFlowLineMsg
+        {
+            Section = l.Section.ToString(), Item = l.Item.ToString(), Group = l.Group?.Value ?? 0, Amount = l.Amount.Paise,
+        }));
+        return m;
+    }
+
+    public static StatementPageMsg ToMsg(StatementPage p)
+    {
+        var m = new StatementPageMsg
+        {
+            Ledger = p.Ledger.Value, Period = ToMsg(p.Period), Opening = p.Opening.Paise, Closing = p.Closing.Paise, Next = p.Next ?? "",
+        };
+        m.Lines.AddRange(p.Lines.Select(l =>
+        {
+            var line = new StatementLineMsg
+            {
+                Date = Text(l.Row.Date), VoucherId = l.Row.VoucherId, Type = l.Type.ToString(), Number = l.Number, Narration = l.Narration,
+                Amount = l.Row.Amount.Paise, Balance = l.Row.Balance.Paise,
+            };
+            line.CounterLedgers.AddRange(l.Counter.Select(c => c.Value));
+            return line;
+        }));
+        return m;
+    }
+
     // Admin
 
     public static AuditFilter Filter(ListAuditRequest r) => new(

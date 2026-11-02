@@ -31,8 +31,21 @@ public sealed record VoucherRow(
     public IReadOnlyList<AllocationRow> Allocations { get; init; } = Allocations ?? [];
 }
 
+/// <summary>What a statement line shows about its voucher.</summary>
+public sealed record VoucherHead(long Id, VoucherType Type, string Number, string Narration);
+
 public static class VoucherRepository
 {
+    /// <summary>The type, number, and narration of each voucher id that exists, in one query.</summary>
+    public static IReadOnlyDictionary<long, VoucherHead> Heads(SqliteConnection c, IReadOnlyCollection<long> ids)
+    {
+        if (ids.Count == 0) return new Dictionary<long, VoucherHead>();
+        var list = string.Join(", ", ids.Select(id => id.ToString(CultureInfo.InvariantCulture)));
+        return Sql.Query(c, $"SELECT id, type, display_number, narration FROM vouchers WHERE id IN ({list})",
+                r => new VoucherHead(r.GetInt64(0), Enum.Parse<VoucherType>(r.GetString(1)), r.GetString(2), r.GetString(3)))
+            .ToDictionary(h => h.Id);
+    }
+
     const string Columns = "id, type, series, fy_start, number, display_number, date, narration, cancelled, created_by, row_version, request_id";
 
     /// <summary>Inserts with row version 1. The input's Id and RowVersion are ignored.</summary>

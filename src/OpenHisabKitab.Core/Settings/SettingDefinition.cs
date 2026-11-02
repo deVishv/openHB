@@ -11,7 +11,8 @@ public enum SettingType { Boolean, Integer, Text, Choice }
 
 /// <summary>One dot named setting: its type, default, one line description, and allowed values (spec 7).</summary>
 public sealed record SettingDefinition(string Key, SettingType Type, string DefaultJson, string Description,
-    SettingScope Scope, int? Min = null, int? Max = null, IReadOnlyList<string>? Choices = null)
+    SettingScope Scope, int? Min = null, int? Max = null, IReadOnlyList<string>? Choices = null,
+    Func<string, bool>? Rule = null, string? RuleText = null)
 {
     public string Category => Key[..Key.IndexOf('.', StringComparison.Ordinal)];
 }

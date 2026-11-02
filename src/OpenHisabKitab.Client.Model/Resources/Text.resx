@@ -358,7 +358,7 @@
   <data name="GroupNameAmbiguous" xml:space="preserve"><value>{0} matches several groups. Type more of the name.</value></data>
   <data name="PeriodAcrossYears" xml:space="preserve"><value>Choose a period within one financial year.</value></data>
   <data name="PeriodReversed" xml:space="preserve"><value>The period ends before it starts.</value></data>
-  <data name="ExportButton" xml:space="preserve"><value>_Export CSV</value></data>
+  <data name="ExportButton" xml:space="preserve"><value>E_xport CSV</value></data>
   <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
   <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
   <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
@@ -413,11 +413,11 @@
   <data name="PartyNameAmbiguous" xml:space="preserve"><value>{0} matches several parties. Type more of the name.</value></data>
   <data name="AuditHeading" xml:space="preserve"><value>Audit trail</value></data>
   <data name="AuditHostHeading" xml:space="preserve"><value>Audit trail of host.db</value></data>
-  <data name="AuditFromLabel" xml:space="preserve"><value>_From</value></data>
+  <data name="AuditFromLabel" xml:space="preserve"><value>Fro_m</value></data>
   <data name="AuditToLabel" xml:space="preserve"><value>_To</value></data>
   <data name="AuditUserLabel" xml:space="preserve"><value>_User</value></data>
-  <data name="AuditEntityLabel" xml:space="preserve"><value>_Entity</value></data>
-  <data name="VerifyButton" xml:space="preserve"><value>_Verify</value></data>
+  <data name="AuditEntityLabel" xml:space="preserve"><value>E_ntity</value></data>
+  <data name="VerifyButton" xml:space="preserve"><value>Ve_rify</value></data>
   <data name="ChainIntact" xml:space="preserve"><value>Chain intact: {0} records, anchor matches.</value></data>
   <data name="ChainBroken" xml:space="preserve"><value>Chain broken at record {0}.</value></data>
   <data name="ChainAnchorMismatch" xml:space="preserve"><value>Newest records are missing or the chain was rebuilt.</value></data>
@@ -438,9 +438,9 @@
   <data name="BackedUpTo" xml:space="preserve"><value>Backed up to {0}.</value></data>
   <data name="RestoreQuestion" xml:space="preserve"><value>Restore {0}? Everyone is logged out and the current file is backed up first.</value></data>
   <data name="BackupScheduleHeading" xml:space="preserve"><value>Backup schedule</value></data>
-  <data name="IntervalHoursLabel" xml:space="preserve"><value>_Hours between backups</value></data>
+  <data name="IntervalHoursLabel" xml:space="preserve"><value>_Interval between backups, in hours</value></data>
   <data name="KeepLabel" xml:space="preserve"><value>Backups _kept</value></data>
-  <data name="FolderLabel" xml:space="preserve"><value>Backup _folder</value></data>
+  <data name="FolderLabel" xml:space="preserve"><value>Backup f_older</value></data>
   <data name="BackupScheduleSaved" xml:space="preserve"><value>Backup schedule saved.</value></data>
   <data name="TakenAtColumn" xml:space="preserve"><value>Taken at</value></data>
   <data name="FileColumn" xml:space="preserve"><value>File</value></data>

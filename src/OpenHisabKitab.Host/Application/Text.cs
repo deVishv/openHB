@@ -24,6 +24,7 @@ internal static class Text
         Core.Reports.LayoutLineKind.ProfitForPeriod => "Profit for the period",
         Core.Reports.LayoutLineKind.OpeningDifference => "Opening difference",
         Core.Reports.LayoutLineKind.SideTotal => "Total",
+        Core.Reports.LayoutLineKind.HeadingTotal => $"Total for {line.Label}",
         Core.Reports.LayoutLineKind.NetProfit when line.Previous is { } p && (p < Core.Amounts.Money.Zero) != (line.Current < Core.Amounts.Money.Zero)
             => "Net profit / (loss)",
         Core.Reports.LayoutLineKind.NetProfit => line.Current < Core.Amounts.Money.Zero ? "Net loss" : "Net profit",
@@ -32,7 +33,7 @@ internal static class Text
 
     public static string Label(Core.Reports.CashFlowLine line, string group) => line.Item switch
     {
-        Core.Reports.CashFlowItem.NetProfit => "Net profit",
+        Core.Reports.CashFlowItem.NetProfit => line.Amount < Core.Amounts.Money.Zero ? "Net loss" : "Net profit",
         Core.Reports.CashFlowItem.Depreciation => "Add: depreciation",
         _ => $"Change in {group}",
     };

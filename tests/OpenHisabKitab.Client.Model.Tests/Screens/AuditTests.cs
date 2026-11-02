@@ -95,6 +95,20 @@ public sealed class AuditTests : IDisposable
     }
 
     [Fact]
+    public async Task A_full_page_says_older_records_are_not_shown_and_a_reload_keeps_the_selection()
+    {
+        var shell = await Shell();
+        for (var i = 0; i < 500; i++) await Receipt(shell, $"r{i}");
+        var s = await Run(shell, "AUDT");
+        Assert.Equal(500, s.Rows.Count);
+        Assert.Equal("Showing the newest 500 records. Narrow the dates or user to see older ones.", s.Message);
+        var picked = s.Rows[3].Seq;
+        s.Selected = s.Rows[3];
+        await s.LoadAsync(CancellationToken.None);
+        Assert.Equal(picked, s.Selected?.Seq);
+    }
+
+    [Fact]
     public async Task Verify_reports_an_intact_chain()
     {
         var shell = await Shell();

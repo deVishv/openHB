@@ -97,6 +97,28 @@ public sealed class HostSettingsServiceTests : IDisposable
         Assert.Equal("backup.folder must be a folder on a drive of this PC.",
             Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(path))).Message);
 
+    // A junction can point a local-looking path anywhere, including a network share, so linked folders are refused.
+    [Fact]
+    public void Backup_folder_through_a_link_is_refused()
+    {
+        var target = Path.Combine(h.Folder, "real");
+        Directory.CreateDirectory(target);
+        var link = Path.Combine(h.Folder, "linked");
+        // A junction, which any user may make, unlike a symbolic link.
+        using (var mklink = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", ["/c", "mklink", "/J", link, target])
+               { CreateNoWindow = true, UseShellExecute = false })!)
+            mklink.WaitForExit();
+        try
+        {
+            Assert.NotNull(new DirectoryInfo(link).LinkTarget);
+            foreach (var path in new[] { link, Path.Combine(link, "inside") })
+                Assert.Equal("backup.folder must be a folder on a drive of this PC.",
+                    Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(path))).Message);
+            Assert.False(Directory.Exists(Path.Combine(target, "inside")));
+        }
+        finally { Directory.Delete(link); }   // removes the junction itself, not what it points to
+    }
+
     [Fact]
     public void Backup_settings_store_and_the_folder_is_made()
     {

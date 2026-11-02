@@ -82,6 +82,10 @@ public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(c
 
     protected static Period Wire(DateRange r) => new() { From = Iso(r.From), To = Iso(r.To) };
 
+    /// <summary>A name made safe for a file name: characters Windows refuses become "-".</summary>
+    protected static string FileSafe(string name) =>
+        new([.. name.Select(c => c < ' ' || @"\/:*?""<>|".Contains(c) ? '-' : c)]);
+
     protected static string Iso(DateOnly d) => d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     protected static DateOnly FromIso(string s) => DateOnly.ParseExact(s, "yyyy-MM-dd", CultureInfo.InvariantCulture);

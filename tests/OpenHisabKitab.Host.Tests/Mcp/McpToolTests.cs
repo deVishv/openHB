@@ -118,11 +118,20 @@ public sealed class McpToolTests : IDisposable
         Assert.Equal("chart", pl.GetProperty("style").GetString());
     }
 
-    [Fact]
-    public async Task Mcp_outstanding_is_refused_for_data_entry()
+    [Theory]
+    [InlineData("outstanding")]
+    [InlineData("cash_flow")]
+    [InlineData("balance_sheet_layout")]
+    [InlineData("profit_and_loss_layout")]
+    public async Task New_report_tools_are_refused_for_data_entry(string tool)
     {
         var clerk = b.F.ApiClient(b.F.NewUserToken("clerk", BuiltInRole.DataEntry, false, co));
-        Assert.Equal("You do not have permission for this.", Error(await Call(clerk, "outstanding", new { company = co, asAt = "2026-07-31" })));
+        object args = tool switch
+        {
+            "outstanding" or "balance_sheet_layout" => new { company = co, asAt = "2026-07-31" },
+            _ => new { company = co, from = "2026-04-01", to = "2027-03-31" },
+        };
+        Assert.Equal("You do not have permission for this.", Error(await Call(clerk, tool, args)));
     }
 
     [Fact]

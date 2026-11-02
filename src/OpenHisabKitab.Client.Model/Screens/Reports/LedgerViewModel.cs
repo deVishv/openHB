@@ -44,7 +44,8 @@ public sealed class LedgerViewModel : ReportScreen
 
     public override string Subject => ledger?.Name ?? nameText;
 
-    public override string ExportName => $"LEDG {Iso(period.From)} {Iso(period.To)}.csv";
+    public override string ExportName =>
+        ledger is null ? $"LEDG {Iso(period.From)} {Iso(period.To)}.csv" : $"LEDG {FileSafe(ledger.Name)} {Iso(period.From)} {Iso(period.To)}.csv";
 
     public override Task LoadAsync(CancellationToken ct)
     {

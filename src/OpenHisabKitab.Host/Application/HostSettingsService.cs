@@ -82,6 +82,9 @@ public sealed class HostSettingsService(HostData data, OpenHisabKitabOptions opt
         try
         {
             if (new DriveInfo(root).DriveType is not (DriveType.Fixed or DriveType.Removable)) throw notLocal;
+            // A junction or link anywhere along the path can lead to another machine, so none is allowed.
+            for (var dir = new DirectoryInfo(full); dir is not null; dir = dir.Parent)
+                if (dir.Exists && (dir.LinkTarget is not null || dir.Attributes.HasFlag(FileAttributes.ReparsePoint))) throw notLocal;
             var made = !Directory.Exists(full);
             Directory.CreateDirectory(full);
             if (made) DataFolderSecurity.Restrict(full);

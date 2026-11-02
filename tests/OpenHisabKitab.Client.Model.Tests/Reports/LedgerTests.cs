@@ -99,6 +99,15 @@ public sealed class LedgerTests : IDisposable
     }
 
     [Fact]
+    public async Task Export_name_carries_the_ledger_with_unsafe_characters_replaced()
+    {
+        var shell = await Shell();
+        await AddLedger(shell, "A/B: Stores", "OtherExpenses");
+        var s = await Run<LedgerViewModel>(shell, "LEDG A/B: Stores fy");
+        Assert.Equal("LEDG A-B- Stores 2026-04-01 2027-03-31.csv", s.ExportName);
+    }
+
+    [Fact]
     public async Task Ledger_name_ending_in_a_month_word_reads_the_dates()
     {
         var shell = await Shell();

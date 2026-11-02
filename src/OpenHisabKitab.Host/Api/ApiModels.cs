@@ -91,7 +91,7 @@ public sealed record CashFlowDto(
 
 public sealed record OutstandingBillDto(
     BillSource Source, long Id, string Number, string? PartyDocNumber, DateOnly Date, DateOnly Due, Money Amount, Money Open,
-    int DaysOverdue, int Bucket);
+    int DaysOverdue, int Bucket, VoucherType? VoucherType);
 
 public sealed record OutstandingPartyDto(
     int LedgerId, string Party, IReadOnlyList<OutstandingBillDto> Bills, IReadOnlyList<Money> Buckets, Money OnAccount, Money Total);
@@ -173,7 +173,7 @@ public static class ApiMap
         new(r.AsAt, r.Side, r.Ageing.Days,
             [.. r.Parties.Select(p => new OutstandingPartyDto(p.Party.Value, Name(chart, p.Party),
                 [.. p.Bills.Select(b => new OutstandingBillDto(b.Bill.Ref.Source, b.Bill.Ref.Id, b.Bill.Number, b.Bill.PartyDocNumber,
-                    b.Bill.Date, b.Due, b.Bill.Amount, b.Bill.Open, b.DaysOverdue, b.Bucket))],
+                    b.Bill.Date, b.Due, b.Bill.Amount, b.Bill.Open, b.DaysOverdue, b.Bucket, b.Bill.Type))],
                 p.Buckets, p.OnAccount, p.Total))],
             r.BucketTotals, r.OnAccountTotal, r.Total);
 

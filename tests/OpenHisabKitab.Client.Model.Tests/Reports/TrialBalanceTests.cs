@@ -63,6 +63,7 @@ public sealed class TrialBalanceTests : IDisposable
         await Receipt(shell, 1000);
         var s = await Run(shell, "TRLB current assets");
         Assert.Equal("Trial balance, Current Assets, 01-04-2026 to 01-06-2026", s.Heading);
+        Assert.Equal("TRLB Current Assets 2026-04-01 2026-06-01.csv", s.ExportName);
         Assert.Equal(["Cash", "Total for Current Assets"], s.Lines.Select(l => l.Cells[0].Text));
         Assert.Equal("10.00", s.Lines[^1].Cells[2].Text);
 

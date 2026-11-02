@@ -40,7 +40,8 @@ public sealed class TrialBalanceViewModel : ReportScreen
 
     public override string Subject => group?.Name ?? groupText;
 
-    public override string ExportName => $"TRLB {Iso(period.From)} {Iso(period.To)}.csv";
+    public override string ExportName =>
+        group is null ? $"TRLB {Iso(period.From)} {Iso(period.To)}.csv" : $"TRLB {FileSafe(group.Name)} {Iso(period.From)} {Iso(period.To)}.csv";
 
     public override Task LoadAsync(CancellationToken ct)
     {

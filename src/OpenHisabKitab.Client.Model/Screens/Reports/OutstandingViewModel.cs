@@ -46,7 +46,8 @@ public sealed class OutstandingViewModel : ReportScreen
 
     string SideWord => payable ? "payable" : "receivable";
 
-    public override string ExportName => $"OUTS {SideWord} {Iso(asAt)}.csv";
+    public override string ExportName =>
+        partyName is null ? $"OUTS {SideWord} {Iso(asAt)}.csv" : $"OUTS {SideWord} {FileSafe(partyName)} {Iso(asAt)}.csv";
 
     public override Task LoadAsync(CancellationToken ct)
     {
@@ -106,7 +107,8 @@ public sealed class OutstandingViewModel : ReportScreen
         var lines = party.Bills.Select(b => new ReportLine(0,
         [
             Label(b.Number), Label(b.PartyDocNumber), Label(Show(FromIso(b.Date))), Label(Show(FromIso(b.Due))),
-            Label(b.DaysOverdue.ToString(CultureInfo.InvariantCulture)), Amount(new Money(b.Amount)), Amount(new Money(b.Open)),
+            // A bill not yet due has no days overdue: blank, not a negative count.
+            Label(b.DaysOverdue > 0 ? b.DaysOverdue.ToString(CultureInfo.InvariantCulture) : ""), Amount(new Money(b.Amount)), Amount(new Money(b.Open)),
         ], b.VoucherType.Length > 0 ? $"{VoucherCodes.CodeOf(b.VoucherType)} {b.Number}" : null, false)).ToList();
         lines.Add(new ReportLine(0, [Label(Text.OnAccountText), Blank, Blank, Blank, Blank, Blank, Amount(new Money(party.OnAccount))], null, false));
         lines.Add(new ReportLine(0, [Label(Text.ReportTotal), Blank, Blank, Blank, Blank, Blank, Amount(new Money(party.Total))], null, true));

@@ -103,6 +103,37 @@ public sealed class CashFlowAndOutstandingTests : IDisposable
     }
 
     [Fact]
+    public async Task A_bill_not_yet_due_shows_no_days_overdue()
+    {
+        var shell = await Shell();
+        await SaleToRavi(shell, 70000);
+        var s = await Run<OutstandingViewModel>(shell, "OUTS receivable Ravi Stores 01-06-2026");
+        Assert.Equal("", s.Lines[0].Cells[4].Text);
+        Assert.Equal("OUTS receivable Ravi Stores 2026-06-01.csv", s.ExportName);
+    }
+
+    [Fact]
+    public async Task Cash_flow_names_a_loss_as_a_loss()
+    {
+        var shell = await Shell();
+        await t.OtherOwnerClient().Vouchers.SaveJournalAsync(new JournalRequest
+        {
+            Company = shell.Context.Company!.Id,
+            Journal = new JournalMsg
+            {
+                Type = "Payment", Date = "2026-05-10", Narration = "out",
+                Lines =
+                {
+                    new PostingLineMsg { Ledger = Ledger(shell, "Purchases"), Paise = 40000 },
+                    new PostingLineMsg { Ledger = Ledger(shell, "Cash"), Paise = -40000 },
+                },
+            },
+        }, t.Headers());
+        var s = await Run<CashFlowViewModel>(shell, "CFLO");
+        Assert.Equal(["Net loss", "(400.00)"], Texts(s.Lines[1]));
+    }
+
+    [Fact]
     public async Task Outstanding_party_drills_to_its_bills_and_a_bill_to_its_voucher()
     {
         var shell = await Shell();

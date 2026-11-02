@@ -67,7 +67,7 @@ public sealed class CashFlowViewModel : ReportScreen
                 var name = groups.TryGetValue(l.Group, out var g) ? g.Name : "";
                 var (label, drill) = l.Item switch
                 {
-                    nameof(CashFlowItem.NetProfit) => (Text.NetProfitLine, ReportArgs.Command("PNLS", "", period)),
+                    nameof(CashFlowItem.NetProfit) => (l.Amount < 0 ? Text.NetLossLine : Text.NetProfitLine, ReportArgs.Command("PNLS", "", period)),
                     nameof(CashFlowItem.Depreciation) => (Text.AddDepreciationLine, (string?)null),
                     _ => (Format(Text.ChangeInGroupLine, name), ReportArgs.Command("TRLB", name, period)),
                 };

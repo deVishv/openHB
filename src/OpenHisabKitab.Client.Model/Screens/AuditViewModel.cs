@@ -80,12 +80,16 @@ public sealed partial class AuditViewModel : ScreenViewModel
             From = from is { } f ? At(f.ToDateTime(TimeOnly.MinValue)) : "",
             To = to is { } t ? At(t.ToDateTime(TimeOnly.MaxValue)) : "",
         };
+        // A reload after a change keeps the record the user was reading.
+        var kept = Selected?.Seq;
         Rows.Clear();
         Selected = null;
         await RunAsync(async () =>
         {
             var list = await Ctx.Host.CallAsync((h, o) => h.Admin.ListAuditAsync(request, o));
             foreach (var e in list.Entries) Rows.Add(Row(e));
+            Selected = Rows.FirstOrDefault(r => r.Seq == kept);
+            if (Rows.Count == Limit) Message = string.Format(CultureInfo.InvariantCulture, Text.AuditPageFull, Limit);
         });
     }
 

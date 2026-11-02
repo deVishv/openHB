@@ -51,6 +51,7 @@ public sealed class ReportRoutesTests : IDisposable
             (bill.GetProperty("number").GetString(), bill.GetProperty("due").GetString(), bill.GetProperty("daysOverdue").GetInt32(),
              bill.GetProperty("bucket").GetInt32()));
         Assert.Equal(new[] { 30, 60, 90 }, outs.GetProperty("ageingDays").EnumerateArray().Select(x => x.GetInt32()));
+        Assert.Equal("sale", bill.GetProperty("voucherType").GetString());
 
         var payables = ApiBooks.Json(await api.GetStringAsync(R("outstanding?asAt=2026-07-31&side=payable")));
         Assert.Equal(0, payables.GetProperty("parties").GetArrayLength());
@@ -67,6 +68,8 @@ public sealed class ReportRoutesTests : IDisposable
         var cash = bs.GetProperty("lines").EnumerateArray().Single(l => l.GetProperty("kind").GetString() == "cashAndEquivalents");
         Assert.Equal(("Cash and cash equivalents", "1000.00", JsonValueKind.Null),
             (cash.GetProperty("label").GetString(), cash.GetProperty("current").GetString(), cash.GetProperty("previous").ValueKind));
+        Assert.Contains(bs.GetProperty("lines").EnumerateArray(),
+            l => l.GetProperty("kind").GetString() == "headingTotal" && l.GetProperty("label").GetString() == "Total for Current Assets");
 
         var pl = ApiBooks.Json(await api.GetStringAsync(R("profit-and-loss/layout?from=2026-04-01&to=2027-03-31&style=chart")));
         Assert.Equal("chart", pl.GetProperty("style").GetString());

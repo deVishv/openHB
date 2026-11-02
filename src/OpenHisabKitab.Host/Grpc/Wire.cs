@@ -313,7 +313,7 @@ internal static class Wire
             {
                 Source = b.Bill.Ref.Source.ToString(), Id = b.Bill.Ref.Id, Number = b.Bill.Number, PartyDocNumber = b.Bill.PartyDocNumber ?? "",
                 Date = Text(b.Bill.Date), Due = Text(b.Due), Amount = b.Bill.Amount.Paise, Open = b.Bill.Open.Paise,
-                DaysOverdue = b.DaysOverdue, Bucket = b.Bucket,
+                DaysOverdue = b.DaysOverdue, Bucket = b.Bucket, VoucherType = b.Bill.Type?.ToString() ?? "",
             }));
             return party;
         }));

@@ -130,7 +130,7 @@ public static class BillRepository
 
         var types = string.Join(", ", BillTypes.Select(t => $"'{t}'"));
         var vouchers = Sql.Query(c, $"""
-                SELECT v.id, p.ledger_id, v.display_number, v.date, i.party_doc_number, sum(p.amount_paise)
+                SELECT v.id, p.ledger_id, v.display_number, v.date, i.party_doc_number, sum(p.amount_paise), v.type
                 FROM vouchers v
                 JOIN postings p ON p.voucher_id = v.id
                 LEFT JOIN invoices i ON i.voucher_id = v.id
@@ -138,14 +138,14 @@ public static class BillRepository
                 GROUP BY v.id, p.ledger_id
                 """,
             r => (Id: r.GetInt64(0), Party: new LedgerId(r.GetInt32(1)), Number: r.GetString(2), Date: Dates.Parse(r.GetString(3)),
-                PartyDoc: r.NullableString(4), Net: new Money(r.GetInt64(5))),
+                PartyDoc: r.NullableString(4), Net: new Money(r.GetInt64(5)), Type: Enum.Parse<Core.Vouchers.VoucherType>(r.GetString(6))),
             ("$d", date));
         foreach (var v in vouchers)
         {
             if (!parties.TryGetValue(v.Party, out var p) || !PartySides.IsBill(p.Side, v.Net)) continue;
             var bill = new BillRef(BillSource.Voucher, v.Id);
             var amount = v.Net < Money.Zero ? -v.Net : v.Net;
-            result[v.Party].Add(new OpenBill(bill, v.Party, v.Number, v.PartyDoc, v.Date, v.Date.AddDays(p.CreditDays), amount, Settled(bill)));
+            result[v.Party].Add(new OpenBill(bill, v.Party, v.Number, v.PartyDoc, v.Date, v.Date.AddDays(p.CreditDays), amount, Settled(bill), v.Type));
         }
         return result.ToDictionary(x => x.Key,
             x => (IReadOnlyList<OpenBill>)[.. x.Value.OrderBy(b => b.Date).ThenBy(b => b.Ref.Source).ThenBy(b => b.Ref.Id)]);

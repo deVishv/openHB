@@ -386,4 +386,29 @@
   <data name="NetProfitLine" xml:space="preserve"><value>Net profit</value></data>
   <data name="NetLossLine" xml:space="preserve"><value>Net loss</value></data>
   <data name="DateNotUnderstood" xml:space="preserve"><value>Type a date such as 31-03-2027.</value></data>
+  <data name="CashFlowHeading" xml:space="preserve"><value>Cash flow, {0} to {1}</value></data>
+  <data name="OperatingSection" xml:space="preserve"><value>Cash from operating activities</value></data>
+  <data name="InvestingSection" xml:space="preserve"><value>Cash from investing activities</value></data>
+  <data name="FinancingSection" xml:space="preserve"><value>Cash from financing activities</value></data>
+  <data name="AddDepreciationLine" xml:space="preserve"><value>Add: depreciation</value></data>
+  <data name="ChangeInGroupLine" xml:space="preserve"><value>Change in {0}</value></data>
+  <data name="NetChangeInCashLine" xml:space="preserve"><value>Net change in cash</value></data>
+  <data name="OpeningCashLine" xml:space="preserve"><value>Opening cash and cash equivalents</value></data>
+  <data name="ClosingCashLine" xml:space="preserve"><value>Closing cash and cash equivalents</value></data>
+  <data name="ReceivablesHeading" xml:space="preserve"><value>Receivables as at {0}</value></data>
+  <data name="PayablesHeading" xml:space="preserve"><value>Payables as at {0}</value></data>
+  <data name="ReceivablesPartyHeading" xml:space="preserve"><value>Receivables, {0}, as at {1}</value></data>
+  <data name="PayablesPartyHeading" xml:space="preserve"><value>Payables, {0}, as at {1}</value></data>
+  <data name="NotDueColumn" xml:space="preserve"><value>Not due</value></data>
+  <data name="DaysRangeColumn" xml:space="preserve"><value>{0}-{1}</value></data>
+  <data name="OverDaysColumn" xml:space="preserve"><value>Over {0}</value></data>
+  <data name="OnAccountColumn" xml:space="preserve"><value>On account</value></data>
+  <data name="TotalColumn" xml:space="preserve"><value>Total</value></data>
+  <data name="BillColumn" xml:space="preserve"><value>Bill</value></data>
+  <data name="PartyDocumentColumn" xml:space="preserve"><value>Party document</value></data>
+  <data name="DueColumn" xml:space="preserve"><value>Due</value></data>
+  <data name="DaysOverdueColumn" xml:space="preserve"><value>Days overdue</value></data>
+  <data name="OnAccountText" xml:space="preserve"><value>On account</value></data>
+  <data name="NoPartyNamed" xml:space="preserve"><value>No party named {0}.</value></data>
+  <data name="PartyNameAmbiguous" xml:space="preserve"><value>{0} matches several parties. Type more of the name.</value></data>
 </root>

@@ -75,6 +75,7 @@ public sealed class BillRepositoryTests : IDisposable
         Assert.Equal(new[] { "OB-1", "INV/26-27/00001" }, june.Select(b => b.Number));
         Assert.Equal(Money.Parse("10000.00"), june[1].Open);
         Assert.Equal(new DateOnly(2026, 7, 1), june[1].DueDate);
+        Assert.Equal((null, VoucherType.Sale), (june[0].Type, june[1].Type));
 
         var july = AsAt(new DateOnly(2026, 7, 31));
         Assert.Equal(Money.Zero, july.Single(b => b.Number == "INV/26-27/00001").Open);

@@ -11,6 +11,7 @@ public static class KeyCommands
         .. Enumerable.Range(1, 9).Select(n => $"tab.goto.{n}"),
         "nav.back", "nav.forward", "palette.open",
         "record.new", "record.delete", "line.add", "line.remove", "voucher.bills", "voucher.cancelVoucher",
+        "report.export", "report.style",
         .. FunctionCatalog.All.Select(f => "run." + f.Code),
     ];
 

@@ -347,4 +347,18 @@
   <data name="UtgstShort" xml:space="preserve"><value>UTGST</value></data>
   <data name="IgstShort" xml:space="preserve"><value>IGST</value></data>
   <data name="BillAmountInvalid" xml:space="preserve"><value>Bill {0}: enter an amount like 12,345.60.</value></data>
+  <data name="ReportTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="ReportTotalFor" xml:space="preserve"><value>Total for {0}</value></data>
+  <data name="ReportOpeningDifference" xml:space="preserve"><value>Opening difference</value></data>
+  <data name="OpeningColumn" xml:space="preserve"><value>Opening</value></data>
+  <data name="ClosingColumn" xml:space="preserve"><value>Closing</value></data>
+  <data name="TrialBalanceHeading" xml:space="preserve"><value>Trial balance, {0} to {1}</value></data>
+  <data name="TrialBalanceGroupHeading" xml:space="preserve"><value>Trial balance, {0}, {1} to {2}</value></data>
+  <data name="NoGroupNamed" xml:space="preserve"><value>No group named {0}.</value></data>
+  <data name="GroupNameAmbiguous" xml:space="preserve"><value>{0} matches several groups. Type more of the name.</value></data>
+  <data name="PeriodAcrossYears" xml:space="preserve"><value>Choose a period within one financial year.</value></data>
+  <data name="PeriodReversed" xml:space="preserve"><value>The period ends before it starts.</value></data>
+  <data name="ExportButton" xml:space="preserve"><value>_Export CSV</value></data>
+  <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
+  <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
 </root>

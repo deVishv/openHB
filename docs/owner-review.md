@@ -27,6 +27,10 @@ Decided by the owner on 2026-11-02:
    - An asset ledger in credit, such as a bank account in overdraft under Bank Accounts, stays on its side in brackets. It is not moved to liabilities.
    - Notes to accounts are not produced. Ok
    
+### Decided during the build, for the owner to confirm
+
+5. **Backups go only to a drive of the host PC** (Task 13, after the automatic security review). `backup.folder` must be blank or a full path on a fixed or removable drive, such as `D:\Backups` or a USB disk. Network paths (`\\nas\share`) are refused before they are touched: opening one would send the host service's Windows credentials to that machine. A folder the host creates gets the same access rules as the data folder. Cost if wrong: no backup straight to a NAS; copying the backup folder there with Windows tools still works.
+
 ### Data checks before the first public release
 
 4. **Hand worked report figures.** The expected Schedule III, cash flow, and ageing figures in plan Tasks 2, 3, and 4 were worked by hand from the golden company. An accountant should check them once.

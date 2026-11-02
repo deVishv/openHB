@@ -58,6 +58,17 @@ dotnet run --project src/OpenHisabKitab.Client
 - `LOCK date` locks the books up to that date. In `CMPY`, Edit changes the selected company's name, address, and GSTIN.
 - REST: `GET /api/v1/companies/{company}/parties/{id}/open-bills`, `GET` and `PUT .../parties/{id}/opening-bills`, `PUT /api/v1/companies/{company}`, and `GET .../vouchers?search=text`. Voucher bodies take `allocations` and a `requestId`, so a retried save never makes a second voucher. MCP adds the `open_bills` tool.
 
+### Reports
+
+- `TRLB [group] [period]` trial balance, `LEDG name [period]` ledger statement, `DAYB [period]` day book (the working date by default), `PNLS [period]` profit and loss, `BSHT [date]` balance sheet, `CFLO [period]` cash flow, and `OUTS [receivable|payable] [party] [date]` outstanding bills with ageing.
+- A period is a month (`apr`), a quarter (`q1`), `fy`, `fy26`, or two dates. With none, a report runs from the start of the open year to the working date.
+- Enter on a line opens the next level, down to the voucher, and Alt+Left comes back. Shift+Enter opens it in a new tab.
+- Ctrl+E exports the report to CSV, for users with the export right. Ctrl+G switches `PNLS` and `BSHT` between the Schedule III layout and the chart of accounts. From the second year on, both show last year's figures beside this year's.
+- `OUTS` ages bills from their due date. The ageing columns are the company setting `outstanding.ageingDays` (default `30,60,90`).
+- `AUDT` lists the company's audit trail with filters, and Verify checks the chain. `AUDT host` shows the host's own trail, for the Owner.
+- `BKUP` backs up the open company now, restores a backup (Owner only, after asking), and sets the schedule: the host settings `backup.intervalHours`, `backup.keep`, and `backup.folder`, a folder on a drive of the host PC.
+- REST: `GET .../reports/cash-flow?from=&to=`, `.../reports/outstanding?asAt=&side=`, `.../reports/balance-sheet/layout?asAt=&style=`, and `.../reports/profit-and-loss/layout?from=&to=&style=`, where `style` is `scheduleIII` or `chart`. MCP adds `cash_flow`, `outstanding`, `balance_sheet_layout`, and `profit_and_loss_layout`.
+
 ## Local REST API and MCP server
 
 Scripts and AI assistants on the host PC can read the books, and enter vouchers if allowed, through a REST API and an MCP server. Both are off by default.

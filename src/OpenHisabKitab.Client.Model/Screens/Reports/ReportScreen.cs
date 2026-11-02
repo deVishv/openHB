@@ -47,10 +47,18 @@ public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(c
 
     public virtual bool CanRun(string command) => command == "report.export" && CanExport;
 
-    public virtual Task RunAsync(string command)
+    /// <summary>Ctrl+E loads every remaining page first, so an export is never a partial report that looks whole.</summary>
+    public virtual async Task RunAsync(string command)
     {
-        if (command == "report.export" && CanExport) ExportRequested?.Invoke();
-        return Task.CompletedTask;
+        if (command != "report.export" || !CanExport) return;
+        while (HasMore)
+        {
+            var before = Lines.Count;
+            await MoreAsync();
+            // A page that failed shows its message; export nothing rather than part of the report.
+            if (Lines.Count == before) return;
+        }
+        ExportRequested?.Invoke();
     }
 
     public override bool IsAffectedBy(ChangeEventMsg change) => change.Kind is "Voucher" or "Masters" or "Settings" or "Lock" or "Restore";

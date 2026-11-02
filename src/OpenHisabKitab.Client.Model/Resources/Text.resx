@@ -446,4 +446,5 @@
   <data name="FileColumn" xml:space="preserve"><value>File</value></data>
   <data name="BackupsName" xml:space="preserve"><value>Backup files</value></data>
   <data name="ChooseBackupFirst" xml:space="preserve"><value>Choose a backup in the list first.</value></data>
+  <data name="NetProfitOrLossLine" xml:space="preserve"><value>Net profit / (loss)</value></data>
 </root>

@@ -88,6 +88,30 @@ public sealed class StatementTests : IDisposable
     }
 
     [Fact]
+    public async Task A_loss_beside_a_previous_profit_has_a_neutral_label()
+    {
+        var shell = await Shell();
+        var company = shell.Context.Company!.Id;
+        await t.OtherOwnerClient().Companies.AddYearAsync(new CompanyRef { Company = company }, t.Headers());
+        await Journal(shell, "Receipt", "Cash", "Sales", 500000);
+        await t.OtherOwnerClient().Vouchers.SaveJournalAsync(new JournalRequest
+        {
+            Company = company,
+            Journal = new JournalMsg
+            {
+                Type = "Payment", Date = "2027-05-10", Narration = "loss",
+                Lines =
+                {
+                    new PostingLineMsg { Ledger = Ledger(shell, "Purchases"), Paise = 40000 },
+                    new PostingLineMsg { Ledger = Ledger(shell, "Cash"), Paise = -40000 },
+                },
+            },
+        }, t.Headers());
+        var s = await Run(shell, "PNLS 01-04-2027 31-03-2028");
+        Assert.Equal(["Net profit / (loss)", "(400.00)", "5,000.00"], Texts(s.Lines[^1]));
+    }
+
+    [Fact]
     public async Task Group_line_drills_to_trial_balance_of_that_group()
     {
         var shell = await Shell();
@@ -125,10 +149,11 @@ public sealed class StatementTests : IDisposable
         foreach (var kind in new[] { LayoutLineKind.CashAndEquivalents, LayoutLineKind.ProfitForPeriod, LayoutLineKind.OpeningDifference,
                      LayoutLineKind.SideTotal, LayoutLineKind.NetProfit })
             foreach (var amount in new[] { new Money(100), new Money(-100) })
-            {
-                var line = new LayoutLine(LayoutSide.Assets, kind, 0, "", null, null, amount, null);
-                var host = ApiMap.ToDto(new StatementLayout(LayoutStyle.ScheduleIII, false, [line])).Lines[0].Label;
-                Assert.Equal(host, StatementViewModel.Wording(kind.ToString(), amount.Paise));
-            }
+                foreach (Money? previous in new Money?[] { null, new Money(100), new Money(-100) })
+                {
+                    var line = new LayoutLine(LayoutSide.Assets, kind, 0, "", null, null, amount, previous);
+                    var host = ApiMap.ToDto(new StatementLayout(LayoutStyle.ScheduleIII, previous is not null, [line])).Lines[0].Label;
+                    Assert.Equal(host, StatementViewModel.Wording(kind.ToString(), amount.Paise, previous?.Paise));
+                }
     }
 }

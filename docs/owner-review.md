@@ -31,6 +31,8 @@ Decided by the owner on 2026-11-02:
 
 5. **Backups go only to a drive of the host PC** (Task 13, after the automatic security review). `backup.folder` must be blank or a full path on a fixed or removable drive, such as `D:\Backups` or a USB disk. Network paths (`\\nas\share`) are refused before they are touched: opening one would send the host service's Windows credentials to that machine. A folder the host creates gets the same access rules as the data folder. Cost if wrong: no backup straight to a NAS; copying the backup folder there with Windows tools still works.
 
+6. **The result line of `PNLS` with last year's column** (final review). When this year and last year differ in sign, the line reads `Net profit / (loss)`, with losses in brackets. Otherwise it reads `Net profit` or `Net loss` as before. Without this, last year's profit sat under the word "Net loss". REST and MCP use the same words. Cost if wrong: one label.
+
 ### Data checks before the first public release
 
 4. **Hand worked report figures.** The expected Schedule III, cash flow, and ageing figures in plan Tasks 2, 3, and 4 were worked by hand from the golden company. An accountant should check them once.

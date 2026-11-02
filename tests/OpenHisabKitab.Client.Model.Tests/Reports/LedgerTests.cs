@@ -82,6 +82,23 @@ public sealed class LedgerTests : IDisposable
     }
 
     [Fact]
+    public async Task Export_of_a_paged_ledger_writes_every_line_and_the_closing()
+    {
+        var shell = await Shell();
+        var (cash, sales) = (Ledger(shell, "Cash"), Ledger(shell, "Sales"));
+        for (var i = 0; i < 503; i++) await Journal(shell, "Receipt", cash, sales, 100);
+        var s = await Run<LedgerViewModel>(shell, "LEDG Cash fy");
+        Assert.True(s.HasMore);
+        await s.RunAsync("report.export");
+        Assert.False(s.HasMore);
+        using var stream = new MemoryStream();
+        s.WriteCsv(stream);
+        var rows = System.Text.Encoding.UTF8.GetString(stream.ToArray()).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(1 + 1 + 503 + 1, rows.Length);
+        Assert.StartsWith(",Closing balance,", rows[^1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Ledger_name_ending_in_a_month_word_reads_the_dates()
     {
         var shell = await Shell();

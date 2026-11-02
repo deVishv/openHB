@@ -24,6 +24,8 @@ internal static class Text
         Core.Reports.LayoutLineKind.ProfitForPeriod => "Profit for the period",
         Core.Reports.LayoutLineKind.OpeningDifference => "Opening difference",
         Core.Reports.LayoutLineKind.SideTotal => "Total",
+        Core.Reports.LayoutLineKind.NetProfit when line.Previous is { } p && (p < Core.Amounts.Money.Zero) != (line.Current < Core.Amounts.Money.Zero)
+            => "Net profit / (loss)",
         Core.Reports.LayoutLineKind.NetProfit => line.Current < Core.Amounts.Money.Zero ? "Net loss" : "Net profit",
         _ => line.Label,
     };

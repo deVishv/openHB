@@ -46,13 +46,17 @@ public sealed class StatementViewModel : ReportScreen
 
     public override string ExportName => balanceSheet ? $"BSHT {Iso(period.To)}.csv" : $"PNLS {Iso(period.From)} {Iso(period.To)}.csv";
 
-    /// <summary>The words for a line kind that has no chart name; the host uses the same words for REST and MCP.</summary>
-    public static string Wording(string kind, long current) => kind switch
+    /// <summary>
+    /// The words for a line kind that has no chart name; the host uses the same words for REST and MCP. When this year
+    /// and last year differ in sign, the result line is "Net profit / (loss)", so neither column sits under the wrong word.
+    /// </summary>
+    public static string Wording(string kind, long current, long? previous = null) => kind switch
     {
         nameof(LayoutLineKind.CashAndEquivalents) => Text.CashAndEquivalentsLine,
         nameof(LayoutLineKind.ProfitForPeriod) => Text.ProfitForPeriodLine,
         nameof(LayoutLineKind.OpeningDifference) => Text.ReportOpeningDifference,
         nameof(LayoutLineKind.SideTotal) => Text.ReportTotal,
+        nameof(LayoutLineKind.NetProfit) when previous is { } p && (p < 0) != (current < 0) => Text.NetProfitOrLossLine,
         nameof(LayoutLineKind.NetProfit) => current < 0 ? Text.NetLossLine : Text.NetProfitLine,
         _ => "",
     };
@@ -108,7 +112,7 @@ public sealed class StatementViewModel : ReportScreen
             {
                 nameof(LayoutLineKind.HeadingTotal) => Format(Text.ReportTotalFor, l.Label),
                 nameof(LayoutLineKind.Heading) or nameof(LayoutLineKind.Group) or nameof(LayoutLineKind.Ledger) => l.Label,
-                _ => Wording(l.Kind, l.Current),
+                _ => Wording(l.Kind, l.Current, layout.HasPrevious ? l.Previous : null),
             };
             string? drill = l.Kind switch
             {

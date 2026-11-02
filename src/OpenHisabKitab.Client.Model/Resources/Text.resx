@@ -373,4 +373,17 @@
   <data name="LedgerNameAmbiguous" xml:space="preserve"><value>{0} matches several ledgers. Type more of the name.</value></data>
   <data name="ParticularsMore" xml:space="preserve"><value>{0} and {1} more</value></data>
   <data name="PeriodNotUnderstood" xml:space="preserve"><value>Type a period such as apr, q1, fy, or two dates.</value></data>
+  <data name="BalanceSheetHeading" xml:space="preserve"><value>Balance sheet ({0}), as at {1}</value></data>
+  <data name="ProfitAndLossHeading" xml:space="preserve"><value>Profit and loss ({0}), {1} to {2}</value></data>
+  <data name="StyleScheduleIII" xml:space="preserve"><value>Schedule III</value></data>
+  <data name="StyleChart" xml:space="preserve"><value>chart of accounts</value></data>
+  <data name="SideEquityAndLiabilities" xml:space="preserve"><value>Equity and liabilities</value></data>
+  <data name="SideAssets" xml:space="preserve"><value>Assets</value></data>
+  <data name="SideIncome" xml:space="preserve"><value>Income</value></data>
+  <data name="SideExpenses" xml:space="preserve"><value>Expenses</value></data>
+  <data name="CashAndEquivalentsLine" xml:space="preserve"><value>Cash and cash equivalents</value></data>
+  <data name="ProfitForPeriodLine" xml:space="preserve"><value>Profit for the period</value></data>
+  <data name="NetProfitLine" xml:space="preserve"><value>Net profit</value></data>
+  <data name="NetLossLine" xml:space="preserve"><value>Net loss</value></data>
+  <data name="DateNotUnderstood" xml:space="preserve"><value>Type a date such as 31-03-2027.</value></data>
 </root>

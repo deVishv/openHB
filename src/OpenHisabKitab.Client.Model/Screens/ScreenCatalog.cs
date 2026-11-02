@@ -22,6 +22,8 @@ public static class ScreenCatalog
         ["TRLB"] = Now(Reports.TrialBalanceViewModel.Create),
         ["LEDG"] = Now(Reports.LedgerViewModel.Create),
         ["DAYB"] = Now(Reports.DayBookViewModel.Create),
+        ["PNLS"] = Now(Reports.StatementViewModel.Create),
+        ["BSHT"] = Now(Reports.StatementViewModel.Create),
         ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,

@@ -49,6 +49,8 @@ public sealed class OpenApiTests : IDisposable
             "/api/v1/companies/{company}/vouchers/{id}/cancel", "/api/v1/companies/{company}/reports/trial-balance",
             "/api/v1/companies/{company}/reports/profit-and-loss", "/api/v1/companies/{company}/reports/balance-sheet",
             "/api/v1/companies/{company}/reports/ledger-statement",
+            "/api/v1/companies/{company}/reports/balance-sheet/layout", "/api/v1/companies/{company}/reports/profit-and-loss/layout",
+            "/api/v1/companies/{company}/reports/cash-flow", "/api/v1/companies/{company}/reports/outstanding",
             "/api/v1/companies/{company}/parties/{id}/open-bills", "/api/v1/companies/{company}/parties/{id}/opening-bills",
         ];
         Assert.Equal([], expected.Except(paths));

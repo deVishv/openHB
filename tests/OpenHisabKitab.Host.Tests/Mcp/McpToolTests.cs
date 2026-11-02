@@ -98,6 +98,34 @@ public sealed class McpToolTests : IDisposable
     }
 
     [Fact]
+    public async Task Cash_flow_outstanding_and_layouts_return_indian_text()
+    {
+        b.Receipt("1234567.80");
+        b.BillSale("700.00");
+        var api = Client();
+        var cf = await Call(api, "cash_flow", new { company = co, from = "2026-04-01", to = "2027-03-31" });
+        Assert.Contains("""{"amount":"1234567.80","text":"12,34,567.80"}""", Text(cf), StringComparison.Ordinal);
+        Assert.Equal("1234567.80", Ok(cf).GetProperty("closingCash").GetProperty("amount").GetString());
+
+        var outs = Ok(await Call(api, "outstanding", new { company = co, asAt = "2026-07-31" }));
+        Assert.Equal("700.00", outs.GetProperty("total").GetProperty("amount").GetString());
+        var payable = Ok(await Call(api, "outstanding", new { company = co, asAt = "2026-07-31", side = "payable" }));
+        Assert.Equal(0, payable.GetProperty("parties").GetArrayLength());
+
+        var bs = Ok(await Call(api, "balance_sheet_layout", new { company = co, asAt = "2027-03-31" }));
+        Assert.Equal("scheduleIII", bs.GetProperty("style").GetString());
+        var pl = Ok(await Call(api, "profit_and_loss_layout", new { company = co, from = "2026-04-01", to = "2027-03-31", style = "chart" }));
+        Assert.Equal("chart", pl.GetProperty("style").GetString());
+    }
+
+    [Fact]
+    public async Task Mcp_outstanding_is_refused_for_data_entry()
+    {
+        var clerk = b.F.ApiClient(b.F.NewUserToken("clerk", BuiltInRole.DataEntry, false, co));
+        Assert.Equal("You do not have permission for this.", Error(await Call(clerk, "outstanding", new { company = co, asAt = "2026-07-31" })));
+    }
+
+    [Fact]
     public async Task Service_refusal_reaches_the_assistant_word_for_word()
     {
         var viewer = b.F.ApiClient(b.F.NewUserToken("viewer", BuiltInRole.Viewer, true, co));
@@ -182,8 +210,9 @@ public sealed class McpToolTests : IDisposable
     {
         var tools = (await Rpc(Client(), "tools/list", new { })).GetProperty("tools").EnumerateArray().ToList();
         Assert.Equal(
-            ["balance_sheet", "create_invoice", "create_party", "create_voucher", "find_vouchers", "get_voucher", "ledger_statement",
-             "list_companies", "open_bills", "profit_and_loss", "search_ledgers", "trial_balance"],
+            ["balance_sheet", "balance_sheet_layout", "cash_flow", "create_invoice", "create_party", "create_voucher", "find_vouchers",
+             "get_voucher", "ledger_statement", "list_companies", "open_bills", "outstanding", "profit_and_loss", "profit_and_loss_layout",
+             "search_ledgers", "trial_balance"],
             tools.Select(t => t.GetProperty("name").GetString()).Order(StringComparer.Ordinal));
         var create = tools.Single(t => t.GetProperty("name").GetString() == "create_voucher");
         var amount = create.GetProperty("inputSchema").GetProperty("properties").GetProperty("voucher").GetProperty("properties")

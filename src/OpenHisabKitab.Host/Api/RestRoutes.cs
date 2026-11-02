@@ -1,6 +1,8 @@
 using OpenHisabKitab.Core.Vouchers;
 using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Core.Accounts;
+using OpenHisabKitab.Core.Bills;
+using OpenHisabKitab.Core.Reports;
 using OpenHisabKitab.Data.CompanyDb;
 using Microsoft.AspNetCore.Http.HttpResults;
 using OpenHisabKitab.Host.Application;
@@ -106,6 +108,26 @@ public static class RestRoutes
             return TypedResults.Ok(ApiMap.ToDto(bs, masters.Chart(ctx, company)));
         });
 
+        reports.MapGet("/balance-sheet/layout", (HttpContext c, ReportService r, int company, string? asAt, string? style) =>
+            TypedResults.Ok(ApiMap.ToDto(r.BalanceSheetLayout(c.Caller(), company, ApiParse.Date(asAt, "asAt"), Style(style)))));
+
+        reports.MapGet("/profit-and-loss/layout", (HttpContext c, ReportService r, int company, string? from, string? to, string? style) =>
+            TypedResults.Ok(ApiMap.ToDto(r.ProfitAndLossLayout(c.Caller(), company, ApiParse.Range(from, to), Style(style)))));
+
+        reports.MapGet("/cash-flow", (HttpContext c, ReportService r, MasterService masters, int company, string? from, string? to) =>
+        {
+            var ctx = c.Caller();
+            var cf = r.CashFlow(ctx, company, ApiParse.Range(from, to));
+            return TypedResults.Ok(ApiMap.ToDto(cf, masters.Chart(ctx, company)));
+        });
+
+        reports.MapGet("/outstanding", (HttpContext c, ReportService r, MasterService masters, int company, string? asAt, string? side) =>
+        {
+            var ctx = c.Caller();
+            var outs = r.Outstanding(ctx, company, ApiParse.Date(asAt, "asAt"), Side(side));
+            return TypedResults.Ok(ApiMap.ToDto(outs, masters.Chart(ctx, company)));
+        });
+
         reports.MapGet("/ledger-statement", (HttpContext c, ReportService r, MasterService masters, VoucherService vouchers, int company, int? ledger, string? from, string? to) =>
         {
             var ctx = c.Caller();
@@ -116,6 +138,10 @@ public static class RestRoutes
             return TypedResults.Ok(ApiMap.ToDto(statement, masters.Chart(ctx, company), numbers));
         });
     }
+
+    internal static LayoutStyle Style(string? s) => s is null ? LayoutStyle.ScheduleIII : ApiParse.Choice<LayoutStyle>(s, "style");
+
+    internal static PartySide Side(string? s) => s is null ? PartySide.Receivable : ApiParse.Choice<PartySide>(s, "side");
 
     static void MapWrites(RouteGroupBuilder co)
     {

@@ -78,6 +78,28 @@ public sealed record StatementRowDto(DateOnly Date, long VoucherId, string Vouch
 public sealed record StatementDto(
     int LedgerId, string Ledger, DateOnly From, DateOnly To, Money Opening, IReadOnlyList<StatementRowDto> Rows, Money Closing);
 
+public sealed record LayoutLineDto(LayoutSide Side, LayoutLineKind Kind, int Depth, string Label, int? GroupId, int? LedgerId,
+    Money Current, Money? Previous);
+
+public sealed record LayoutDto(LayoutStyle Style, bool HasPrevious, IReadOnlyList<LayoutLineDto> Lines);
+
+public sealed record CashFlowLineDto(CashFlowSection Section, CashFlowItem Item, string Label, int? GroupId, string? Group, Money Amount);
+
+public sealed record CashFlowDto(
+    DateOnly From, DateOnly To, IReadOnlyList<CashFlowLineDto> Lines, Money Operating, Money Investing, Money Financing,
+    Money NetChange, Money OpeningCash, Money ClosingCash);
+
+public sealed record OutstandingBillDto(
+    BillSource Source, long Id, string Number, string? PartyDocNumber, DateOnly Date, DateOnly Due, Money Amount, Money Open,
+    int DaysOverdue, int Bucket);
+
+public sealed record OutstandingPartyDto(
+    int LedgerId, string Party, IReadOnlyList<OutstandingBillDto> Bills, IReadOnlyList<Money> Buckets, Money OnAccount, Money Total);
+
+public sealed record OutstandingDto(
+    DateOnly AsAt, PartySide Side, IReadOnlyList<int> AgeingDays, IReadOnlyList<OutstandingPartyDto> Parties,
+    IReadOnlyList<Money> BucketTotals, Money OnAccountTotal, Money Total);
+
 /// <summary>Service records to response records. Presentation only: no rule and no lookup beyond ledger names.</summary>
 public static class ApiMap
 {
@@ -133,6 +155,27 @@ public static class ApiMap
 
     public static ProfitAndLossDto ToDto(ProfitAndLoss pl, ChartOfAccounts chart) =>
         new(pl.Period.From, pl.Period.To, Lines(pl.Income, chart), Lines(pl.Expenses, chart), pl.TotalIncome, pl.TotalExpenses, pl.NetProfit);
+
+    public static LayoutDto ToDto(StatementLayout s) =>
+        new(s.Style, s.HasPrevious,
+            [.. s.Lines.Select(l => new LayoutLineDto(l.Side, l.Kind, l.Depth, Text.Label(l), l.Group?.Value, l.Ledger?.Value, l.Current, l.Previous))]);
+
+    public static CashFlowDto ToDto(CashFlowStatement c, ChartOfAccounts chart)
+    {
+        string? GroupName(GroupId? id) => id is { } g ? chart.Groups.FirstOrDefault(x => x.Id == g)?.Name : null;
+        return new(c.Period.From, c.Period.To,
+            [.. c.Lines.Select(l => new CashFlowLineDto(l.Section, l.Item, Text.Label(l, GroupName(l.Group) ?? ""), l.Group?.Value,
+                GroupName(l.Group), l.Amount))],
+            c.Operating, c.Investing, c.Financing, c.NetChange, c.OpeningCash, c.ClosingCash);
+    }
+
+    public static OutstandingDto ToDto(OutstandingReport r, ChartOfAccounts chart) =>
+        new(r.AsAt, r.Side, r.Ageing.Days,
+            [.. r.Parties.Select(p => new OutstandingPartyDto(p.Party.Value, Name(chart, p.Party),
+                [.. p.Bills.Select(b => new OutstandingBillDto(b.Bill.Ref.Source, b.Bill.Ref.Id, b.Bill.Number, b.Bill.PartyDocNumber,
+                    b.Bill.Date, b.Due, b.Bill.Amount, b.Bill.Open, b.DaysOverdue, b.Bucket))],
+                p.Buckets, p.OnAccount, p.Total))],
+            r.BucketTotals, r.OnAccountTotal, r.Total);
 
     public static BalanceSheetDto ToDto(BalanceSheet bs, ChartOfAccounts chart) =>
         new(bs.AsAt, Lines(bs.Assets, chart), Lines(bs.Liabilities, chart), bs.CurrentProfit, bs.OpeningDifference, bs.TotalAssets,

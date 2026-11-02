@@ -20,6 +20,8 @@ public static class ScreenCatalog
         ["FIND"] = FindViewModel.CreateAsync,
         ["LOCK"] = Now(LockViewModel.Create),
         ["TRLB"] = Now(Reports.TrialBalanceViewModel.Create),
+        ["LEDG"] = Now(Reports.LedgerViewModel.Create),
+        ["DAYB"] = Now(Reports.DayBookViewModel.Create),
         ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,

@@ -6,7 +6,6 @@ using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Screens.Entry;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
-using OpenHisabKitab.Core.Amounts;
 using OpenHisabKitab.Core.Commands;
 using OpenHisabKitab.Core.Formatting;
 
@@ -99,10 +98,8 @@ public sealed partial class FindViewModel : ScreenViewModel
 
     FoundRow Row(VoucherMsg v)
     {
-        var lookups = Ctx.Lookups;
-        var party = v.Invoice is { } inv ? lookups.LedgerName(inv.Party)
-            : v.Postings.Select(p => p.Ledger).FirstOrDefault(lookups.Parties.ContainsKey) is var id and > 0 ? lookups.LedgerName(id) : "";
-        var amount = new Money(v.Postings.Where(p => p.Paise > 0).Sum(p => p.Paise));
+        var party = Reports.VoucherRowText.Party(v, Ctx.Lookups);
+        var amount = Reports.VoucherRowText.DebitTotal(v);
         var date = DateText.Format(DateOnly.ParseExact(v.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture), Ctx.Settings.Current.Text("ui.dateFormat"));
         return new FoundRow(v.Id, VoucherCodes.CodeOf(v.Type), date, v.DisplayNumber, party, v.Cancelled ? "" : IndianNumberFormat.Format(amount),
             v.Narration, v.Cancelled);

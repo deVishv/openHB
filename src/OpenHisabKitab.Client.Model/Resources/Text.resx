@@ -361,4 +361,16 @@
   <data name="ExportButton" xml:space="preserve"><value>_Export CSV</value></data>
   <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
   <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
+  <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
+  <data name="DayBookHeading" xml:space="preserve"><value>Day book, {0} to {1}</value></data>
+  <data name="OpeningBalanceLine" xml:space="preserve"><value>Opening balance</value></data>
+  <data name="ClosingBalanceLine" xml:space="preserve"><value>Closing balance</value></data>
+  <data name="ParticularsColumn" xml:space="preserve"><value>Particulars</value></data>
+  <data name="BalanceColumn" xml:space="preserve"><value>Balance</value></data>
+  <data name="PartyOrLedgerColumn" xml:space="preserve"><value>Party or ledger</value></data>
+  <data name="LedgerNameNeeded" xml:space="preserve"><value>Type a ledger name after LEDG.</value></data>
+  <data name="NoLedgerNamed" xml:space="preserve"><value>No ledger named {0}.</value></data>
+  <data name="LedgerNameAmbiguous" xml:space="preserve"><value>{0} matches several ledgers. Type more of the name.</value></data>
+  <data name="ParticularsMore" xml:space="preserve"><value>{0} and {1} more</value></data>
+  <data name="PeriodNotUnderstood" xml:space="preserve"><value>Type a period such as apr, q1, fy, or two dates.</value></data>
 </root>

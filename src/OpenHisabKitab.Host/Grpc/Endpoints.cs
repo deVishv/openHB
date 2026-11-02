@@ -271,6 +271,9 @@ internal sealed class ReportsEndpoint(ReportService reports) : Reports.ReportsBa
     public override Task<StatementPageMsg> LedgerStatementPage(StatementPageRequest request, ServerCallContext context) =>
         Task.FromResult(Wire.ToMsg(reports.StatementPage(context.Caller(), request.Company, new LedgerId(request.Ledger),
             Wire.Range(request.Period), Wire.Page(request.Page))));
+
+    public override Task<OutstandingMsg> Outstanding(OutstandingRequest request, ServerCallContext context) =>
+        Task.FromResult(Wire.ToMsg(reports.Outstanding(context.Caller(), request.Company, Wire.Date(request.AsAt), Wire.Side(request.Side))));
 }
 
 internal sealed class AdminEndpoint(AdminService admin, UserService users, HostSettingsService settings) : Admin.AdminBase

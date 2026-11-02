@@ -1,5 +1,6 @@
 using OpenHisabKitab.Core.Accounts;
 using OpenHisabKitab.Core.Amounts;
+using OpenHisabKitab.Core.Bills;
 using OpenHisabKitab.Core.Reports;
 using OpenHisabKitab.Core.Time;
 using OpenHisabKitab.Core.Vouchers;
@@ -89,6 +90,40 @@ public sealed class ReportService(CompanyBooks books, CompanyHub hub)
             return new StatementLine(r, head.Type, head.Number, head.Narration, counter);
         }).ToList();
         return new StatementPage(ledger, period, opening, lines, statement.Closing, next);
+    }
+
+    /// <summary>
+    /// OUTS: each party on the side with its bills as at the date, aged by the company's outstanding.ageingDays setting.
+    /// Each party's total is its ledger closing from the books, so bills and on account always add up to the ledger.
+    /// </summary>
+    public OutstandingReport Outstanding(CallContext ctx, int company, DateOnly asAt, PartySide side)
+    {
+        var (b, chart) = Open(ctx, company, null);
+        IReadOnlyDictionary<LedgerId, IReadOnlyList<OpenBill>> bills;
+        List<LedgerId> parties;
+        AgeingBuckets ageing;
+        using (var c = hub.Open(company))
+        {
+            var onSide = PartyRepository.List(c)
+                .Where(p => chart.Contains(p.Ledger) && MasterService.SideOf(chart, p.Ledger) == side)
+                .ToDictionary(p => p.Ledger, p => (side, p.CreditDays));
+            bills = BillRepository.AllBillsAsAt(c, asAt, onSide);
+            parties = [.. onSide.Keys.OrderBy(p => chart.Ledger(p).Name, StringComparer.CurrentCultureIgnoreCase)];
+            ageing = Ageing(CompanyRepository.ListSettings(c));
+        }
+        return Core.Bills.Outstanding.Build(asAt, side, ageing,
+            parties.Select(p => new PartyPosition(p, b.Closing(p, asAt), bills.GetValueOrDefault(p) ?? [])));
+    }
+
+    static AgeingBuckets Ageing(IReadOnlyDictionary<string, string> settings)
+    {
+        if (!settings.TryGetValue("outstanding.ageingDays", out var json)) return AgeingBuckets.Default;
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<string>(json) is { } text && AgeingBuckets.TryParse(text, out var a)
+                ? a : AgeingBuckets.Default;
+        }
+        catch (System.Text.Json.JsonException) { return AgeingBuckets.Default; }
     }
 
     static bool HasYear(Books b, DateOnly date) => FinancialYear.Containing(date).Start >= b.Start;

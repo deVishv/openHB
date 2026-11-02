@@ -126,6 +126,13 @@ public sealed class Books
         return new LedgerStatement(ledger, period, opening, rows, balance);
     }
 
+    /// <summary>The cash flow statement by the indirect method for a period within one financial year.</summary>
+    public CashFlowStatement CashFlow(DateRange period) => CashFlowBuilder.Build(this, chart, period);
+
+    /// <summary>A ledger's balance at the end of the day, debit positive.</summary>
+    public Money Closing(LedgerId ledger, DateOnly asAt) =>
+        Activity(ledger, new DateRange(FinancialYear.Containing(asAt).Start, asAt)).Closing;
+
     /// <summary>Opening, period debits and credits, and closing for one ledger. The period must sit in one year.</summary>
     internal TrialBalanceRow Activity(LedgerId ledger, DateRange period)
     {

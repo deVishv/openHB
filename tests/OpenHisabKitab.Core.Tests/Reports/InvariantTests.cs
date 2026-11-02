@@ -32,6 +32,28 @@ public class InvariantTests
         foreach (var v in vouchers) Same(seed, $"voucher {v.Id} sum", Money.Zero, Money.Sum(v.Lines.Select(l => l.Amount)));
     }
 
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void Invariant_9_cash_flow_closing_equals_balance_sheet_cash(int seed)
+    {
+        var (books, chart, _) = RandomBooks.Generate(seed);
+        var rng = new Random(seed * 7919);
+        foreach (var fy in new[] { Fy25, Fy26 })
+        {
+            var to = RandomDate(rng, fy);
+            var from = fy.Start.AddDays(rng.Next(to.DayNumber - fy.Start.DayNumber + 1));
+            foreach (var period in new[] { fy.Range, new DateRange(from, to) })
+            {
+                var cf = books.CashFlow(period);
+                var layout = ReportLayout.BalanceSheet(chart, books.BalanceSheet(period.To), null, LayoutStyle.ScheduleIII);
+                var cash = layout.Lines.SingleOrDefault(x => x.Kind == LayoutLineKind.CashAndEquivalents)?.Current ?? Money.Zero;
+                Same(seed, $"cash flow closing {period.From}..{period.To}", cash, cf.ClosingCash);
+                Same(seed, $"net change {period.From}..{period.To}", cf.ClosingCash - cf.OpeningCash, cf.NetChange);
+                Same(seed, $"sections {period.From}..{period.To}", cf.Operating + cf.Investing + cf.Financing, cf.NetChange);
+            }
+        }
+    }
+
     [Fact]
     public void Some_seeds_have_an_opening_difference() =>
         Assert.Contains(Enumerable.Range(1, 100), s => RandomBooks.Generate(s).Books.OpeningDifference != Money.Zero);

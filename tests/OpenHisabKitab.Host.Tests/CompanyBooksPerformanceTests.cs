@@ -15,6 +15,57 @@ public sealed class CompanyBooksPerformanceTests(ITestOutputHelper output) : IDi
     public void Dispose() => host.Dispose();
 
     // Spec 10: TRLB for a full year under 1 s with 1,000,000 posting lines. Plan 1 measured the engine build at about 0.55 s.
+    // Spec 10: PNLS and BSHT for a full year under 1 s each, in the Schedule III layout with last year's column.
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void Full_year_schedule_iii_balance_sheet_and_profit_and_loss_are_under_one_second()
+    {
+        var company = host.NewCompany();
+        var chart = host.Masters.Chart(host.Owner.Context, company);
+        GroupKind[] kinds = [GroupKind.CashInHand, GroupKind.BankAccounts, GroupKind.TradeReceivables, GroupKind.TradePayables,
+            GroupKind.RevenueFromOperations, GroupKind.OtherExpenses, GroupKind.FixedAssets, GroupKind.ShortTermBorrowings];
+        var ledgers = new List<LedgerId>();
+        for (var i = 0; i < 200; i++)
+        {
+            var (next, id) = chart.AddLedger($"Ledger {i}", chart.Group(kinds[i % kinds.Length]));
+            chart = next;
+            ledgers.Add(id);
+        }
+        var r = new Random(2);
+        var start = new FinancialYear(2026).Start;
+        var postings = new List<PostingRecord>(1_000_000);
+        for (long v = 1; v <= 500_000; v++)
+        {
+            var date = start.AddDays(r.Next(730));
+            var amount = new Money(r.Next(1, 1_000_000));
+            postings.Add(new PostingRecord(v, date, ledgers[r.Next(ledgers.Count)], amount));
+            postings.Add(new PostingRecord(v, date, ledgers[r.Next(ledgers.Count)], -amount));
+        }
+        host.Books.Seed(company, chart, start, new Dictionary<LedgerId, Money>(), postings);
+
+        var year = new FinancialYear(2027);
+        var bestBs = TimeSpan.MaxValue;
+        var bestPl = TimeSpan.MaxValue;
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            var amount = new Money(100 + attempt);
+            host.Books.VoucherSaved(company, 500_001, [new PostingRecord(500_001, year.Start, ledgers[0], amount), new PostingRecord(500_001, year.Start, ledgers[1], -amount)]);
+            var watch = Stopwatch.StartNew();
+            var bs = host.Reports.BalanceSheetLayout(host.Owner.Context, company, year.End, LayoutStyle.ScheduleIII);
+            watch.Stop();
+            Assert.True(bs.HasPrevious);
+            if (watch.Elapsed < bestBs) bestBs = watch.Elapsed;
+            watch.Restart();
+            var pl = host.Reports.ProfitAndLossLayout(host.Owner.Context, company, year.Range, LayoutStyle.ScheduleIII);
+            watch.Stop();
+            Assert.True(pl.HasPrevious);
+            if (watch.Elapsed < bestPl) bestPl = watch.Elapsed;
+        }
+        output.WriteLine($"Best of 3: BSHT {bestBs.TotalMilliseconds:F0} ms, PNLS {bestPl.TotalMilliseconds:F0} ms");
+        Assert.True(bestBs < TimeSpan.FromSeconds(1), $"BSHT best of 3 was {bestBs.TotalMilliseconds:F0} ms.");
+        Assert.True(bestPl < TimeSpan.FromSeconds(1), $"PNLS best of 3 was {bestPl.TotalMilliseconds:F0} ms.");
+    }
+
     [Fact]
     [Trait("Category", "Performance")]
     public void Full_year_trial_balance_after_a_save_is_under_one_second_at_a_million_lines()

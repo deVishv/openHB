@@ -36,12 +36,16 @@ public sealed class Books
         }
 
         this.chart = chart;
+        Start = booksStart;
         openings = openingBalances;
         OpeningDifference = Money.Sum(openingBalances.Values);
         profitAndLoss = chart.Required(RequiredLedger.ProfitAndLoss);
         incomeAndExpense = chart.Ledgers.Where(l => IsIncomeOrExpense(chart, l.Id)).Select(l => l.Id).ToList();
         index = list.GroupBy(p => p.Ledger).ToDictionary(g => g.Key, g => new LedgerIndex(g));
     }
+
+    /// <summary>The day the books start: 1 April of the first financial year.</summary>
+    public DateOnly Start { get; }
 
     /// <summary>Sum of all opening balances. Zero when the openings balance.</summary>
     public Money OpeningDifference { get; }

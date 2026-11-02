@@ -16,6 +16,9 @@ public class GoldenCompanyTests
     static Money Closing(TrialBalance tb, LedgerId ledger) => tb.Rows.Single(r => r.Ledger == ledger).Closing;
 
     [Fact]
+    public void Books_start_is_the_first_year_start() => Assert.Equal(new DateOnly(2025, 4, 1), books.Start);
+
+    [Fact]
     public void Trial_balance_fy_2025()
     {
         var tb = books.TrialBalance(new FinancialYear(2025).Range);

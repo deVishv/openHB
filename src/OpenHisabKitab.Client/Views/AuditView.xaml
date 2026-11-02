@@ -1,0 +1,63 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.AuditView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
+             AutomationProperties.Name="{Binding Heading}">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Heading}" FontWeight="Bold" Margin="2" />
+        <WrapPanel DockPanel.Dock="Top" Margin="2">
+            <Label Content="{t:Txt AuditFromLabel}" Target="{Binding ElementName=From}" />
+            <TextBox x:Name="From" Width="110" Text="{Binding From, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AuditFromLabel}" KeyDown="OnFilterKeyDown" />
+            <Label Content="{t:Txt AuditToLabel}" Target="{Binding ElementName=To}" />
+            <TextBox x:Name="To" Width="110" Text="{Binding To, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AuditToLabel}" KeyDown="OnFilterKeyDown" />
+            <Label Content="{t:Txt AuditUserLabel}" Target="{Binding ElementName=User}" />
+            <TextBox x:Name="User" Width="110" Text="{Binding User, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AuditUserLabel}" KeyDown="OnFilterKeyDown" />
+            <Label Content="{t:Txt AuditEntityLabel}" Target="{Binding ElementName=Entity}" />
+            <TextBox x:Name="Entity" Width="110" Text="{Binding Entity, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name AuditEntityLabel}" KeyDown="OnFilterKeyDown" />
+            <Button Margin="4,0" Content="{t:Txt SearchButton}" AutomationProperties.Name="{t:Name SearchButton}" Click="OnSearch" />
+            <Button Content="{t:Txt VerifyButton}" AutomationProperties.Name="{t:Name VerifyButton}" Click="OnVerify" />
+        </WrapPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Verification}" Margin="2" Visibility="{Binding Verification, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <Grid DockPanel.Dock="Bottom" Height="160" Margin="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <DockPanel>
+                <Label DockPanel.Dock="Top" Content="{t:Txt BeforeLabel}" Target="{Binding ElementName=Before}" />
+                <TextBox x:Name="Before" Text="{Binding Before, Mode=OneWay}" IsReadOnly="True" FontFamily="{DynamicResource NumberFont}"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="{t:Name BeforeLabel}" />
+            </DockPanel>
+            <DockPanel Grid.Column="1">
+                <Label DockPanel.Dock="Top" Content="{t:Txt AfterLabel}" Target="{Binding ElementName=After}" />
+                <TextBox x:Name="After" Text="{Binding After, Mode=OneWay}" IsReadOnly="True" FontFamily="{DynamicResource NumberFont}"
+                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" AutomationProperties.Name="{t:Name AfterLabel}" />
+            </DockPanel>
+        </Grid>
+        <ListView x:Name="Entries" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name AuditEntriesName}"
+                  VirtualizingPanel.IsVirtualizing="True" PreviewKeyDown="OnEntriesKeyDown">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding Action}" /></Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="{t:Txt TimeColumn}" DisplayMemberBinding="{Binding At}" Width="150" />
+                    <GridViewColumn Header="{t:Txt UserColumn}" DisplayMemberBinding="{Binding User}" Width="90" />
+                    <GridViewColumn Header="{t:Txt PcColumn}" DisplayMemberBinding="{Binding Machine}" Width="100" />
+                    <GridViewColumn Header="{t:Txt SourceColumn}" DisplayMemberBinding="{Binding Source}" Width="70" />
+                    <GridViewColumn Header="{t:Txt TokenColumn}" DisplayMemberBinding="{Binding Token}" Width="90" />
+                    <GridViewColumn Header="{t:Txt ActionColumn}" DisplayMemberBinding="{Binding Action}" Width="110" />
+                    <GridViewColumn Header="{t:Txt EntityColumn}" DisplayMemberBinding="{Binding Entity}" Width="100" />
+                    <GridViewColumn Header="{t:Txt KeyColumn}" DisplayMemberBinding="{Binding Key}" Width="120" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</UserControl>

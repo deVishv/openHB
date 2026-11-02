@@ -411,4 +411,25 @@
   <data name="OnAccountText" xml:space="preserve"><value>On account</value></data>
   <data name="NoPartyNamed" xml:space="preserve"><value>No party named {0}.</value></data>
   <data name="PartyNameAmbiguous" xml:space="preserve"><value>{0} matches several parties. Type more of the name.</value></data>
+  <data name="AuditHeading" xml:space="preserve"><value>Audit trail</value></data>
+  <data name="AuditHostHeading" xml:space="preserve"><value>Audit trail of host.db</value></data>
+  <data name="AuditFromLabel" xml:space="preserve"><value>_From</value></data>
+  <data name="AuditToLabel" xml:space="preserve"><value>_To</value></data>
+  <data name="AuditUserLabel" xml:space="preserve"><value>_User</value></data>
+  <data name="AuditEntityLabel" xml:space="preserve"><value>_Entity</value></data>
+  <data name="VerifyButton" xml:space="preserve"><value>_Verify</value></data>
+  <data name="ChainIntact" xml:space="preserve"><value>Chain intact: {0} records, anchor matches.</value></data>
+  <data name="ChainBroken" xml:space="preserve"><value>Chain broken at record {0}.</value></data>
+  <data name="ChainAnchorMismatch" xml:space="preserve"><value>Newest records are missing or the chain was rebuilt.</value></data>
+  <data name="ChainAnchorMissing" xml:space="preserve"><value>No anchor found.</value></data>
+  <data name="TimeColumn" xml:space="preserve"><value>Time</value></data>
+  <data name="UserColumn" xml:space="preserve"><value>User</value></data>
+  <data name="PcColumn" xml:space="preserve"><value>PC</value></data>
+  <data name="SourceColumn" xml:space="preserve"><value>Source</value></data>
+  <data name="TokenColumn" xml:space="preserve"><value>Token</value></data>
+  <data name="ActionColumn" xml:space="preserve"><value>Action</value></data>
+  <data name="EntityColumn" xml:space="preserve"><value>Entity</value></data>
+  <data name="BeforeLabel" xml:space="preserve"><value>Before</value></data>
+  <data name="AfterLabel" xml:space="preserve"><value>After</value></data>
+  <data name="AuditEntriesName" xml:space="preserve"><value>Audit records</value></data>
 </root>

@@ -23,6 +23,7 @@
             <DataTemplate DataType="{x:Type s:PartiesViewModel}"><v:PartiesView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:FindViewModel}"><v:FindView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:LockViewModel}"><v:LockView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:AuditViewModel}"><v:AuditView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:JournalEntryViewModel}"><v:JournalEntryView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:InvoiceEntryViewModel}"><v:InvoiceEntryView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:BillsPanelViewModel}"><v:BillsPanelView /></DataTemplate>

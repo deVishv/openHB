@@ -26,6 +26,7 @@ public static class ScreenCatalog
         ["BSHT"] = Now(Reports.StatementViewModel.Create),
         ["CFLO"] = Now(Reports.CashFlowViewModel.Create),
         ["OUTS"] = Now(Reports.OutstandingViewModel.Create),
+        ["AUDT"] = Now(AuditViewModel.Create),
         ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,

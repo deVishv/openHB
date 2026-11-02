@@ -47,10 +47,12 @@ public sealed class HostSettingsService(HostData data, OpenHisabKitabOptions opt
             case "bool":
                 return e.ValueKind switch { JsonValueKind.True => "true", JsonValueKind.False => "false", _ => throw invalid };
             case "int":
-                if (e.ValueKind != JsonValueKind.Number || !e.TryGetInt32(out var port) || port is < 1024 or > 65535) throw invalid;
-                if (port == options.GrpcPort)
+                if (e.ValueKind != JsonValueKind.Number || !e.TryGetInt32(out var n) || n < d.Min || n > d.Max) throw invalid;
+                if (d.Key == HostSettings.ApiPort && n == options.GrpcPort)
                     throw new ServiceException(ServiceError.Invalid, $"{d.Key} must differ from the gRPC port {options.GrpcPort}.");
-                return JsonSerializer.Serialize(port);
+                return JsonSerializer.Serialize(n);
+            case "string" when d.Key == HostSettings.BackupFolder:
+                return Folder(e);
             default:
                 if (e.ValueKind != JsonValueKind.Array || e.EnumerateArray().Any(x => x.ValueKind != JsonValueKind.String)) throw invalid;
                 var origins = e.EnumerateArray().Select(x => x.GetString()!).ToList();
@@ -58,6 +60,22 @@ public sealed class HostSettingsService(HostData data, OpenHisabKitabOptions opt
                     throw new ServiceException(ServiceError.Invalid, $"{d.Key} entries must look like https://example.com.");
                 return JsonSerializer.Serialize(origins);
         }
+    }
+
+    // Blank, or a full path to a folder that exists or can be made now, so backups never fail later for want of it.
+    static string Folder(JsonElement e)
+    {
+        var bad = new ServiceException(ServiceError.Invalid, $"{HostSettings.BackupFolder} must be a full folder path.");
+        if (e.ValueKind != JsonValueKind.String) throw bad;
+        var path = e.GetString()!.Trim();
+        if (path.Length == 0) return JsonSerializer.Serialize("");
+        if (!Path.IsPathFullyQualified(path)) throw bad;
+        try { Directory.CreateDirectory(path); }
+        catch (Exception x) when (x is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            throw new ServiceException(ServiceError.Invalid, $"Cannot use folder {path}.");
+        }
+        return JsonSerializer.Serialize(path);
     }
 
     static bool IsOrigin(string s) =>

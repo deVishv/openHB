@@ -27,6 +27,7 @@ public static class ScreenCatalog
         ["CFLO"] = Now(Reports.CashFlowViewModel.Create),
         ["OUTS"] = Now(Reports.OutstandingViewModel.Create),
         ["AUDT"] = Now(AuditViewModel.Create),
+        ["BKUP"] = Now(BackupViewModel.Create),
         ["SALE"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["PURC"] = Entry.InvoiceEntryViewModel.CreateAsync,
         ["CRNT"] = Entry.InvoiceEntryViewModel.CreateAsync,

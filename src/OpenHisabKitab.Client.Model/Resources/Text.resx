@@ -432,4 +432,18 @@
   <data name="BeforeLabel" xml:space="preserve"><value>Before</value></data>
   <data name="AfterLabel" xml:space="preserve"><value>After</value></data>
   <data name="AuditEntriesName" xml:space="preserve"><value>Audit records</value></data>
+  <data name="BackupHeading" xml:space="preserve"><value>Backups</value></data>
+  <data name="BackupNowButton" xml:space="preserve"><value>_Back up now</value></data>
+  <data name="RestoreButton" xml:space="preserve"><value>_Restore</value></data>
+  <data name="BackedUpTo" xml:space="preserve"><value>Backed up to {0}.</value></data>
+  <data name="RestoreQuestion" xml:space="preserve"><value>Restore {0}? Everyone is logged out and the current file is backed up first.</value></data>
+  <data name="BackupScheduleHeading" xml:space="preserve"><value>Backup schedule</value></data>
+  <data name="IntervalHoursLabel" xml:space="preserve"><value>_Hours between backups</value></data>
+  <data name="KeepLabel" xml:space="preserve"><value>Backups _kept</value></data>
+  <data name="FolderLabel" xml:space="preserve"><value>Backup _folder</value></data>
+  <data name="BackupScheduleSaved" xml:space="preserve"><value>Backup schedule saved.</value></data>
+  <data name="TakenAtColumn" xml:space="preserve"><value>Taken at</value></data>
+  <data name="FileColumn" xml:space="preserve"><value>File</value></data>
+  <data name="BackupsName" xml:space="preserve"><value>Backup files</value></data>
+  <data name="ChooseBackupFirst" xml:space="preserve"><value>Choose a backup in the list first.</value></data>
 </root>

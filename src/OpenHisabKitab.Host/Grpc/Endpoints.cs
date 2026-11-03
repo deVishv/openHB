@@ -1,4 +1,5 @@
 using System.Globalization;
+using Google.Protobuf;
 using Grpc.Core;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Accounts;
@@ -92,6 +93,17 @@ internal sealed class CompaniesEndpoint(CompanyService companies) : Companies.Co
 
     public override Task<SettingValues> ListSettings(CompanyRef request, ServerCallContext context) =>
         Task.FromResult(Wire.ToMsg(companies.ListSettings(context.Caller(), request.Company)));
+
+    public override Task<LogoMsg> GetLogo(CompanyRef request, ServerCallContext context) =>
+        Task.FromResult(companies.GetLogo(context.Caller(), request.Company) is { } logo
+            ? new LogoMsg { Png = ByteString.CopyFrom(logo.Png), Sha256 = logo.Sha256 }
+            : new LogoMsg());
+
+    public override async Task<V1Empty> SetLogo(SetLogoRequest request, ServerCallContext context)
+    {
+        await companies.SetLogoAsync(context.Caller(), request.Company, request.Png.ToByteArray());
+        return new V1Empty();
+    }
 
     public override async Task<V1Empty> ResetSetting(CompanySettingKey request, ServerCallContext context)
     {

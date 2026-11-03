@@ -138,6 +138,15 @@
   <data name="OpenButton" xml:space="preserve"><value>_Open</value></data>
   <data name="AddYearButton" xml:space="preserve"><value>Add _year</value></data>
   <data name="NewCompanyHeading" xml:space="preserve"><value>New company</value></data>
+  <data name="LogoNone" xml:space="preserve"><value>No logo</value></data>
+  <data name="LogoKb" xml:space="preserve"><value>Logo: {0} KB</value></data>
+  <data name="LogoSaved" xml:space="preserve"><value>Logo saved.</value></data>
+  <data name="LogoRemoved" xml:space="preserve"><value>Logo removed.</value></data>
+  <data name="LogoUnreadable" xml:space="preserve"><value>Cannot read this logo. Save it as a PNG file again.</value></data>
+  <data name="CannotReadFile" xml:space="preserve"><value>Cannot read file {0}.</value></data>
+  <data name="ChooseLogoButton" xml:space="preserve"><value>Choose _logo...</value></data>
+  <data name="RemoveLogoButton" xml:space="preserve"><value>Re_move logo</value></data>
+  <data name="PngFileFilter" xml:space="preserve"><value>PNG files (*.png)|*.png</value></data>
   <data name="CompanyNameLabel" xml:space="preserve"><value>_Name</value></data>
   <data name="StateLabel" xml:space="preserve"><value>_State</value></data>
   <data name="RegistrationLabel" xml:space="preserve"><value>_Registration</value></data>

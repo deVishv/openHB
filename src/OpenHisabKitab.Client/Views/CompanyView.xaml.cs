@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Microsoft.Win32;
 using OpenHisabKitab.Client.Model.Screens;
 
 namespace OpenHisabKitab.Client.Views;
@@ -22,6 +23,14 @@ public partial class CompanyView : UserControl
     }
 
     async void OnAddYear(object sender, RoutedEventArgs e) => await Vm.AddYearAsync();
+
+    async void OnChooseLogo(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Filter = Model.Resources.Text.PngFileFilter, CheckFileExists = true };
+        if (dialog.ShowDialog(Window.GetWindow(this)) == true) await Vm.SetLogoAsync(dialog.FileName);
+    }
+
+    async void OnRemoveLogo(object sender, RoutedEventArgs e) => await Vm.RemoveLogoAsync();
 
     /// <summary>Enter on a company opens it.</summary>
     async void OnListKeyDown(object sender, KeyEventArgs e)

@@ -1,5 +1,7 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using OpenHisabKitab.Core.Accounts;
+using OpenHisabKitab.Core.Formatting;
 using OpenHisabKitab.Core.Gst;
 using OpenHisabKitab.Core.Settings;
 using OpenHisabKitab.Core.Time;
@@ -170,6 +172,42 @@ public sealed class CompanyService(HostData data, CompanyHub hub, ChangeFeed fee
             return 0;
         }, _ => feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)));
     }
+
+    /// <summary>The logo printed on invoices, or null. Anyone with access to the company may print it.</summary>
+    public (byte[] Png, string Sha256)? GetLogo(CallContext ctx, int id)
+    {
+        ctx.RequireCompany(id);
+        using var c = hub.Open(id);
+        return CompanyRepository.GetLogo(c);
+    }
+
+    /// <summary>
+    /// Sets the logo, or removes it when the bytes are empty. The trail records the image's hash and size, not the image,
+    /// so it does not grow by twice the image on each change (owner decision, 2026-11-03).
+    /// </summary>
+    public Task SetLogoAsync(CallContext ctx, int id, byte[] png)
+    {
+        ctx.Require(Permission.ManageCompanies);
+        ctx.RequireCompany(id);
+        if (png.Length > 0 && LogoImage.Check(png) is { } problem) throw new ServiceException(ServiceError.Invalid, problem);
+        return hub.WriteAsync(id, tx =>
+        {
+            var before = CompanyRepository.GetLogo(tx.Connection!);
+            if (png.Length == 0)
+            {
+                if (!CompanyRepository.RemoveLogo(tx)) return false;
+                hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "remove", "logo", "logo", Summary(before), null));
+                return true;
+            }
+            var sha = Convert.ToHexStringLower(SHA256.HashData(png));
+            CompanyRepository.SetLogo(tx, png, sha);
+            hub.Audit(tx, ctx.Audit(time.GetUtcNow(), "set", "logo", "logo", Summary(before), Summary((png, sha))));
+            return true;
+        }, changed => { if (changed) feed.Publish(new ChangeEvent(id, ChangeKind.Settings, null)); });
+    }
+
+    static string? Summary((byte[] Png, string Sha256)? logo) =>
+        logo is { } l ? JsonSerializer.Serialize(new { sha256 = l.Sha256, bytes = l.Png.Length }) : null;
 
     static CompanyProfile Checked(CompanyProfile p)
     {

@@ -16,6 +16,9 @@ service Companies {
   // The company layer of settings: stored values only, not the defaults.
   rpc ListSettings (CompanyRef) returns (SettingValues);
   rpc ResetSetting (CompanySettingKey) returns (Empty);
+  rpc GetLogo (CompanyRef) returns (LogoMsg);
+  // An empty png removes the logo.
+  rpc SetLogo (SetLogoRequest) returns (Empty);
 }
 
 message CompanyEntry { int32 id = 1; string name = 2; }
@@ -33,4 +36,7 @@ message YearMsg { int32 start_year = 1; string label = 2; }
 message YearList { repeated YearMsg years = 1; }
 message SettingRequest { int32 company = 1; string key = 2; string json = 3; }
 message CompanySettingKey { int32 company = 1; string key = 2; }
+// The company logo printed on invoices: a PNG of at most 200 KB. Empty when there is none.
+message LogoMsg { bytes png = 1; string sha256 = 2; }
+message SetLogoRequest { int32 company = 1; bytes png = 2; }
 message UpdateCompanyRequest { int32 company = 1; CompanyProfileMsg profile = 2; }

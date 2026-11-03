@@ -34,6 +34,30 @@ public sealed class LookupCache(HostConnection host)
     public IReadOnlyList<ItemMsg> Items { get; private set; } = [];
     public IReadOnlyDictionary<string, string> CompanySettings { get; private set; } = new Dictionary<string, string>();
 
+    // The logo is fetched only when something prints, then kept until a Settings or Restore change, which a logo change raises.
+    byte[]? logo;
+    bool logoKnown;
+    int logoVersion;
+
+    /// <summary>The open company's logo for printed invoices, or null when it has none.</summary>
+    public async Task<byte[]?> LogoAsync(CancellationToken ct = default)
+    {
+        if (Company is not { } company) return null;
+        if (logoKnown) return logo;
+        var started = logoVersion;
+        var reply = await host.CallAsync((h, o) => h.Companies.GetLogoAsync(new CompanyRef { Company = company }, o), ct);
+        var bytes = reply.Png.IsEmpty ? null : reply.Png.ToByteArray();
+        // A change or another company meanwhile makes this answer stale; it is returned but not kept.
+        if (started == logoVersion && Company == company) (logo, logoKnown) = (bytes, true);
+        return bytes;
+    }
+
+    void DropLogo()
+    {
+        logoVersion++;
+        (logo, logoKnown) = (null, false);
+    }
+
     /// <summary>After any reload.</summary>
     public event Action? Changed;
 
@@ -65,6 +89,7 @@ public sealed class LookupCache(HostConnection host)
     void Reset(int? company)
     {
         generation++;
+        DropLogo();
         (mastersAgain, settingsAgain, reloading) = (false, false, null);
         Company = company;
         Profile = null;
@@ -95,7 +120,11 @@ public sealed class LookupCache(HostConnection host)
     {
         if (Company is not { } company || change.Company != company) return Task.CompletedTask;
         if (change.Kind is "Masters" or "Restore") mastersAgain = true;
-        if (change.Kind is "Settings" or "Restore") settingsAgain = true;
+        if (change.Kind is "Settings" or "Restore")
+        {
+            settingsAgain = true;
+            DropLogo();
+        }
         if (!mastersAgain && !settingsAgain) return Task.CompletedTask;
         if (reloading is { IsCompleted: false } running) return running;
         // A reload that ends before this line returns must not be kept, or every later change would get its old result.

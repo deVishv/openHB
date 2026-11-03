@@ -55,6 +55,17 @@ public static class CompanyRepository
         Sql.Query(c, "SELECT key, value FROM company_settings ORDER BY key", r => (r.GetString(0), r.GetString(1)))
             .ToDictionary(p => p.Item1, p => p.Item2, StringComparer.Ordinal);
 
+    /// <summary>The logo printed on invoices and its SHA-256 in lower case hex, or null when there is none.</summary>
+    public static (byte[] Png, string Sha256)? GetLogo(SqliteConnection c) =>
+        Sql.Query(c, "SELECT png, sha256 FROM company_logo WHERE id = 1", r => ((byte[])r.GetValue(0), r.GetString(1)))
+            .Select(x => ((byte[], string)?)x).SingleOrDefault();
+
+    public static void SetLogo(SqliteTransaction tx, byte[] png, string sha256) =>
+        Sql.Execute(tx, "INSERT INTO company_logo(id, png, sha256) VALUES (1, $png, $sha) ON CONFLICT(id) DO UPDATE SET png = excluded.png, sha256 = excluded.sha256",
+            ("$png", png), ("$sha", sha256));
+
+    public static bool RemoveLogo(SqliteTransaction tx) => Sql.Execute(tx, "DELETE FROM company_logo WHERE id = 1") > 0;
+
     public static bool RemoveSetting(SqliteTransaction tx, string key) =>
         Sql.Execute(tx, "DELETE FROM company_settings WHERE key = $key", ("$key", key)) > 0;
 

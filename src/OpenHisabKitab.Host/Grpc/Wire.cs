@@ -144,8 +144,15 @@ internal static class Wire
                 l.ItemId == 0 ? null : l.ItemId, new LedgerId(l.Ledger), l.Description, l.HsnSac, new Quantity(l.QtyThousandths),
                 new Money(l.UnitPricePaise), new Money(l.DiscountPaise), Rate(l.RateBp), Rate(l.CessBp), l.PriceIncludesTax))],
             new ExportDetails(OptionalText(m.PortCode), OptionalText(m.ShippingBillNumber), OptionalDate(m.ShippingBillDate)),
-            [.. m.Allocations.Select(Allocation)], OptionalText(m.RequestId));
+            [.. m.Allocations.Select(Allocation)], OptionalText(m.RequestId),
+            m.ShipTo is { } t ? new ShipTo(t.Name, t.Address, OptionalText(t.State) is { } st ? State(st) : null, OptionalText(t.Country)) : null);
     }
+
+    static ShipToMsg? ToMsg(ShipTo? t) => t is null ? null
+        : new ShipToMsg { Name = t.Name, Address = t.Address, State = t.State?.Value ?? "", Country = t.Country ?? "" };
+
+    static DocumentPartyMsg? ToMsg(DocumentParty? p) => p is null ? null
+        : new DocumentPartyMsg { Name = p.Name, Gstin = p.Gstin ?? "", Address = p.Address, State = p.State.Value };
 
     public static AllocationRow Allocation(AllocationMsg m) =>
         new(new LedgerId(m.Party), new BillRef(Enum<BillSource>(m.BillSource, "bill source"), m.BillId), new Money(m.Paise));
@@ -197,6 +204,7 @@ internal static class Wire
                 PartyDocDate = Text(inv.PartyDocDate), OriginalNumber = inv.OriginalNumber ?? "", OriginalDate = Text(inv.OriginalDate),
                 RoundOffPaise = inv.RoundOff.Paise, PortCode = inv.Export?.PortCode ?? "",
                 ShippingBillNumber = inv.Export?.ShippingBillNumber ?? "", ShippingBillDate = Text(inv.Export?.ShippingBillDate),
+                ShipTo = ToMsg(inv.ShipTo), PartyDetails = ToMsg(inv.PartyDetails), CompanyDetails = ToMsg(inv.CompanyDetails),
             };
             m.Invoice.Lines.AddRange(inv.Lines.Select(l => new StoredInvoiceLineMsg
             {

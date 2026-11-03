@@ -227,4 +227,69 @@ public sealed class CompanyTests : IDisposable
         await screen.SaveAsync();
         Assert.Equal("State and registration cannot change after vouchers are entered.", screen.Message);
     }
+
+    string TempFile(byte[] bytes)
+    {
+        var path = Path.Combine(t.ClientFolder, Guid.NewGuid().ToString("N") + ".png");
+        Directory.CreateDirectory(t.ClientFolder);
+        File.WriteAllBytes(path, bytes);
+        return path;
+    }
+
+    async Task<CompanyViewModel> Editing(ShellViewModel shell)
+    {
+        var screen = (CompanyViewModel)(await Cmpy(shell.Context, "CMPY"))!;
+        screen.Selected = screen.Companies.Single(c => c.Name == "A Traders");
+        await screen.EditSelectedAsync();
+        return screen;
+    }
+
+    [Fact]
+    public async Task Choose_logo_saves_and_shows_size()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var screen = await Editing(shell);
+        Assert.True(screen.CanSetLogo);
+        Assert.Equal("No logo", screen.LogoText);
+        await screen.SetLogoAsync(TempFile(Printing.PdfExportTests.TinyPng));
+        Assert.Equal("Logo saved.", screen.Message);
+        Assert.Equal("Logo: 1 KB", screen.LogoText);
+        await t.Eventually(() => shell.Context.Lookups.LogoAsync().GetAwaiter().GetResult() is { Length: > 0 });
+        Assert.Equal(Printing.PdfExportTests.TinyPng, await shell.Context.Lookups.LogoAsync());
+        await screen.RemoveLogoAsync();
+        Assert.Equal("Logo removed.", screen.Message);
+        Assert.Equal("No logo", screen.LogoText);
+    }
+
+    [Fact]
+    public async Task Unreadable_png_is_refused_before_the_host()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var screen = await Editing(shell);
+        var broken = new byte[64];
+        Printing.PdfExportTests.TinyPng.AsSpan(0, 24).CopyTo(broken);
+        var before = t.Requests.Count;
+        await screen.SetLogoAsync(TempFile(broken));
+        Assert.Equal("Cannot read this logo. Save it as a PNG file again.", screen.Message);
+        await screen.SetLogoAsync(TempFile([0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3]));
+        Assert.Equal("Logo must be a PNG file.", screen.Message);
+        var missing = Path.Combine(t.ClientFolder, "none.png");
+        await screen.SetLogoAsync(missing);
+        Assert.Equal($"Cannot read file {missing}.", screen.Message);
+        Assert.DoesNotContain(t.Requests.Skip(before), r => r.Path.EndsWith("SetLogo", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Logo_change_drops_the_cached_logo()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        shell.Start();
+        Assert.Null(await shell.Context.Lookups.LogoAsync());
+        await t.OtherOwnerClient().Companies.SetLogoAsync(new SetLogoRequest
+        {
+            Company = shell.Context.Company!.Id, Png = Google.Protobuf.ByteString.CopyFrom(Printing.PdfExportTests.TinyPng),
+        }, t.Headers());
+        await t.Eventually(() => shell.Context.Lookups.LogoAsync().GetAwaiter().GetResult() is not null);
+        Assert.Equal(Printing.PdfExportTests.TinyPng, await shell.Context.Lookups.LogoAsync());
+    }
 }

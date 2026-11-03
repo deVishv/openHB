@@ -318,6 +318,30 @@ public sealed class GrpcEndToEndTests : IDisposable
     }
 
     [Fact]
+    public void Grpc_round_trips_ship_to_and_details()
+    {
+        var (token, company, _, sales, party) = Books();
+        var saved = vouchers.SaveInvoice(new InvoiceRequest
+        {
+            Company = company,
+            Invoice = new InvoiceMsg
+            {
+                Type = "Sale", Date = "2026-06-01", Party = party, Direction = "Outward", Kind = "ExportUnderLut", PlaceOfSupply = "96",
+                ShipTo = new ShipToMsg { Name = "Gulf LLC", Address = "Jebel Ali", Country = "United Arab Emirates" },
+                Lines = { new InvoiceLineMsg { Ledger = sales, Description = "Rod", HsnSac = "7214", QtyThousandths = 1000, UnitPricePaise = 100_00 } },
+            },
+        }, Headers(token));
+        var inv = vouchers.Get(new VoucherRef { Company = company, Id = saved.Id }, Headers(token)).Invoice;
+        Assert.Equal(new ShipToMsg { Name = "Gulf LLC", Address = "Jebel Ali", State = "", Country = "United Arab Emirates" }, inv.ShipTo);
+        Assert.False(string.IsNullOrEmpty(inv.PartyDetails.Name));
+        Assert.Equal("A Traders", inv.CompanyDetails.Name);
+        Assert.Equal("27", inv.CompanyDetails.State);
+
+        var plain = Sale(token, company, party, sales, 1000_00);
+        Assert.Null(vouchers.Get(new VoucherRef { Company = company, Id = plain.Id }, Headers(token)).Invoice.ShipTo);
+    }
+
+    [Fact]
     public void Opening_bills_conflict_carries_the_current_list()
     {
         var (token, company, _, _, party) = Books();

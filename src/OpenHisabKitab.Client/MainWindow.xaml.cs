@@ -1,10 +1,17 @@
 using System.ComponentModel;
+using System.Globalization;
+using System.IO;
+using System.Printing;
+using System.Windows.Documents;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using OpenHisabKitab.Client.Input;
+using OpenHisabKitab.Client.Model.Printing;
+using OpenHisabKitab.Client.Printing;
 using OpenHisabKitab.Client.Model.Settings;
 using OpenHisabKitab.Client.Model.Shell;
 
@@ -32,6 +39,7 @@ public partial class MainWindow : Window
         shell = model;
         DataContext = shell;
         shell.FocusPromptRequested += FocusPrompt;
+        shell.PrintRequested += OnPrintRequested;
         shell.Prompt.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(PromptViewModel.Suggestions)) SuggestionPopup.IsOpen = shell.Prompt.Suggestions.Count > 0 && Prompt.IsKeyboardFocused;
@@ -53,6 +61,39 @@ public partial class MainWindow : Window
         shell.Context.Keys.Changed += ShowGestures;
         Prompt.LostKeyboardFocus += (_, _) => SuggestionPopup.IsOpen = false;
         ShowGestures();
+    }
+
+    /// <summary>PRNT: the Windows print dialog for paper, a save dialog for PDF. Cancelling either says nothing.</summary>
+    void OnPrintRequested(PrintDocument doc, string fileName, PrintTarget target)
+    {
+        static string Say(string pattern, string arg) => string.Format(CultureInfo.InvariantCulture, pattern, arg);
+        if (target == PrintTarget.Pdf)
+        {
+            var save = new SaveFileDialog { FileName = fileName, DefaultExt = ".pdf", Filter = Model.Resources.Text.PdfFileFilter, AddExtension = true };
+            if (save.ShowDialog(this) != true) return;
+            try
+            {
+                using (var file = File.Create(save.FileName)) PdfExport.Write(doc, file);
+                shell.Printed(Say(Model.Resources.Text.PdfSaved, Path.GetFileName(save.FileName)));
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+            {
+                shell.Printed(Say(Model.Resources.Text.CannotSaveFile, save.FileName));
+            }
+            return;
+        }
+        var print = new PrintDialog { PrintTicket = PrintPaginator.Ticket(doc) };
+        if (print.ShowDialog() != true) return;
+        try
+        {
+            print.PrintDocument(new PrintPaginator(doc), doc.Title);
+            shell.Printed(Say(Model.Resources.Text.PrintSent, print.PrintQueue.Name));
+        }
+        // An offline printer, a driver fault, or a cancelled Print to PDF file prompt: one line, never a crash.
+        catch (Exception e) when (e is PrintingCanceledException or PrintQueueException or PrintSystemException or InvalidOperationException or IOException)
+        {
+            shell.Printed(Say(Model.Resources.Text.PrintFailed, e.Message));
+        }
     }
 
     async void OnPreviewKeyDown(object sender, KeyEventArgs e)

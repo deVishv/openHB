@@ -17,7 +17,8 @@ public sealed record InvoiceLineRow(
 public sealed record InvoiceHeader(
     LedgerId Party, TradeDirection Direction, InvoiceKind Kind, StateCode PlaceOfSupply, bool ReverseCharge,
     string? PartyDocNumber, DateOnly? PartyDocDate, string? OriginalNumber, DateOnly? OriginalDate,
-    Money RoundOff, IReadOnlyList<InvoiceLineRow> Lines, ExportDetails? Export = null);
+    Money RoundOff, IReadOnlyList<InvoiceLineRow> Lines, ExportDetails? Export = null, ShipTo? ShipTo = null,
+    DocumentParty? PartyDetails = null, DocumentParty? CompanyDetails = null);
 
 /// <summary>
 /// A stored voucher. Postings and allocations are empty once cancelled; the invoice detail is kept for the GSTR-1 document
@@ -187,14 +188,21 @@ public static class VoucherRepository
         Sql.Execute(tx, """
             INSERT INTO invoices(voucher_id, party_ledger_id, direction, kind, place_of_supply, reverse_charge,
                 party_doc_number, party_doc_date, original_number, original_date, round_off_paise,
-                port_code, shipping_bill_number, shipping_bill_date)
-            VALUES ($v, $party, $dir, $kind, $pos, $rc, $pdn, $pdd, $on, $od, $ro, $port, $sbn, $sbd)
+                port_code, shipping_bill_number, shipping_bill_date,
+                ship_to_name, ship_to_address, ship_to_state, ship_to_country,
+                party_name, party_gstin, party_address, party_state, company_name, company_gstin, company_address, company_state)
+            VALUES ($v, $party, $dir, $kind, $pos, $rc, $pdn, $pdd, $on, $od, $ro, $port, $sbn, $sbd,
+                $stn, $sta, $sts, $stc, $pn, $pg, $pa, $ps, $cn, $cg, $ca, $cs)
             """,
             ("$v", id), ("$party", inv.Party.Value), ("$dir", inv.Direction.ToString()), ("$kind", inv.Kind.ToString()),
             ("$pos", inv.PlaceOfSupply.Value), ("$rc", inv.ReverseCharge ? 1 : 0), ("$pdn", inv.PartyDocNumber),
             ("$pdd", Dates.Format(inv.PartyDocDate)), ("$on", inv.OriginalNumber), ("$od", Dates.Format(inv.OriginalDate)),
             ("$ro", inv.RoundOff.Paise), ("$port", inv.Export?.PortCode), ("$sbn", inv.Export?.ShippingBillNumber),
-            ("$sbd", Dates.Format(inv.Export?.ShippingBillDate)));
+            ("$sbd", Dates.Format(inv.Export?.ShippingBillDate)),
+            ("$stn", inv.ShipTo?.Name), ("$sta", inv.ShipTo?.Address), ("$sts", inv.ShipTo?.State?.Value), ("$stc", inv.ShipTo?.Country),
+            ("$pn", inv.PartyDetails?.Name), ("$pg", inv.PartyDetails?.Gstin), ("$pa", inv.PartyDetails?.Address),
+            ("$ps", inv.PartyDetails?.State.Value), ("$cn", inv.CompanyDetails?.Name), ("$cg", inv.CompanyDetails?.Gstin),
+            ("$ca", inv.CompanyDetails?.Address), ("$cs", inv.CompanyDetails?.State.Value));
         for (var i = 0; i < inv.Lines.Count; i++)
         {
             var l = inv.Lines[i];
@@ -221,6 +229,12 @@ public static class VoucherRepository
         BillRepository.DeleteAllocations(tx, id);
     }
 
+    static StateCode? State(string? code) => code is null ? null : new StateCode(code);
+
+    // Saved details are four columns from the given one; invoices saved before migration 0004 have none.
+    static DocumentParty? Details(SqliteDataReader r, int at) => r.IsDBNull(at) ? null
+        : new DocumentParty(r.GetString(at), r.NullableString(at + 1), r.GetString(at + 2), new StateCode(r.GetString(at + 3)));
+
     // Loads vouchers matching a filter on the vouchers table, with their postings, invoices, and allocations, in five queries.
     static IReadOnlyList<VoucherRow> Load(SqliteConnection c, string where, params (string, object?)[] args)
     {
@@ -243,7 +257,9 @@ public static class VoucherRepository
         var invoices = Sql.Query(c, $"""
                 SELECT voucher_id, party_ledger_id, direction, kind, place_of_supply, reverse_charge,
                     party_doc_number, party_doc_date, original_number, original_date, round_off_paise,
-                    port_code, shipping_bill_number, shipping_bill_date
+                    port_code, shipping_bill_number, shipping_bill_date,
+                    ship_to_name, ship_to_address, ship_to_state, ship_to_country,
+                    party_name, party_gstin, party_address, party_state, company_name, company_gstin, company_address, company_state
                 FROM invoices WHERE voucher_id IN ({ids})
                 """,
                 r => (Voucher: r.GetInt64(0), Header: new InvoiceHeader(
@@ -251,7 +267,9 @@ public static class VoucherRepository
                     new StateCode(r.GetString(4)), r.GetInt64(5) != 0, r.NullableString(6), Dates.ParseNullable(r.NullableString(7)),
                     r.NullableString(8), Dates.ParseNullable(r.NullableString(9)), new Money(r.GetInt64(10)), [],
                     r.IsDBNull(11) && r.IsDBNull(12) && r.IsDBNull(13) ? null
-                        : new ExportDetails(r.NullableString(11), r.NullableString(12), Dates.ParseNullable(r.NullableString(13))))), args)
+                        : new ExportDetails(r.NullableString(11), r.NullableString(12), Dates.ParseNullable(r.NullableString(13))),
+                    r.IsDBNull(14) ? null : new ShipTo(r.GetString(14), r.GetString(15), State(r.NullableString(16)), r.NullableString(17)),
+                    Details(r, 18), Details(r, 22))), args)
             .ToDictionary(x => x.Voucher, x => x.Header with { Lines = [.. lines[x.Voucher]] });
         var allocations = BillRepository.AllocationsWhere(c, ids, args).ToLookup(x => x.Voucher, x => x.Row);
 

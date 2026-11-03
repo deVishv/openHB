@@ -1,9 +1,10 @@
 {
-  "version": "2026.10.1",
+  "version": "2026.11.1",
   "sources": [
     { "item": "states", "url": "https://www.zoho.com/in/books/kb/gst/valid-state-codes-list.html", "checked": "2026-10-26", "note": "Secondary list. Code 25 (Daman and Diu) retired on 26-01-2020 when merged into 26. Confirm against the GST portal before release." },
     { "item": "rates", "url": "https://taxinformation.cbic.gov.in", "checked": "2026-10-26", "note": "Notification 9/2025 Central Tax (Rate), effective 22-09-2025, supersedes 1/2017. CGST schedules 0.125, 0.75, 1.5, 2.5, 9, 14, 20 percent give total rates 0.25, 1.5, 3, 5, 18, 28, 40. Older slabs kept open ended because credit notes and some services still use them." },
     { "item": "b2clInvoiceValue", "url": "https://taxinformation.cbic.gov.in", "checked": "2026-10-26", "note": "Notification 12/2024 Central Tax amended Rule 59(4): 2.5 lakh replaced by 1 lakh from 01-08-2024." },
+    { "item": "unregisteredDetailsValue", "url": "https://taxinformation.cbic.gov.in/content/html/tax_repository/gst/rules/cgst_rules/active/chapter6/rule46_v1.00.html", "checked": "2026-11-03", "note": "Rule 46(e) CGST Rules: an unregistered recipient's name, address, delivery address, and state are needed where the taxable value is fifty thousand rupees or more." },
     { "item": "einvoice", "url": "https://einvoice6.gst.gov.in/content/notified-e-invoice-schema/", "checked": "2026-10-26", "note": "Schema version 1.1." }
   ],
   "states": [
@@ -62,7 +63,8 @@
   ],
   "thresholds": [
     { "key": "b2clInvoiceValue", "paise": 25000000, "from": "2017-07-01", "to": "2024-07-31" },
-    { "key": "b2clInvoiceValue", "paise": 10000000, "from": "2024-08-01", "to": null }
+    { "key": "b2clInvoiceValue", "paise": 10000000, "from": "2024-08-01", "to": null },
+    { "key": "unregisteredDetailsValue", "paise": 5000000, "from": "2017-07-01", "to": null }
   ],
   "schemas": { "einvoice": "1.1", "gstr1": "", "gstr2b": "" }
 }

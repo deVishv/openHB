@@ -120,6 +120,49 @@ public sealed class InvoiceEntryTests : IDisposable
     }
 
     [Fact]
+    public async Task Ship_to_round_trips_through_the_entry_screen()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await Party(shell, "Ravi Stores", "27");
+        var s = await Open(shell.Context, "SALE");
+        Assert.True(s.ShowsShipTo);
+        s.Party.Set(party);
+        FillLine(s.Lines[0], Sales(shell.Context), "1,000");
+        s.ShipToName = "Ravi Godown";
+        s.ShipToAddress = "Plot 9\nChakan";
+        s.ShipToState = s.States.Single(x => x.Code == "27");
+        Assert.True(s.HasUnsavedEdits);
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        Assert.Equal("", s.ShipToName);
+        Assert.Null(s.ShipToState);
+        var edit = await Open(shell.Context, "SALE INV/26-27/00001");
+        Assert.Equal(("Ravi Godown", "Plot 9\nChakan", "27"), (edit.ShipToName, edit.ShipToAddress, edit.ShipToState!.Code));
+        Assert.False((await Open(shell.Context, "PURC")).ShowsShipTo);
+    }
+
+    [Fact]
+    public async Task Country_shows_only_for_exports()
+    {
+        var shell = await t.LoggedInShellAsync([], company: "A Traders");
+        var party = await Party(shell, "Gulf LLC", "96");
+        var s = await Open(shell.Context, "SALE");
+        Assert.False(s.ShowsCountry);
+        s.Kind = "ExportUnderLut";
+        Assert.True(s.ShowsCountry);
+        s.Party.Set(party);
+        s.PlaceOfSupply = s.States.Single(x => x.Code == "96");
+        FillLine(s.Lines[0], Sales(shell.Context), "1,000");
+        (s.ShipToName, s.ShipToAddress, s.ShipToCountry) = ("Gulf LLC", "Jebel Ali", "United Arab Emirates");
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        var edit = await Open(shell.Context, "SALE INV/26-27/00001");
+        Assert.Equal("United Arab Emirates", edit.ShipToCountry);
+        edit.Kind = "Regular";
+        Assert.False(edit.ShowsCountry);
+    }
+
+    [Fact]
     public async Task Credit_note_suggests_the_original_invoice_first()
     {
         var shell = await t.LoggedInShellAsync([], company: "A Traders");

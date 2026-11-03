@@ -1,10 +1,13 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
+using Google.Protobuf;
 using OpenHisabKitab.Client.Model.Connection;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Commands;
+using OpenHisabKitab.Core.Formatting;
 using OpenHisabKitab.Core.Gst;
 using OpenHisabKitab.Core.Time;
 
@@ -103,7 +106,7 @@ public sealed partial class CompanyViewModel : ScreenViewModel, IScreenCommands
 
     /// <summary>True while the form edits the selected company's profile rather than creating one.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FormHeading))]
+    [NotifyPropertyChangedFor(nameof(FormHeading), nameof(CanSetLogo))]
     public partial bool Editing { get; private set; }
 
     int editingId;
@@ -127,8 +130,66 @@ public sealed partial class CompanyViewModel : ScreenViewModel, IScreenCommands
             Editing = true;
             (NewName, NewGstin, NewAddress, NewRegistration, NewFirstYear) = (p.Name, p.Gstin, p.Address, p.Registration, p.FirstFyStartYear);
             NewState = States.FirstOrDefault(s => s.Code == p.State);
+            var logo = await Ctx.Host.CallAsync((h, o) => h.Companies.GetLogoAsync(new CompanyRef { Company = company.Id }, o));
+            LogoText = LogoSize(logo.Png.Length);
         })
         : Task.CompletedTask;
+
+    /// <summary>"Logo: 12 KB" or "No logo", for the company being edited.</summary>
+    [ObservableProperty]
+    public partial string LogoText { get; private set; } = "";
+
+    /// <summary>The logo is printed on invoices; it is set while editing a company, by those who manage companies.</summary>
+    public bool CanSetLogo => Editing && CanCreate;
+
+    /// <summary>Reads a PNG file and stores it as the company logo, after the checks the host and the PDF writer make.</summary>
+    public Task SetLogoAsync(string path)
+    {
+        if (!CanSetLogo) return Task.CompletedTask;
+        byte[] png;
+        try
+        {
+            // A large file picked by mistake is refused before it is read.
+            if (new FileInfo(path).Length > LogoImage.MaxBytes)
+            {
+                Message = LogoImage.TooLarge;
+                return Task.CompletedTask;
+            }
+            png = File.ReadAllBytes(path);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+        {
+            Message = Format(Text.CannotReadFile, path);
+            return Task.CompletedTask;
+        }
+        if (LogoImage.Check(png) is { } problem)
+        {
+            Message = problem;
+            return Task.CompletedTask;
+        }
+        if (!PdfExport.CanDraw(png))
+        {
+            Message = Text.LogoUnreadable;
+            return Task.CompletedTask;
+        }
+        return StoreLogoAsync(png, Text.LogoSaved);
+    }
+
+    public Task RemoveLogoAsync() => CanSetLogo ? StoreLogoAsync([], Text.LogoRemoved) : Task.CompletedTask;
+
+    async Task StoreLogoAsync(byte[] png, string done)
+    {
+        var id = editingId;
+        if (await RunAsync(() => Ctx.Host.CallAsync((h, o) => h.Companies.SetLogoAsync(new SetLogoRequest { Company = id, Png = ByteString.CopyFrom(png) }, o))))
+        {
+            LogoText = LogoSize(png.Length);
+            Message = done;
+        }
+    }
+
+    static string LogoSize(int bytes) => bytes == 0 ? Text.LogoNone : Format(Text.LogoKb, (bytes + 1023) / 1024);
+
+    static string Format(string pattern, object arg) => string.Format(CultureInfo.InvariantCulture, pattern, arg);
 
     void StopEditing()
     {

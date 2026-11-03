@@ -29,6 +29,8 @@ public static class DefaultKeybindings
         Bind("ctrl+shift+delete", "voucher.cancelVoucher"),
         Bind("ctrl+e", "report.export"),
         Bind("ctrl+g", "report.style"),
+        // Beside Ctrl+E (CSV): saves the current tab as PDF. F11 runs PRNT, which prints it.
+        Bind("ctrl+shift+e", "screen.savePdf"),
         .. FKeys.Select((code, i) => Bind($"f{i + 1}", "run." + code)),
     ];
 

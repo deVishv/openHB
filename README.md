@@ -69,6 +69,17 @@ dotnet run --project src/OpenHisabKitab.Client
 - `BKUP` backs up the open company now, restores a backup (Owner only, after asking), and sets the schedule: the host settings `backup.intervalHours`, `backup.keep`, and `backup.folder`, a folder on a drive of the host PC.
 - REST: `GET .../reports/cash-flow?from=&to=`, `.../reports/outstanding?asAt=&side=`, `.../reports/balance-sheet/layout?asAt=&style=`, and `.../reports/profit-and-loss/layout?from=&to=&style=`, where `style` is `scheduleIII` or `chart`. MCP adds `cash_flow`, `outstanding`, `balance_sheet_layout`, and `profit_and_loss_layout`.
 
+### Printing
+
+- `PRNT` (F11) prints the current tab through the Windows print dialog; `PRNT pdf` (Ctrl+Shift+E) saves it as PDF.
+- Reports print as the screen shows them, every page loaded first, in landscape when they are too wide. Like CSV, this needs the export right.
+- Sales invoices, and credit and debit notes the business issues, print with the particulars of Rules 46, 49, and 53: a tax invoice, a bill of supply for composition or all 0% sales, or a plain invoice for an unregistered business. Paper prints the Rule 48 copies (three for goods, two for services); a PDF holds the original. An invoice missing a required particular, such as an unregistered buyer's address from ₹50,000, is not printed, and one line says what to add.
+- Purchases, received notes, receipts, payments, journals, and contras print as a voucher slip with signature boxes.
+- A voucher prints as stored: save it first, and reload it with `RFSH` if someone else changed it.
+- Settings for invoices: `invoice.bankDetails`, `invoice.terms`, `invoice.signatory`, `invoice.showPrice`, `invoice.showDiscount`, and `invoice.copies` (`byRule` or `original`). Line breaks in the bank details and terms are typed in `SETG`'s JSON view as `\n`. The logo (PNG, at most 200 KB) is set in `CMPY` while editing the company.
+- `SALE`, `CRNT`, and `DBNT` take an optional Ship to: name, address, and state, or the country of destination for exports. Each invoice keeps the buyer's and company's details as saved, so a reprint matches the original.
+- PDFs show Latin script and ₹ only. A Hindi or Gujarati name is refused for PDF; print it and choose Microsoft Print to PDF.
+
 ## Local REST API and MCP server
 
 Scripts and AI assistants on the host PC can read the books, and enter vouchers if allowed, through a REST API and an MCP server. Both are off by default.

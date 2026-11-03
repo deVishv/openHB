@@ -138,6 +138,74 @@
   <data name="OpenButton" xml:space="preserve"><value>_Open</value></data>
   <data name="AddYearButton" xml:space="preserve"><value>Add _year</value></data>
   <data name="NewCompanyHeading" xml:space="preserve"><value>New company</value></data>
+  <data name="PrintedOn" xml:space="preserve"><value>Printed {0}</value></data>
+  <data name="PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="PrintNeedsExport" xml:space="preserve"><value>Printing reports needs the export right.</value></data>
+  <data name="PrintIncomplete" xml:space="preserve"><value>The report did not finish loading. Press F5, then print again.</value></data>
+  <data name="NothingToPrint" xml:space="preserve"><value>Nothing to print in this tab.</value></data>
+  <data name="PrintSaveFirst" xml:space="preserve"><value>Save the voucher before printing.</value></data>
+  <data name="PrintReload" xml:space="preserve"><value>This voucher was changed. Reload it with RFSH, then print.</value></data>
+  <data name="PrintInvoiceNo" xml:space="preserve"><value>Invoice no. {0}</value></data>
+  <data name="PrintNoteNo" xml:space="preserve"><value>Note no. {0}</value></data>
+  <data name="PrintDate" xml:space="preserve"><value>Date {0}</value></data>
+  <data name="PrintPlaceOfSupply" xml:space="preserve"><value>Place of supply {0}</value></data>
+  <data name="PrintReverseChargeNo" xml:space="preserve"><value>Reverse charge No</value></data>
+  <data name="PrintOriginalInvoice" xml:space="preserve"><value>Original invoice {0}, {1}</value></data>
+  <data name="PrintPortCode" xml:space="preserve"><value>Port code {0}</value></data>
+  <data name="PrintShippingBill" xml:space="preserve"><value>Shipping bill {0}, {1}</value></data>
+  <data name="PrintBillTo" xml:space="preserve"><value>Bill to</value></data>
+  <data name="PrintShipTo" xml:space="preserve"><value>Ship to</value></data>
+  <data name="PrintGstin" xml:space="preserve"><value>GSTIN {0}</value></data>
+  <data name="PrintState" xml:space="preserve"><value>State {0}</value></data>
+  <data name="PrintCountry" xml:space="preserve"><value>Country {0}</value></data>
+  <data name="PrintCancelled" xml:space="preserve"><value>CANCELLED</value></data>
+  <data name="PrintContinued" xml:space="preserve"><value>{0} {1}, {2} (continued)</value></data>
+  <data name="PrintColNo" xml:space="preserve"><value>#</value></data>
+  <data name="PrintColDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="PrintColHsn" xml:space="preserve"><value>HSN/SAC</value></data>
+  <data name="PrintColQty" xml:space="preserve"><value>Qty</value></data>
+  <data name="PrintColUnit" xml:space="preserve"><value>Unit</value></data>
+  <data name="PrintColRate" xml:space="preserve"><value>Rate</value></data>
+  <data name="PrintColDiscount" xml:space="preserve"><value>Discount</value></data>
+  <data name="PrintColTaxable" xml:space="preserve"><value>Taxable value</value></data>
+  <data name="PrintColTaxRate" xml:space="preserve"><value>{0} %</value></data>
+  <data name="PrintTaxCgst" xml:space="preserve"><value>CGST</value></data>
+  <data name="PrintTaxSgst" xml:space="preserve"><value>SGST</value></data>
+  <data name="PrintTaxUtgst" xml:space="preserve"><value>UTGST</value></data>
+  <data name="PrintTaxIgst" xml:space="preserve"><value>IGST</value></data>
+  <data name="PrintTaxCess" xml:space="preserve"><value>Cess</value></data>
+  <data name="PrintRoundOff" xml:space="preserve"><value>Round off</value></data>
+  <data name="PrintTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="PrintAmountInWords" xml:space="preserve"><value>Amount in words: {0}</value></data>
+  <data name="PrintBankDetails" xml:space="preserve"><value>Bank details</value></data>
+  <data name="PrintTerms" xml:space="preserve"><value>Terms</value></data>
+  <data name="PrintFor" xml:space="preserve"><value>For {0}</value></data>
+  <data name="SlipPurchase" xml:space="preserve"><value>Purchase voucher</value></data>
+  <data name="SlipReceipt" xml:space="preserve"><value>Receipt voucher</value></data>
+  <data name="SlipPayment" xml:space="preserve"><value>Payment voucher</value></data>
+  <data name="SlipJournal" xml:space="preserve"><value>Journal voucher</value></data>
+  <data name="SlipContra" xml:space="preserve"><value>Contra voucher</value></data>
+  <data name="SlipCreditNoteReceived" xml:space="preserve"><value>Credit note received</value></data>
+  <data name="SlipDebitNoteReceived" xml:space="preserve"><value>Debit note received</value></data>
+  <data name="PrintVoucherNo" xml:space="preserve"><value>Voucher no. {0}</value></data>
+  <data name="PrintSupplierDocument" xml:space="preserve"><value>Supplier document {0}, {1}</value></data>
+  <data name="PrintColLedger" xml:space="preserve"><value>Ledger</value></data>
+  <data name="PrintColDebit" xml:space="preserve"><value>Debit</value></data>
+  <data name="PrintColCredit" xml:space="preserve"><value>Credit</value></data>
+  <data name="PrintNarration" xml:space="preserve"><value>Narration: {0}</value></data>
+  <data name="PrintPreparedBy" xml:space="preserve"><value>Prepared by</value></data>
+  <data name="PrintCheckedBy" xml:space="preserve"><value>Checked by</value></data>
+  <data name="PrintApprovedBy" xml:space="preserve"><value>Approved by</value></data>
+  <data name="PrintReceiverSigns" xml:space="preserve"><value>Receiver's signature</value></data>
+  <data name="LogoNone" xml:space="preserve"><value>No logo</value></data>
+  <data name="LogoKb" xml:space="preserve"><value>Logo: {0} KB</value></data>
+  <data name="LogoSaved" xml:space="preserve"><value>Logo saved.</value></data>
+  <data name="LogoRemoved" xml:space="preserve"><value>Logo removed.</value></data>
+  <data name="LogoUnreadable" xml:space="preserve"><value>Cannot read this logo. Save it as a PNG file again.</value></data>
+  <data name="CannotReadFile" xml:space="preserve"><value>Cannot read file {0}.</value></data>
+  <data name="ChooseLogoButton" xml:space="preserve"><value>Choose _logo...</value></data>
+  <data name="RemoveLogoButton" xml:space="preserve"><value>Re_move logo</value></data>
+  <data name="PngFileFilter" xml:space="preserve"><value>PNG files (*.png)|*.png</value></data>
   <data name="CompanyNameLabel" xml:space="preserve"><value>_Name</value></data>
   <data name="StateLabel" xml:space="preserve"><value>_State</value></data>
   <data name="RegistrationLabel" xml:space="preserve"><value>_Registration</value></data>
@@ -307,6 +375,10 @@
   <data name="PortCodeLabel" xml:space="preserve"><value>Port _code</value></data>
   <data name="ShippingBillNumberLabel" xml:space="preserve"><value>Shipping _bill</value></data>
   <data name="ShippingBillDateLabel" xml:space="preserve"><value>Shipping bill date</value></data>
+  <data name="ShipToNameLabel" xml:space="preserve"><value>Ship to na_me</value></data>
+  <data name="ShipToAddressLabel" xml:space="preserve"><value>Ship to _address</value></data>
+  <data name="ShipToStateLabel" xml:space="preserve"><value>Ship to state</value></data>
+  <data name="ShipToCountryLabel" xml:space="preserve"><value>Countr_y of destination</value></data>
   <data name="ItemColumn" xml:space="preserve"><value>Item</value></data>
   <data name="QuantityColumn" xml:space="preserve"><value>Quantity</value></data>
   <data name="PriceColumn" xml:space="preserve"><value>Price</value></data>
@@ -361,6 +433,13 @@
   <data name="ExportButton" xml:space="preserve"><value>E_xport CSV</value></data>
   <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
   <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
+  <data name="PdfFileFilter" xml:space="preserve"><value>PDF files (*.pdf)|*.pdf</value></data>
+  <data name="PrintHow" xml:space="preserve"><value>Type PRNT, or PRNT pdf.</value></data>
+  <data name="PdfCannotShow" xml:space="preserve"><value>The PDF cannot show "{0}". Print it and choose Microsoft Print to PDF.</value></data>
+  <data name="PdfSaved" xml:space="preserve"><value>Saved {0}.</value></data>
+  <data name="PrintSent" xml:space="preserve"><value>Sent to {0}.</value></data>
+  <data name="CannotSaveFile" xml:space="preserve"><value>Cannot save {0}.</value></data>
+  <data name="PrintFailed" xml:space="preserve"><value>Printing failed: {0}</value></data>
   <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
   <data name="DayBookHeading" xml:space="preserve"><value>Day book, {0} to {1}</value></data>
   <data name="OpeningBalanceLine" xml:space="preserve"><value>Opening balance</value></data>

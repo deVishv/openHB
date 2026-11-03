@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Lookups;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
@@ -69,14 +70,15 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     ];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsExport))]
+    [NotifyPropertyChangedFor(nameof(ShowsExport), nameof(ShowsCountry))]
     public partial string Kind { get; set; } = nameof(InvoiceKind.Regular);
 
     public IReadOnlyList<ChoiceOption> DirectionOptions { get; } = [new(Issued, Text.DirectionIssued), new(Received, Text.DirectionReceived)];
 
     /// <summary>"Issued" for documents this business issues (outward), "Received" for those it receives. Fixed for SALE and PURC.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOutward), nameof(ShowsKind), nameof(ShowsReverseCharge), nameof(ShowsPartyDoc), nameof(ShowsExport))]
+    [NotifyPropertyChangedFor(nameof(IsOutward), nameof(ShowsKind), nameof(ShowsReverseCharge), nameof(ShowsPartyDoc), nameof(ShowsExport),
+        nameof(ShowsShipTo), nameof(ShowsCountry))]
     public partial string Direction { get; set; }
 
     [ObservableProperty]
@@ -102,6 +104,20 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     [ObservableProperty]
     public partial string ShippingBillDate { get; set; } = "";
+
+    /// <summary>Where goods go when that differs from the buyer's address (Rule 46(o)); issued documents only.</summary>
+    [ObservableProperty]
+    public partial string ShipToName { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string ShipToAddress { get; set; } = "";
+
+    [ObservableProperty]
+    public partial StateOption? ShipToState { get; set; }
+
+    /// <summary>The country of destination, which export invoices must name (the Rule 46 export proviso).</summary>
+    [ObservableProperty]
+    public partial string ShipToCountry { get; set; } = "";
 
     public ObservableCollection<InvoiceLine> Lines { get; } = [];
 
@@ -136,6 +152,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     public bool ShowsPartyDoc => !IsOutward;
 
     public bool ShowsExport => IsOutward && Kind is nameof(InvoiceKind.ExportWithTax) or nameof(InvoiceKind.ExportUnderLut);
+
+    public bool ShowsShipTo => IsOutward;
+
+    public bool ShowsCountry => ShowsExport;
 
     TradeDirection TradeDirection => IsOutward ? TradeDirection.Outward : TradeDirection.Inward;
 
@@ -174,6 +194,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         Kind = nameof(InvoiceKind.Regular);
         ReverseCharge = false;
         (PartyDocNumber, PartyDocDate, OriginalNumber, OriginalDate, PortCode, ShippingBillNumber, ShippingBillDate) = ("", "", "", "", "", "", "");
+        (ShipToName, ShipToAddress, ShipToState, ShipToCountry) = ("", "", null, "");
         Lines.Clear();
         Lines.Add(NewLine());
         Allocations = [];
@@ -193,6 +214,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     partial void OnReverseChargeChanged(bool value) => Changed();
     partial void OnPartyDocNumberChanged(string value) => Edited();
     partial void OnOriginalNumberChanged(string value) => Edited();
+    partial void OnShipToNameChanged(string value) => Edited();
+    partial void OnShipToAddressChanged(string value) => Edited();
+    partial void OnShipToStateChanged(StateOption? value) => Edited();
+    partial void OnShipToCountryChanged(string value) => Edited();
 
     partial void OnDirectionChanged(string value)
     {
@@ -376,6 +401,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
             PlaceOfSupply = PlaceOfSupply?.Code ?? "", ReverseCharge = ShowsReverseCharge && ReverseCharge,
             PartyDocNumber = ShowsPartyDoc ? PartyDocNumber.Trim() : "", OriginalNumber = IsNote ? OriginalNumber.Trim() : "",
             PortCode = ShowsExport ? PortCode.Trim() : "", ShippingBillNumber = ShowsExport ? ShippingBillNumber.Trim() : "",
+            ShipTo = ShowsShipTo ? new ShipToMsg
+            {
+                Name = ShipToName.Trim(), Address = ShipToAddress.Trim(), State = ShipToState?.Code ?? "", Country = ShowsCountry ? ShipToCountry.Trim() : "",
+            } : null,
         };
         var n = 0;
         foreach (var line in Lines)
@@ -394,6 +423,26 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         return msg;
     }
 
+    static readonly GstData Gst = GstData.LoadEmbedded();
+
+    /// <summary>Documents this business issues print as GST documents; received ones print as a slip.</summary>
+    protected override async Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target)
+    {
+        if (stored.Invoice.Direction != nameof(TradeDirection.Outward))
+        {
+            var inv = stored.Invoice;
+            var title = Code switch { "CRNT" => Text.SlipCreditNoteReceived, "DBNT" => Text.SlipDebitNoteReceived, _ => Text.SlipPurchase };
+            var document = inv.PartyDocNumber.Length == 0 ? null : Format(Text.PrintSupplierDocument, inv.PartyDocNumber, VoucherSlip.Show(inv.PartyDocDate));
+            return Slip(stored, title, document, receiverSigns: false);
+        }
+        var settings = Ctx.Settings.Current;
+        var input = InvoicePrintInput.From(stored, Ctx.Lookups, settings, await Ctx.Lookups.LogoAsync());
+        if (InvoicePrint.Check(input, Gst) is { } missing) return PrintResult.Refused(missing);
+        IReadOnlyList<string> copies = target == PrintTarget.Pdf ? [InvoicePrint.OriginalOnly]
+            : InvoiceWording.CopyLabels(InvoicePrint.AnyGoods(stored), settings.Text("invoice.copies"));
+        return new PrintResult(InvoicePrint.Build(input, copies, Gst, PdfMeasure.Instance), PdfName(stored), null);
+    }
+
     protected override async Task FillAsync(VoucherMsg v)
     {
         var inv = v.Invoice;
@@ -409,6 +458,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         PortCode = inv.PortCode;
         ShippingBillNumber = inv.ShippingBillNumber;
         ShippingBillDate = Show(inv.ShippingBillDate);
+        ShipToName = inv.ShipTo?.Name ?? "";
+        ShipToAddress = inv.ShipTo?.Address ?? "";
+        ShipToState = StateOption.All.FirstOrDefault(s => s.Code == inv.ShipTo?.State);
+        ShipToCountry = inv.ShipTo?.Country ?? "";
         Lines.Clear();
         foreach (var stored in inv.Lines)
         {

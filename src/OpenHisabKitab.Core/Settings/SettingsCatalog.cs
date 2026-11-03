@@ -25,7 +25,19 @@ public static class SettingsCatalog
         new("outstanding.ageingDays", SettingType.Text, "\"30,60,90\"", "Ageing columns in OUTS, as days overdue.", SettingScope.Company,
             Rule: text => Bills.AgeingBuckets.TryParse(text, out _),
             RuleText: "Setting outstanding.ageingDays must be 1 to 5 rising whole numbers of days, such as 30,60,90."),
+        Limited("invoice.bankDetails", "\"\"", "Bank details printed on invoices.", 500),
+        Limited("invoice.terms", "\"\"", "Terms printed on invoices.", 500),
+        Limited("invoice.signatory", "\"Authorised signatory\"", "Signatory line printed on invoices.", 100),
+        new("invoice.showPrice", SettingType.Boolean, "true", "Show unit price on printed invoices.", SettingScope.Company),
+        new("invoice.showDiscount", SettingType.Boolean, "true", "Show discount on printed invoices.", SettingScope.Company),
+        new("invoice.copies", SettingType.Choice, "\"byRule\"", "Printed invoice copies: by Rule 48, or the original only.", SettingScope.Company,
+            Choices: ["byRule", "original"]),
     ];
+
+    /// <summary>A company text setting of at most the given length. No setting may hide a particular Rule 46 requires.</summary>
+    static SettingDefinition Limited(string key, string defaultJson, string description, int max) =>
+        new(key, SettingType.Text, defaultJson, description, SettingScope.Company,
+            Rule: text => text.Length <= max, RuleText: $"Setting {key} must be at most {max} characters.");
 
     public static SettingDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);
 

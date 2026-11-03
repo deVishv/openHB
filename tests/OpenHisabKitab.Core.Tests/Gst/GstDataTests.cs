@@ -11,7 +11,7 @@ public class GstDataTests
         Assert.Equal(StateType.UnionTerritory, d.State(new StateCode("04")).Type);
         Assert.Equal(StateType.UnionTerritoryWithLegislature, d.State(new StateCode("07")).Type);
         Assert.Equal(StateType.Other, d.State(new StateCode("96")).Type);
-        Assert.Equal("2026.10.1", d.Version);
+        Assert.Equal("2026.11.1", d.Version);
     }
 
     [Fact]

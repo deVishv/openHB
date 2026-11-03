@@ -38,7 +38,14 @@ public sealed record InvoiceLineDto(
 public sealed record InvoiceDto(
     int PartyId, string Party, TradeDirection Direction, InvoiceKind Kind, string PlaceOfSupply, bool ReverseCharge,
     string? PartyDocNumber, DateOnly? PartyDocDate, string? OriginalNumber, DateOnly? OriginalDate, Money RoundOff,
-    IReadOnlyList<InvoiceLineDto> Lines, string? PortCode, string? ShippingBillNumber, DateOnly? ShippingBillDate);
+    IReadOnlyList<InvoiceLineDto> Lines, string? PortCode, string? ShippingBillNumber, DateOnly? ShippingBillDate,
+    ShipToDto? ShipTo, DocumentPartyDto? PartyDetails, DocumentPartyDto? CompanyDetails);
+
+/// <summary>Where goods go, for documents this business issues. State is null for an export with only a country.</summary>
+public sealed record ShipToDto(string Name, string Address, string? State, string? Country);
+
+/// <summary>The buyer's or the company's details as saved on the invoice; null for invoices saved before Plan 6b.</summary>
+public sealed record DocumentPartyDto(string Name, string? Gstin, string Address, string State);
 
 /// <summary>Part of a receipt, payment, or note allocated to one bill of a party.</summary>
 public sealed record AllocationDto(int PartyId, string Party, BillSource BillSource, long BillId, string BillNumber, Money Amount);
@@ -143,7 +150,10 @@ public static class ApiMap
             [.. h.Lines.Select(l => new InvoiceLineDto(l.ItemId, l.Ledger.Value, Name(chart, l.Ledger), l.Description, l.HsnSac,
                 l.Quantity, l.UnitPrice, l.Discount, l.Rate, l.CessRate, l.PriceIncludesTax, l.Taxable, l.Cgst, l.Sgst, l.Utgst,
                 l.Igst, l.Cess))],
-            h.Export?.PortCode, h.Export?.ShippingBillNumber, h.Export?.ShippingBillDate);
+            h.Export?.PortCode, h.Export?.ShippingBillNumber, h.Export?.ShippingBillDate,
+            h.ShipTo is { } t ? new ShipToDto(t.Name, t.Address, t.State?.Value, t.Country) : null, ToDto(h.PartyDetails), ToDto(h.CompanyDetails));
+
+    static DocumentPartyDto? ToDto(DocumentParty? p) => p is null ? null : new(p.Name, p.Gstin, p.Address, p.State.Value);
 
     public static TrialBalanceDto ToDto(TrialBalance tb, ChartOfAccounts chart) =>
         new(tb.Period.From, tb.Period.To,
@@ -228,7 +238,10 @@ public sealed record InvoiceRequest(
     string Type, string Date, string Narration, int PartyId, string Direction, string Kind, string PlaceOfSupply, bool ReverseCharge,
     IReadOnlyList<InvoiceLineRequest> Lines, string? PartyDocNumber = null, string? PartyDocDate = null, string? OriginalNumber = null,
     string? OriginalDate = null, string? PortCode = null, string? ShippingBillNumber = null, string? ShippingBillDate = null,
-    IReadOnlyList<AllocationRequest>? Allocations = null, string? RequestId = null);
+    IReadOnlyList<AllocationRequest>? Allocations = null, string? RequestId = null, ShipToRequest? ShipTo = null);
+
+/// <summary>Where goods go. State is a two digit code; an export may give a country instead.</summary>
+public sealed record ShipToRequest(string Name, string Address, string? State = null, string? Country = null);
 
 /// <summary>An opening bill to keep (with its Id) or add (without one).</summary>
 public sealed record OpeningBillRequest(string Number, string Date, string Amount, long? Id = null, string? DueDate = null);

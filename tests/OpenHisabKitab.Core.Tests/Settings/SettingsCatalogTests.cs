@@ -71,4 +71,20 @@ public sealed class SettingsCatalogTests
         Assert.Equal((SettingType.Boolean, "false", SettingScope.Company, "New invoice lines take prices with tax included."),
             (d.Type, d.DefaultJson, d.Scope, d.Description));
     }
+
+    [Fact]
+    public void Invoice_print_settings_validate()
+    {
+        Assert.Equal("Setting invoice.copies must be one of: byRule, original.", SettingsCatalog.Validate("invoice.copies", "\"all\"", SettingLayer.Company));
+        Assert.Null(SettingsCatalog.Validate("invoice.copies", "\"original\"", SettingLayer.Company));
+        var terms = System.Text.Json.JsonSerializer.Serialize(new string('x', 501));
+        Assert.Equal("Setting invoice.terms must be at most 500 characters.", SettingsCatalog.Validate("invoice.terms", terms, SettingLayer.Company));
+        Assert.Null(SettingsCatalog.Validate("invoice.bankDetails", System.Text.Json.JsonSerializer.Serialize("HDFC Bank\nA/c 123\nIFSC HDFC0001"), SettingLayer.Company));
+        Assert.Equal("Setting invoice.signatory must be at most 100 characters.",
+            SettingsCatalog.Validate("invoice.signatory", System.Text.Json.JsonSerializer.Serialize(new string('x', 101)), SettingLayer.Company));
+        Assert.Null(SettingsCatalog.Validate("invoice.showPrice", "false", SettingLayer.Company));
+        Assert.Null(SettingsCatalog.Validate("invoice.showDiscount", "true", SettingLayer.Company));
+        Assert.Equal("Setting invoice.showPrice cannot be set for a user.", SettingsCatalog.Validate("invoice.showPrice", "true", SettingLayer.User));
+        Assert.Equal("\"Authorised signatory\"", SettingsCatalog.Find("invoice.signatory")!.DefaultJson);
+    }
 }

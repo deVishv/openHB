@@ -101,6 +101,34 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
 
     public event Action? FocusPromptRequested;
 
+    /// <summary>A document to print or save, with its PDF file name. The window shows the print or save dialog.</summary>
+    public event Action<Printing.PrintDocument, string, Printing.PrintTarget>? PrintRequested;
+
+    /// <summary>The window reports how a print or save ended.</summary>
+    public void Printed(string message) => Status.Message = message;
+
+    async Task PrintAsync(Printing.PrintTarget target)
+    {
+        if (Tabs.Active?.Screen is not Printing.IPrintable screen)
+        {
+            Status.Message = Text.NothingToPrint;
+            return;
+        }
+        var result = await screen.PrintAsync(target);
+        if (result.Refusal is not null || result.Document is not { } doc)
+        {
+            Status.Message = result.Refusal;
+            return;
+        }
+        // A PDF never shows empty boxes for a name its fonts lack (owner decision, 2026-11-03); paper shapes it correctly.
+        if (target == Printing.PrintTarget.Pdf && Printing.PdfText.FirstUnsupported(doc) is { } text)
+        {
+            Status.Message = string.Format(CultureInfo.InvariantCulture, Text.PdfCannotShow, text);
+            return;
+        }
+        PrintRequested?.Invoke(doc, result.FileName, target);
+    }
+
     public async Task RunAsync(string input, bool newTab)
     {
         // Enter pressed again while a command is still asking the host routes nothing more.
@@ -122,6 +150,11 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
             if (route.Refresh)
             {
                 await RefreshAsync();
+                return;
+            }
+            if (route.Print is { } target)
+            {
+                await PrintAsync(target);
                 return;
             }
             if (route.Screen is not { } screen) return;
@@ -183,6 +216,8 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
             case "nav.back": await Tabs.BackAsync(); break;
             case "nav.forward": await Tabs.ForwardAsync(); break;
             case "palette.open": Palette.Open(); break;
+            // Straight to the print path, so a half typed command stays in the prompt.
+            case "screen.savePdf": await PrintAsync(Printing.PrintTarget.Pdf); break;
             case "record.new" or "record.delete" or "line.add" or "line.remove" or "voucher.bills" or "voucher.cancelVoucher"
                 or "report.export" or "report.style":
                 if (Tabs.Active?.Screen is not Screens.IScreenCommands screen || !screen.CanRun(command)) return false;

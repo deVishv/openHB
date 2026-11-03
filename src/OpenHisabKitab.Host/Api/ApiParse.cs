@@ -94,7 +94,8 @@ public static class ApiParse
                     Rate(l.Rate, $"{at}.rate"), Rate(l.CessRate, $"{at}.cessRate"), l.PriceIncludesTax);
             })],
             new ExportDetails(Text(r.PortCode), Text(r.ShippingBillNumber), OptionalDate(r.ShippingBillDate, $"{root}.shippingBillDate")),
-            Allocations(r.Allocations, root), Text(r.RequestId));
+            Allocations(r.Allocations, root), Text(r.RequestId),
+            r.ShipTo is { } t ? new ShipTo(t.Name ?? "", t.Address ?? "", Text(t.State) is { } st ? Wire.State(st) : null, Text(t.Country)) : null);
 
     public static Party Party(PartyRequest r, LedgerId ledger, long rowVersion) =>
         new(ledger, Wire.OptionalGstin(r.Gstin ?? ""), Wire.State(r.State ?? ""), r.CreditDays, r.Address ?? "", rowVersion);

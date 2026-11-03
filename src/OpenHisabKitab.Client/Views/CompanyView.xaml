@@ -34,6 +34,12 @@
                 <Label Grid.Row="3" Grid.Column="2" Content="{t:Txt FirstYearLabel}" Target="{Binding ElementName=NewFirstYear}" />
                 <TextBox x:Name="NewFirstYear" Grid.Row="3" Grid.Column="3" Text="{Binding NewFirstYear, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding Editing}"
                          FontFamily="{DynamicResource NumberFont}" AutomationProperties.Name="{t:Name FirstYearLabel}" />
+                <!-- The logo printed on invoices; set while editing a company. -->
+                <StackPanel Grid.Row="4" Grid.Column="1" Orientation="Horizontal" Visibility="{Binding CanSetLogo, Converter={StaticResource Bool}}">
+                    <TextBlock Text="{Binding LogoText}" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <Button Content="{t:Txt ChooseLogoButton}" AutomationProperties.Name="{t:Name ChooseLogoButton}" Click="OnChooseLogo" Margin="0,0,4,0" />
+                    <Button Content="{t:Txt RemoveLogoButton}" AutomationProperties.Name="{t:Name RemoveLogoButton}" Click="OnRemoveLogo" />
+                </StackPanel>
                 <StackPanel Grid.Row="4" Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right">
                     <Button Content="{t:Txt EditButton}" AutomationProperties.Name="{t:Name EditButton}" Click="OnEdit" Margin="0,0,4,0" />
                     <Button Content="{t:Txt SaveRecordButton}" AutomationProperties.Name="{t:Name SaveRecordButton}" Click="OnCreate" />

@@ -2,6 +2,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Formatting;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
@@ -14,7 +15,7 @@ namespace OpenHisabKitab.Client.Model.Screens.Entry;
 /// second voucher, editing by number with its row version, cancelling, Esc asking once before discarding, and the sub
 /// screens for a new party and for bills. A failed save keeps everything typed.
 /// </summary>
-public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCommands, IEntryLines
+public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCommands, IEntryLines, IPrintable
 {
     readonly string code;
     bool loading;
@@ -101,8 +102,13 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
     /// <summary>Screens call this when the user changes anything.</summary>
     protected void Edited()
     {
-        if (!loading) Dirty = true;
+        if (loading) return;
+        Dirty = true;
+        justSaved = null;
     }
+
+    // The voucher this screen saved last, while the form stands blank for the next one: PRNT straight after Ctrl+S prints it.
+    long? justSaved;
 
     partial void OnDateChanged(string value) => Edited();
 
@@ -162,7 +168,11 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
             }
             Ctx.Report(Format(Text.SavedVoucher, reply.DisplayNumber));
             if (existing is not null) await LoadNumberAsync(reply.DisplayNumber);
-            else StartAgain();
+            else
+            {
+                StartAgain();
+                justSaved = reply.Id;
+            }
         }
         catch (HostException e) when (e.Kind == HostErrorKind.Conflict)
         {
@@ -252,6 +262,41 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
                 break;
         }
     }
+
+    /// <summary>
+    /// PRNT prints the voucher as stored, read again from the host, never the screen's fields: an unsaved or edited
+    /// voucher, or one someone else changed since it was shown, prints nothing and says why.
+    /// </summary>
+    public async Task<PrintResult> PrintAsync(PrintTarget target)
+    {
+        if (HasUnsavedEdits) return PrintResult.Refused(Text.PrintSaveFirst);
+        // A shown voucher must still be as shown; the one just saved is not on screen, so it prints as stored.
+        var (id, shownVersion) = Existing is { } shown ? (shown.Id, (long?)shown.RowVersion) : (justSaved ?? 0, null);
+        if (id == 0) return PrintResult.Refused(Text.PrintSaveFirst);
+        try
+        {
+            var stored = await Ctx.Host.CallAsync((h, o) => h.Vouchers.GetAsync(new VoucherRef { Company = Ctx.Company!.Id, Id = id }, o));
+            if (shownVersion is { } version && stored.RowVersion != version) return PrintResult.Refused(Text.PrintReload);
+            return await BuildPrintAsync(stored, target);
+        }
+        catch (HostException e) { return PrintResult.Refused(e.Message); }
+    }
+
+    /// <summary>The stored voucher laid out for printing.</summary>
+    protected abstract Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target);
+
+    /// <summary>The stored voucher as a plain slip: its postings as Dr and Cr lines, and the signature boxes.</summary>
+    protected PrintResult Slip(VoucherMsg stored, string title, string? supplierDocument, bool receiverSigns)
+    {
+        var p = Ctx.Lookups.Profile ?? new CompanyProfileMsg();
+        var company = new Core.Gst.DocumentParty(p.Name, p.Gstin, p.Address, new Core.Gst.StateCode(p.State.Length == 2 ? p.State : "27"));
+        var input = new SlipInput(stored, title, company, VoucherSlip.Lines(stored, Ctx.Lookups.LedgerName), supplierDocument, receiverSigns);
+        return new PrintResult(VoucherSlip.Build(input, PdfMeasure.Instance), PdfName(stored), null);
+    }
+
+    /// <summary>"SALE INV-26-27-00001.pdf": the code and number, with characters Windows refuses in a file name made "-".</summary>
+    protected string PdfName(VoucherMsg v) =>
+        new string([.. $"{Code} {v.DisplayNumber}".Select(c => c < ' ' || @"\/:*?""<>|".Contains(c) ? '-' : c)]) + ".pdf";
 
     protected string ShowDate(DateOnly d) => DateText.Format(d, Ctx.Settings.Current.Text("ui.dateFormat"));
 

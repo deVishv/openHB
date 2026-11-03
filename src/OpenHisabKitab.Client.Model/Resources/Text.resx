@@ -307,6 +307,10 @@
   <data name="PortCodeLabel" xml:space="preserve"><value>Port _code</value></data>
   <data name="ShippingBillNumberLabel" xml:space="preserve"><value>Shipping _bill</value></data>
   <data name="ShippingBillDateLabel" xml:space="preserve"><value>Shipping bill date</value></data>
+  <data name="ShipToNameLabel" xml:space="preserve"><value>Ship to na_me</value></data>
+  <data name="ShipToAddressLabel" xml:space="preserve"><value>Ship to _address</value></data>
+  <data name="ShipToStateLabel" xml:space="preserve"><value>Ship to state</value></data>
+  <data name="ShipToCountryLabel" xml:space="preserve"><value>Countr_y of destination</value></data>
   <data name="ItemColumn" xml:space="preserve"><value>Item</value></data>
   <data name="QuantityColumn" xml:space="preserve"><value>Quantity</value></data>
   <data name="PriceColumn" xml:space="preserve"><value>Price</value></data>

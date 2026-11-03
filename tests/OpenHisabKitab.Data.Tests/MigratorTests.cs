@@ -55,6 +55,33 @@ public class MigratorTests
     }
 
     [Fact]
+    public void Migration_0004_adds_ship_to_details_and_logo()
+    {
+        using var db = new TempDb();
+        using var c = db.Open();
+        Migrator.Migrate(c, Schema.Company);
+        string[] added =
+        [
+            "ship_to_name", "ship_to_address", "ship_to_state", "ship_to_country", "party_name", "party_gstin", "party_address",
+            "party_state", "company_name", "company_gstin", "company_address", "company_state",
+        ];
+        // Back to version 3: undo what 0004 adds, keeping a stored invoice.
+        Exec(c, "PRAGMA foreign_keys = OFF; DROP TABLE company_logo; " + string.Concat(added.Select(a => $"ALTER TABLE invoices DROP COLUMN {a}; ")) + """
+            INSERT INTO ledgers(id, name, group_id) VALUES (900, 'B Stores', 22);
+            INSERT INTO vouchers(id, type, series, fy_start, number, display_number, date, narration, created_by)
+                VALUES (1, 'Sale', 'Main', 2026, 1, 'INV/26-27/00001', '2026-05-10', 'kept', 1);
+            INSERT INTO invoices(voucher_id, party_ledger_id, direction, kind, place_of_supply, reverse_charge, round_off_paise)
+                VALUES (1, 900, 'Outward', 'Regular', '24', 0, 0);
+            PRAGMA user_version = 3;
+            """);
+        Assert.Equal(new MigrationResult(3, Migrator.Latest(Schema.Company)), Migrator.Migrate(c, Schema.Company));
+        foreach (var a in added) Assert.Equal(DBNull.Value, Scalar(c, $"SELECT {a} FROM invoices WHERE voucher_id = 1"));
+        Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM company_logo"));
+        Exec(c, "INSERT INTO company_logo(id, png, sha256) VALUES (1, x'89', 'h')");
+        Assert.ThrowsAny<Microsoft.Data.Sqlite.SqliteException>(() => Exec(c, "INSERT INTO company_logo(id, png, sha256) VALUES (2, x'89', 'h')"));
+    }
+
+    [Fact]
     public void Migration_0003_marks_default_groups_and_keeps_renames()
     {
         using var db = new TempDb();

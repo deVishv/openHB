@@ -126,6 +126,31 @@ public sealed partial class VoucherService
         return new ExportDetails(port, number, export.ShippingBillDate);
     }
 
+    // Rule 46(o) and the export proviso: where goods go, for documents this business issues. Exports name a country.
+    static ShipTo? CheckedShipTo(TradeDirection direction, InvoiceKind kind, ShipTo? shipTo)
+    {
+        if (shipTo is null) return null;
+        var name = shipTo.Name.Trim();
+        var address = shipTo.Address.Trim();
+        var country = string.IsNullOrWhiteSpace(shipTo.Country) ? null : shipTo.Country.Trim();
+        if (name.Length == 0 && address.Length == 0 && country is null && shipTo.State is null) return null;
+        if (direction != TradeDirection.Outward)
+            throw new ServiceException(ServiceError.Invalid, "Ship to is only for documents this business issues.");
+        if (name.Length == 0 || address.Length == 0) throw new ServiceException(ServiceError.Invalid, "Enter the ship to name and address.");
+        if (name.Length > 100) throw TooLong("name");
+        if (address.Length > 300) throw TooLong("address");
+        if (country?.Length > 60) throw TooLong("country");
+        if (name.Any(char.IsControl) || address.Any(c => char.IsControl(c) && c != '\n') || (country?.Any(char.IsControl) ?? false))
+            throw new ServiceException(ServiceError.Invalid, "Ship to cannot contain control characters.");
+        var export = kind is InvoiceKind.ExportWithTax or InvoiceKind.ExportUnderLut;
+        if (country is not null && !export) throw new ServiceException(ServiceError.Invalid, "Country of destination is only for exports.");
+        if (!export && (shipTo.State is not { } state || !Gst.States.Any(s => s.Code == state)))
+            throw new ServiceException(ServiceError.Invalid, "Choose the ship to state.");
+        return new ShipTo(name, address, shipTo.State, country);
+    }
+
+    static ServiceException TooLong(string field) => new(ServiceError.Invalid, $"Ship to {field} is too long.");
+
     [GeneratedRegex("^[A-Z0-9]{6}$")]
     private static partial Regex PortPattern();
 

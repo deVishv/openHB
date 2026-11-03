@@ -33,4 +33,4 @@ public sealed record InvoiceInput(
     VoucherType Type, DateOnly Date, string Narration, LedgerId Party, TradeDirection Direction, InvoiceKind Kind,
     StateCode PlaceOfSupply, bool ReverseCharge, string? PartyDocNumber, DateOnly? PartyDocDate,
     string? OriginalNumber, DateOnly? OriginalDate, IReadOnlyList<InvoiceEntryLine> Lines,
-    ExportDetails? Export = null, IReadOnlyList<AllocationRow>? Allocations = null, string? RequestId = null);
+    ExportDetails? Export = null, IReadOnlyList<AllocationRow>? Allocations = null, string? RequestId = null, ShipTo? ShipTo = null);

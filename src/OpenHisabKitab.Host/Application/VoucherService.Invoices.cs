@@ -96,7 +96,10 @@ public sealed partial class VoucherService
             result.Lines[i].Igst, result.Lines[i].Cess)).ToList();
         var header = new InvoiceHeader(input.Party, input.Direction, input.Kind, input.PlaceOfSupply, input.ReverseCharge,
             input.PartyDocNumber?.Trim(), input.PartyDocDate, input.OriginalNumber?.Trim(), input.OriginalDate, result.RoundOff, rows,
-            CheckedExport(input.Kind, input.Export));
+            CheckedExport(input.Kind, input.Export), CheckedShipTo(input.Direction, input.Kind, input.ShipTo),
+            // As they are now, so a reprint shows what this save issued even after the masters change (owner, 2026-11-03).
+            new DocumentParty(chart.Ledger(input.Party).Name, party.Gstin?.Value, party.Address, party.State),
+            new DocumentParty(profile.Name, profile.Gstin?.Value, profile.Address, profile.State));
         return (postings, header);
     }
 

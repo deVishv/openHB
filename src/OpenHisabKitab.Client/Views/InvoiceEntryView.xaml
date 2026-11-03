@@ -77,6 +77,27 @@
                                  AutomationProperties.Name="{t:Name ShippingBillDateLabel}" />
                     </StackPanel>
                 </StackPanel>
+                <!-- Ship to (Rule 46(o)): only for documents this business issues; the country only for exports. -->
+                <StackPanel Orientation="Horizontal" Visibility="{Binding ShowsShipTo, Converter={StaticResource Bool}}">
+                    <StackPanel Margin="0,0,8,0" Width="180">
+                        <Label Content="{t:Txt ShipToNameLabel}" Target="{Binding ElementName=ShipName}" />
+                        <TextBox x:Name="ShipName" Text="{Binding ShipToName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name ShipToNameLabel}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,0" Width="240">
+                        <Label Content="{t:Txt ShipToAddressLabel}" Target="{Binding ElementName=ShipAddress}" />
+                        <TextBox x:Name="ShipAddress" Text="{Binding ShipToAddress, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True"
+                                 TextWrapping="Wrap" MinLines="2" MaxLines="4" AutomationProperties.Name="{t:Name ShipToAddressLabel}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,0" Width="180">
+                        <Label Content="{t:Txt ShipToStateLabel}" Target="{Binding ElementName=ShipState}" />
+                        <ComboBox x:Name="ShipState" ItemsSource="{Binding States}" SelectedItem="{Binding ShipToState}" DisplayMemberPath="Label"
+                                  AutomationProperties.Name="{t:Name ShipToStateLabel}" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,8,0" Width="180" Visibility="{Binding ShowsCountry, Converter={StaticResource Bool}}">
+                        <Label Content="{t:Txt ShipToCountryLabel}" Target="{Binding ElementName=ShipCountry}" />
+                        <TextBox x:Name="ShipCountry" Text="{Binding ShipToCountry, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{t:Name ShipToCountryLabel}" />
+                    </StackPanel>
+                </StackPanel>
             </WrapPanel>
 
             <!-- In reading order, so Tab goes from the header into the lines and reaches the footer last (spec 6.4). -->

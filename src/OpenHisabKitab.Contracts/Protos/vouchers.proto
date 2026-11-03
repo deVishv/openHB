@@ -21,6 +21,10 @@ service Vouchers {
 }
 
 // bill_source is "Voucher" or "Opening". paise is the amount allocated to that bill.
+// Where goods go, for documents this business issues. State is blank for an export with only a country.
+message ShipToMsg { string name = 1; string address = 2; string state = 3; string country = 4; }
+// The buyer's or the company's details as saved on the invoice; unset for invoices saved before Plan 6b.
+message DocumentPartyMsg { string name = 1; string gstin = 2; string address = 3; string state = 4; }
 message AllocationMsg { int32 party = 1; string bill_source = 2; int64 bill_id = 3; int64 paise = 4; }
 // request_id: the client's id for one save; a retry with it returns the first voucher with already_saved set.
 message JournalMsg {
@@ -66,6 +70,7 @@ message InvoiceMsg {
   string shipping_bill_date = 16;
   repeated AllocationMsg allocations = 17;
   string request_id = 18;
+  ShipToMsg ship_to = 19;
 }
 message InvoiceRequest { int32 company = 1; InvoiceMsg invoice = 2; }
 message EditInvoiceRequest { int32 company = 1; int64 id = 2; int64 row_version = 3; InvoiceMsg invoice = 4; }
@@ -97,6 +102,9 @@ message InvoiceHeaderMsg {
   string port_code = 12;
   string shipping_bill_number = 13;
   string shipping_bill_date = 14;
+  ShipToMsg ship_to = 15;
+  DocumentPartyMsg party_details = 16;
+  DocumentPartyMsg company_details = 17;
 }
 // invoice is absent for receipts, payments, journals, and contras.
 message VoucherMsg {

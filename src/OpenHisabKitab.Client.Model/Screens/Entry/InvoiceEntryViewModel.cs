@@ -69,14 +69,15 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     ];
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowsExport))]
+    [NotifyPropertyChangedFor(nameof(ShowsExport), nameof(ShowsCountry))]
     public partial string Kind { get; set; } = nameof(InvoiceKind.Regular);
 
     public IReadOnlyList<ChoiceOption> DirectionOptions { get; } = [new(Issued, Text.DirectionIssued), new(Received, Text.DirectionReceived)];
 
     /// <summary>"Issued" for documents this business issues (outward), "Received" for those it receives. Fixed for SALE and PURC.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsOutward), nameof(ShowsKind), nameof(ShowsReverseCharge), nameof(ShowsPartyDoc), nameof(ShowsExport))]
+    [NotifyPropertyChangedFor(nameof(IsOutward), nameof(ShowsKind), nameof(ShowsReverseCharge), nameof(ShowsPartyDoc), nameof(ShowsExport),
+        nameof(ShowsShipTo), nameof(ShowsCountry))]
     public partial string Direction { get; set; }
 
     [ObservableProperty]
@@ -102,6 +103,20 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
 
     [ObservableProperty]
     public partial string ShippingBillDate { get; set; } = "";
+
+    /// <summary>Where goods go when that differs from the buyer's address (Rule 46(o)); issued documents only.</summary>
+    [ObservableProperty]
+    public partial string ShipToName { get; set; } = "";
+
+    [ObservableProperty]
+    public partial string ShipToAddress { get; set; } = "";
+
+    [ObservableProperty]
+    public partial StateOption? ShipToState { get; set; }
+
+    /// <summary>The country of destination, which export invoices must name (the Rule 46 export proviso).</summary>
+    [ObservableProperty]
+    public partial string ShipToCountry { get; set; } = "";
 
     public ObservableCollection<InvoiceLine> Lines { get; } = [];
 
@@ -136,6 +151,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     public bool ShowsPartyDoc => !IsOutward;
 
     public bool ShowsExport => IsOutward && Kind is nameof(InvoiceKind.ExportWithTax) or nameof(InvoiceKind.ExportUnderLut);
+
+    public bool ShowsShipTo => IsOutward;
+
+    public bool ShowsCountry => ShowsExport;
 
     TradeDirection TradeDirection => IsOutward ? TradeDirection.Outward : TradeDirection.Inward;
 
@@ -174,6 +193,7 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         Kind = nameof(InvoiceKind.Regular);
         ReverseCharge = false;
         (PartyDocNumber, PartyDocDate, OriginalNumber, OriginalDate, PortCode, ShippingBillNumber, ShippingBillDate) = ("", "", "", "", "", "", "");
+        (ShipToName, ShipToAddress, ShipToState, ShipToCountry) = ("", "", null, "");
         Lines.Clear();
         Lines.Add(NewLine());
         Allocations = [];
@@ -193,6 +213,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     partial void OnReverseChargeChanged(bool value) => Changed();
     partial void OnPartyDocNumberChanged(string value) => Edited();
     partial void OnOriginalNumberChanged(string value) => Edited();
+    partial void OnShipToNameChanged(string value) => Edited();
+    partial void OnShipToAddressChanged(string value) => Edited();
+    partial void OnShipToStateChanged(StateOption? value) => Edited();
+    partial void OnShipToCountryChanged(string value) => Edited();
 
     partial void OnDirectionChanged(string value)
     {
@@ -376,6 +400,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
             PlaceOfSupply = PlaceOfSupply?.Code ?? "", ReverseCharge = ShowsReverseCharge && ReverseCharge,
             PartyDocNumber = ShowsPartyDoc ? PartyDocNumber.Trim() : "", OriginalNumber = IsNote ? OriginalNumber.Trim() : "",
             PortCode = ShowsExport ? PortCode.Trim() : "", ShippingBillNumber = ShowsExport ? ShippingBillNumber.Trim() : "",
+            ShipTo = ShowsShipTo ? new ShipToMsg
+            {
+                Name = ShipToName.Trim(), Address = ShipToAddress.Trim(), State = ShipToState?.Code ?? "", Country = ShowsCountry ? ShipToCountry.Trim() : "",
+            } : null,
         };
         var n = 0;
         foreach (var line in Lines)
@@ -409,6 +437,10 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
         PortCode = inv.PortCode;
         ShippingBillNumber = inv.ShippingBillNumber;
         ShippingBillDate = Show(inv.ShippingBillDate);
+        ShipToName = inv.ShipTo?.Name ?? "";
+        ShipToAddress = inv.ShipTo?.Address ?? "";
+        ShipToState = StateOption.All.FirstOrDefault(s => s.Code == inv.ShipTo?.State);
+        ShipToCountry = inv.ShipTo?.Country ?? "";
         Lines.Clear();
         foreach (var stored in inv.Lines)
         {

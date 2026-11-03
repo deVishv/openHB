@@ -146,6 +146,33 @@ public sealed class RestWriteTests : IDisposable
     }
 
     [Fact]
+    public async Task Rest_invoice_takes_and_returns_ship_to()
+    {
+        var body = new
+        {
+            type = "sale", date = "2026-06-01", narration = "", partyId = b.Customer.Value, direction = "outward", kind = "regular",
+            placeOfSupply = "27", reverseCharge = false,
+            lines = new[] { new { itemId = (int?)null, ledgerId = b.Sales.Value, description = "Steel rod", hsnSac = "7214", quantity = "1.000",
+                unitPrice = "400.00", discount = "0.00", rate = "18.00", cessRate = "0.00", priceIncludesTax = false } },
+            shipTo = new { name = "Ravi Godown", address = "Plot 9, Chakan", state = "27" },
+        };
+        var r = await rw.PostAsJsonAsync($"/api/v1/companies/{co}/vouchers/invoice", body);
+        Assert.Equal(HttpStatusCode.Created, r.StatusCode);
+        var id = (await r.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt64();
+        var read = await (await rw.GetAsync($"/api/v1/companies/{co}/vouchers/{id}")).Content.ReadFromJsonAsync<JsonElement>();
+        var inv = read.GetProperty("invoice");
+        Assert.Equal("Ravi Godown", inv.GetProperty("shipTo").GetProperty("name").GetString());
+        Assert.Equal("27", inv.GetProperty("shipTo").GetProperty("state").GetString());
+        Assert.Equal("Ravi Stores", inv.GetProperty("partyDetails").GetProperty("name").GetString());
+        Assert.Equal("Pune", inv.GetProperty("partyDetails").GetProperty("address").GetString());
+        Assert.Equal("A Traders", inv.GetProperty("companyDetails").GetProperty("name").GetString());
+
+        var refused = await PostJson(rw, $"/api/v1/companies/{co}/vouchers/invoice",
+            JsonSerializer.Serialize(body).Replace("\"Ravi Godown\"", "\"\"", StringComparison.Ordinal));
+        Assert.Equal((HttpStatusCode.BadRequest, "Enter the ship to name and address."), await Error(refused));
+    }
+
+    [Fact]
     public async Task Masters_are_created_and_renamed_over_rest()
     {
         var chart = b.Masters.Chart(b.Owner, co);

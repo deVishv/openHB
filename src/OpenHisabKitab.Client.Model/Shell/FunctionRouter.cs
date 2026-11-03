@@ -4,7 +4,7 @@ using OpenHisabKitab.Core.Commands;
 namespace OpenHisabKitab.Client.Model.Shell;
 
 /// <summary>What a typed command leads to: a screen, a status line, a refresh of the active tab, or nothing.</summary>
-public sealed record RouteResult(IScreen? Screen, string? Status, bool Refresh, string? Command);
+public sealed record RouteResult(IScreen? Screen, string? Status, bool Refresh, string? Command, Printing.PrintTarget? Print = null);
 
 /// <summary>Makes a function's screen. It may ask the host first, and may act and return null, as "CMPY A Traders" does.</summary>
 public delegate Task<IScreen?> ScreenFactory(ParsedCommand cmd, ShellContext ctx);
@@ -22,6 +22,13 @@ public sealed class FunctionRouter(IReadOnlyDictionary<string, ScreenFactory> bu
         if (!CommandParser.TryParse(input, out var cmd) || FunctionCatalog.Find(cmd.Code) is null)
             return new RouteResult(null, Format(Resources.Text.UnknownFunction, words[0].ToUpperInvariant()), false, null);
         if (cmd.Code == "RFSH") return new RouteResult(null, null, true, null);
+        // PRNT acts on the current tab, as RFSH does: it opens no tab and adds no Back step.
+        if (cmd.Code == "PRNT") return cmd.Args switch
+        {
+            [] => new RouteResult(null, null, false, null, Printing.PrintTarget.Paper),
+            [var a] when a.Equals("pdf", StringComparison.OrdinalIgnoreCase) => new RouteResult(null, null, false, null, Printing.PrintTarget.Pdf),
+            _ => new RouteResult(null, Resources.Text.PrintHow, false, null),
+        };
         if (!built.TryGetValue(cmd.Code, out var factory)) return new RouteResult(null, Format(Resources.Text.NotInThisVersion, cmd.Code), false, null);
         var command = string.Join(' ', [cmd.Code, .. cmd.Args]);
         return new RouteResult(await factory(cmd, ctx), null, false, command);

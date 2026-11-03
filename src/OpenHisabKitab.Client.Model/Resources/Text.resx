@@ -432,6 +432,12 @@
   <data name="ExportButton" xml:space="preserve"><value>E_xport CSV</value></data>
   <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
   <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
+  <data name="PdfFileFilter" xml:space="preserve"><value>PDF files (*.pdf)|*.pdf</value></data>
+  <data name="PrintHow" xml:space="preserve"><value>Type PRNT, or PRNT pdf.</value></data>
+  <data name="PdfCannotShow" xml:space="preserve"><value>The PDF cannot show "{0}". Print it and choose Microsoft Print to PDF.</value></data>
+  <data name="PdfSaved" xml:space="preserve"><value>Saved {0}.</value></data>
+  <data name="PrintSent" xml:space="preserve"><value>Sent to {0}.</value></data>
+  <data name="CannotSaveFile" xml:space="preserve"><value>Cannot save {0}.</value></data>
   <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
   <data name="DayBookHeading" xml:space="preserve"><value>Day book, {0} to {1}</value></data>
   <data name="OpeningBalanceLine" xml:space="preserve"><value>Opening balance</value></data>

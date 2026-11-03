@@ -12,6 +12,7 @@ public sealed record StateInfo(StateCode Code, string Name, StateType Type);
 public sealed class GstData
 {
     const string B2clKey = "b2clInvoiceValue";
+    const string UnregisteredDetailsKey = "unregisteredDetailsValue";
 
     readonly Dictionary<StateCode, StateInfo> states;
     readonly IReadOnlyList<RateDto> rates;
@@ -91,10 +92,15 @@ public sealed class GstData
         [.. rates.Where(r => r.From <= on && (r.To is null || on <= r.To)).Select(r => r.BasisPoints).Distinct().Order().Select(bp => new GstRate(bp))];
 
     /// <summary>Invoice value above which an inter state B2C invoice is reported individually (B2CL).</summary>
-    public Money B2clThreshold(DateOnly on)
+    public Money B2clThreshold(DateOnly on) => Threshold(B2clKey, on, "B2CL");
+
+    /// <summary>Taxable value from which an unregistered buyer's name, address, and state must be on the invoice (Rule 46(e)).</summary>
+    public Money UnregisteredDetailsThreshold(DateOnly on) => Threshold(UnregisteredDetailsKey, on, "unregistered buyer details");
+
+    Money Threshold(string key, DateOnly on, string what)
     {
-        var t = thresholds.FirstOrDefault(t => t.Key == B2clKey && t.From <= on && (t.To is null || on <= t.To))
-            ?? throw new KeyNotFoundException($"No B2CL threshold for {on:dd-MM-yyyy}.");
+        var t = thresholds.FirstOrDefault(t => t.Key == key && t.From <= on && (t.To is null || on <= t.To))
+            ?? throw new KeyNotFoundException($"No {what} threshold for {on:dd-MM-yyyy}.");
         return new Money(t.Paise);
     }
 

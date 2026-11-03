@@ -181,8 +181,9 @@ public sealed class LookupCache(HostConnection host)
             after = page.Next;
         } while (after.Length > 0);
         if (Company != company || generation != started) return;
-        (Chart, Parties, Items) = (chart, parties, [.. items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)]);
+        // Ledger options first: whoever sees a new party in Parties then also finds it among the ledgers.
         ledgers = Options(chart, parties);
+        (Chart, Parties, Items) = (chart, parties, [.. items.OrderBy(i => i.Name, StringComparer.OrdinalIgnoreCase)]);
     }
 
     async Task LoadSettingsAsync(int company, CancellationToken ct)

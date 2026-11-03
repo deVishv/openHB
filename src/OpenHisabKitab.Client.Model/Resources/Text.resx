@@ -138,6 +138,9 @@
   <data name="OpenButton" xml:space="preserve"><value>_Open</value></data>
   <data name="AddYearButton" xml:space="preserve"><value>Add _year</value></data>
   <data name="NewCompanyHeading" xml:space="preserve"><value>New company</value></data>
+  <data name="PrintedOn" xml:space="preserve"><value>Printed {0}</value></data>
+  <data name="PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
+  <data name="PrintNeedsExport" xml:space="preserve"><value>Printing reports needs the export right.</value></data>
   <data name="LogoNone" xml:space="preserve"><value>No logo</value></data>
   <data name="LogoKb" xml:space="preserve"><value>Logo: {0} KB</value></data>
   <data name="LogoSaved" xml:space="preserve"><value>Logo saved.</value></data>

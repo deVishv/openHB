@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenHisabKitab.Client.Model.Formatting;
+using OpenHisabKitab.Client.Model.Printing;
+using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Amounts;
@@ -13,7 +15,7 @@ namespace OpenHisabKitab.Client.Model.Screens.Reports;
 /// The base of every report screen: a heading, columns, and lines that one view shows; Enter on a line runs its drill-down
 /// command (spec 6.3); Ctrl+E exports CSV for users with the export right. Figures are the host's, only formatted here.
 /// </summary>
-public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(ctx), IScreenCommands
+public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(ctx), IScreenCommands, IPrintable
 {
     [ObservableProperty]
     public partial IReadOnlyList<ReportColumn> Columns { get; protected set; } = [];
@@ -51,14 +53,33 @@ public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(c
     public virtual async Task RunAsync(string command)
     {
         if (command != "report.export" || !CanExport) return;
+        if (await LoadAllAsync()) ExportRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// PRNT: the report as the screen shows it, every page loaded first. Printing is a way out of the books, as CSV is,
+    /// so it needs the export right (owner decision, 2026-11-03).
+    /// </summary>
+    public async Task<PrintResult> PrintAsync(PrintTarget target)
+    {
+        if (!CanExport) return PrintResult.Refused(Text.PrintNeedsExport);
+        if (!await LoadAllAsync()) return PrintResult.Refused(Message ?? "");
+        var now = Ctx.Time.GetLocalNow();
+        var printedOn = Show(DateOnly.FromDateTime(now.DateTime)) + " " + now.ToString("HH:mm", CultureInfo.InvariantCulture);
+        var doc = ReportPrint.Build(new ReportPrintInput(Ctx.Company?.Name ?? "", Heading, printedOn, Columns, [.. Lines]), PdfMeasure.Instance);
+        return new PrintResult(doc, Path.ChangeExtension(ExportName, ".pdf"), null);
+    }
+
+    /// <summary>Loads every remaining page. False when a page failed: the screen shows why, and nothing partial goes out.</summary>
+    protected async Task<bool> LoadAllAsync()
+    {
         while (HasMore)
         {
             var before = Lines.Count;
             await MoreAsync();
-            // A page that failed shows its message; export nothing rather than part of the report.
-            if (Lines.Count == before) return;
+            if (Lines.Count == before) return false;
         }
-        ExportRequested?.Invoke();
+        return true;
     }
 
     public override bool IsAffectedBy(ChangeEventMsg change) => change.Kind is "Voucher" or "Masters" or "Settings" or "Lock" or "Restore";

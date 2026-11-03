@@ -5,6 +5,16 @@ namespace OpenHisabKitab.Data.Tests;
 
 public class MigratorTests
 {
+    static readonly string[] Added0004 =
+    [
+        "ship_to_name", "ship_to_address", "ship_to_state", "ship_to_country", "party_name", "party_gstin", "party_address",
+        "party_state", "company_name", "company_gstin", "company_address", "company_state",
+    ];
+
+    /// <summary>Undoes what 0004 adds, so a test can wind a latest file back to version 3 or earlier.</summary>
+    static void UndoTo3(Microsoft.Data.Sqlite.SqliteConnection c) =>
+        Exec(c, "DROP TABLE company_logo; " + string.Concat(Added0004.Select(a => $"ALTER TABLE invoices DROP COLUMN {a}; ")));
+
     [Theory]
     [InlineData(Schema.Host)]
     [InlineData(Schema.Company)]
@@ -38,6 +48,7 @@ public class MigratorTests
         using var db = new TempDb();
         using var c = db.Open();
         Migrator.Migrate(c, Schema.Company);
+        UndoTo3(c);
         // Back to version 1: undo what 0002 adds.
         Exec(c, """
             DROP TABLE allocations; DROP TABLE opening_bills; DROP INDEX vouchers_request_id; DROP INDEX invoices_party;
@@ -60,13 +71,10 @@ public class MigratorTests
         using var db = new TempDb();
         using var c = db.Open();
         Migrator.Migrate(c, Schema.Company);
-        string[] added =
-        [
-            "ship_to_name", "ship_to_address", "ship_to_state", "ship_to_country", "party_name", "party_gstin", "party_address",
-            "party_state", "company_name", "company_gstin", "company_address", "company_state",
-        ];
         // Back to version 3: undo what 0004 adds, keeping a stored invoice.
-        Exec(c, "PRAGMA foreign_keys = OFF; DROP TABLE company_logo; " + string.Concat(added.Select(a => $"ALTER TABLE invoices DROP COLUMN {a}; ")) + """
+        UndoTo3(c);
+        Exec(c, """
+            PRAGMA foreign_keys = OFF;
             INSERT INTO ledgers(id, name, group_id) VALUES (900, 'B Stores', 22);
             INSERT INTO vouchers(id, type, series, fy_start, number, display_number, date, narration, created_by)
                 VALUES (1, 'Sale', 'Main', 2026, 1, 'INV/26-27/00001', '2026-05-10', 'kept', 1);
@@ -75,7 +83,7 @@ public class MigratorTests
             PRAGMA user_version = 3;
             """);
         Assert.Equal(new MigrationResult(3, Migrator.Latest(Schema.Company)), Migrator.Migrate(c, Schema.Company));
-        foreach (var a in added) Assert.Equal(DBNull.Value, Scalar(c, $"SELECT {a} FROM invoices WHERE voucher_id = 1"));
+        foreach (var a in Added0004) Assert.Equal(DBNull.Value, Scalar(c, $"SELECT {a} FROM invoices WHERE voucher_id = 1"));
         Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM company_logo"));
         Exec(c, "INSERT INTO company_logo(id, png, sha256) VALUES (1, x'89', 'h')");
         Assert.ThrowsAny<Microsoft.Data.Sqlite.SqliteException>(() => Exec(c, "INSERT INTO company_logo(id, png, sha256) VALUES (2, x'89', 'h')"));
@@ -102,6 +110,7 @@ public class MigratorTests
             foreach (var l in chart0.Ledgers) ChartRepository.SaveLedger(tx, l);
             tx.Commit();
         }
+        UndoTo3(c);
         Exec(c, """
             UPDATE groups SET name = 'Plant and Machinery' WHERE id = 14;
             INSERT INTO groups(id, name, parent_id, nature, kind) VALUES (34, 'Goodwill', 13, 'Asset', 'None');

@@ -2,6 +2,15 @@
 
 Major decisions and data checks that need the owner. Smaller decisions are the builder's, recorded in each plan. Newest plan first. Mark an item done by deleting it or writing "OK" after it.
 
+## Plan 6b: Printing, PDF, and printed invoices
+
+Settled on 2026-11-03: voucher slips are in scope; issued invoices get an optional Ship to; each invoice keeps the buyer's and company's details as saved; and open decisions 1 to 5 were approved as recommended (recorded in the plan).
+
+### Data checks before the first public release
+
+1. **Printed wording** in `src/OpenHisabKitab.Core/Gst/InvoiceWording.cs` and plan Task 1: the titles (including `Bill of supply` for a Regular sale where every line is at 0%), the four export and SEZ endorsements, the composition line, the Rule 48 copy marks, and `Reverse charge No` on every issued document. A tax professional should confirm them.
+2. **Sample printouts.** An accountant should check one printed tax invoice, export invoice, credit note, and bill of supply against Rules 46, 49, and 53 (plan Task 9, step 5).
+
 ## Plan 6: Reports, audit trail, and backup
 
 ### Open decision

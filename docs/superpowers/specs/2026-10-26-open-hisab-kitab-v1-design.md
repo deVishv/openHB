@@ -491,7 +491,7 @@ These are measured on a mid range office PC with 1,000,000 posting lines.
 - **GST file tests.** Exported GSTR-1 and e-invoice JSON is validated against the official schemas.
 - **UI smoke tests** use FlaUI to check keyboard only flows for every function.
 - **Accessibility check.** Every UI Automation element has a name, and contrast is checked for the theme colours.
-- **CI.** GitHub Actions on Windows runs all of the above plus the dash check on every push and pull request.
+- **CI.** GitHub Actions on Windows runs all of the above on every push and pull request.
 
 ## 12. GitHub and distribution [Owner chose GitHub and MIT; Designer the rest]
 

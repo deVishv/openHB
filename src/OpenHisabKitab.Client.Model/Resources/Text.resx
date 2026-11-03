@@ -179,6 +179,23 @@
   <data name="PrintBankDetails" xml:space="preserve"><value>Bank details</value></data>
   <data name="PrintTerms" xml:space="preserve"><value>Terms</value></data>
   <data name="PrintFor" xml:space="preserve"><value>For {0}</value></data>
+  <data name="SlipPurchase" xml:space="preserve"><value>Purchase voucher</value></data>
+  <data name="SlipReceipt" xml:space="preserve"><value>Receipt voucher</value></data>
+  <data name="SlipPayment" xml:space="preserve"><value>Payment voucher</value></data>
+  <data name="SlipJournal" xml:space="preserve"><value>Journal voucher</value></data>
+  <data name="SlipContra" xml:space="preserve"><value>Contra voucher</value></data>
+  <data name="SlipCreditNoteReceived" xml:space="preserve"><value>Credit note received</value></data>
+  <data name="SlipDebitNoteReceived" xml:space="preserve"><value>Debit note received</value></data>
+  <data name="PrintVoucherNo" xml:space="preserve"><value>Voucher no. {0}</value></data>
+  <data name="PrintSupplierDocument" xml:space="preserve"><value>Supplier document {0}, {1}</value></data>
+  <data name="PrintColLedger" xml:space="preserve"><value>Ledger</value></data>
+  <data name="PrintColDebit" xml:space="preserve"><value>Debit</value></data>
+  <data name="PrintColCredit" xml:space="preserve"><value>Credit</value></data>
+  <data name="PrintNarration" xml:space="preserve"><value>Narration: {0}</value></data>
+  <data name="PrintPreparedBy" xml:space="preserve"><value>Prepared by</value></data>
+  <data name="PrintCheckedBy" xml:space="preserve"><value>Checked by</value></data>
+  <data name="PrintApprovedBy" xml:space="preserve"><value>Approved by</value></data>
+  <data name="PrintReceiverSigns" xml:space="preserve"><value>Receiver's signature</value></data>
   <data name="LogoNone" xml:space="preserve"><value>No logo</value></data>
   <data name="LogoKb" xml:space="preserve"><value>Logo: {0} KB</value></data>
   <data name="LogoSaved" xml:space="preserve"><value>Logo saved.</value></data>

@@ -271,6 +271,15 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
     /// <summary>The stored voucher laid out for printing.</summary>
     protected abstract Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target);
 
+    /// <summary>The stored voucher as a plain slip: its postings as Dr and Cr lines, and the signature boxes.</summary>
+    protected PrintResult Slip(VoucherMsg stored, string title, string? supplierDocument, bool receiverSigns)
+    {
+        var p = Ctx.Lookups.Profile ?? new CompanyProfileMsg();
+        var company = new Core.Gst.DocumentParty(p.Name, p.Gstin, p.Address, new Core.Gst.StateCode(p.State.Length == 2 ? p.State : "27"));
+        var input = new SlipInput(stored, title, company, VoucherSlip.Lines(stored, Ctx.Lookups.LedgerName), supplierDocument, receiverSigns);
+        return new PrintResult(VoucherSlip.Build(input, PdfMeasure.Instance), PdfName(stored), null);
+    }
+
     /// <summary>"SALE INV-26-27-00001.pdf": the code and number, with characters Windows refuses in a file name made "-".</summary>
     protected string PdfName(VoucherMsg v) =>
         new string([.. $"{Code} {v.DisplayNumber}".Select(c => c < ' ' || @"\/:*?""<>|".Contains(c) ? '-' : c)]) + ".pdf";

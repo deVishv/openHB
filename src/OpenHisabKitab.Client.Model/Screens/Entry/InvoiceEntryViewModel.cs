@@ -428,7 +428,13 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
     /// <summary>Documents this business issues print as GST documents; received ones print as a slip.</summary>
     protected override async Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target)
     {
-        if (stored.Invoice.Direction != nameof(TradeDirection.Outward)) return PrintResult.Refused(Text.NothingToPrint);
+        if (stored.Invoice.Direction != nameof(TradeDirection.Outward))
+        {
+            var inv = stored.Invoice;
+            var title = Code switch { "CRNT" => Text.SlipCreditNoteReceived, "DBNT" => Text.SlipDebitNoteReceived, _ => Text.SlipPurchase };
+            var document = inv.PartyDocNumber.Length == 0 ? null : Format(Text.PrintSupplierDocument, inv.PartyDocNumber, VoucherSlip.Show(inv.PartyDocDate));
+            return Slip(stored, title, document, receiverSigns: false);
+        }
         var settings = Ctx.Settings.Current;
         var input = InvoicePrintInput.From(stored, Ctx.Lookups, settings, await Ctx.Lookups.LogoAsync());
         if (InvoicePrint.Check(input, Gst) is { } missing) return PrintResult.Refused(missing);

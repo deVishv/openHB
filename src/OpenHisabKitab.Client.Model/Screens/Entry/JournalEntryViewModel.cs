@@ -282,9 +282,14 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
         return msg;
     }
 
-    /// <summary>Receipts, payments, journals, and contras print as a voucher slip (Task 7).</summary>
-    protected override Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target) =>
-        Task.FromResult(PrintResult.Refused(Text.NothingToPrint));
+    /// <summary>Receipts, payments, journals, and contras print as a voucher slip; receipts and payments add the receiver.</summary>
+    protected override Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target) => Task.FromResult(Slip(stored, Code switch
+    {
+        "RCPT" => Text.SlipReceipt,
+        "PYMT" => Text.SlipPayment,
+        "CNTR" => Text.SlipContra,
+        _ => Text.SlipJournal,
+    }, null, receiverSigns: Code is "RCPT" or "PYMT"));
 
     protected override async Task FillAsync(VoucherMsg v)
     {

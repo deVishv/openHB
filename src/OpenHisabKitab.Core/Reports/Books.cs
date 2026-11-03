@@ -36,12 +36,16 @@ public sealed class Books
         }
 
         this.chart = chart;
+        Start = booksStart;
         openings = openingBalances;
         OpeningDifference = Money.Sum(openingBalances.Values);
         profitAndLoss = chart.Required(RequiredLedger.ProfitAndLoss);
         incomeAndExpense = chart.Ledgers.Where(l => IsIncomeOrExpense(chart, l.Id)).Select(l => l.Id).ToList();
         index = list.GroupBy(p => p.Ledger).ToDictionary(g => g.Key, g => new LedgerIndex(g));
     }
+
+    /// <summary>The day the books start: 1 April of the first financial year.</summary>
+    public DateOnly Start { get; }
 
     /// <summary>Sum of all opening balances. Zero when the openings balance.</summary>
     public Money OpeningDifference { get; }
@@ -121,6 +125,13 @@ public sealed class Books
         }
         return new LedgerStatement(ledger, period, opening, rows, balance);
     }
+
+    /// <summary>The cash flow statement by the indirect method for a period within one financial year.</summary>
+    public CashFlowStatement CashFlow(DateRange period) => CashFlowBuilder.Build(this, chart, period);
+
+    /// <summary>A ledger's balance at the end of the day, debit positive.</summary>
+    public Money Closing(LedgerId ledger, DateOnly asAt) =>
+        Activity(ledger, new DateRange(FinancialYear.Containing(asAt).Start, asAt)).Closing;
 
     /// <summary>Opening, period debits and credits, and closing for one ledger. The period must sit in one year.</summary>
     internal TrialBalanceRow Activity(LedgerId ledger, DateRange period)

@@ -235,7 +235,7 @@ public sealed class GrpcEndToEndTests : IDisposable
         var owner = Owner();
         Assert.True(admin.SetHostSetting(new HostSettingRequest { Key = "api.enabled", Json = "true" }, Headers(owner)).RestartNeeded);
         var list = admin.ListHostSettings(new V1Empty(), Headers(owner)).Settings;
-        Assert.Equal(6, list.Count);
+        Assert.Equal(HostSettings.All.Count, list.Count);
         var enabled = list.Single(s => s.Key == "api.enabled");
         Assert.Equal(("true", "false", "bool", "true, false"), (enabled.Json, enabled.DefaultJson, enabled.Type, enabled.AllowedValues));
         Assert.Equal("Turns on the local REST API port.", enabled.Description);

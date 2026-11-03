@@ -79,6 +79,13 @@ public sealed class CompanyBooks(CompanyHub hub) : IBooksObserver
 
     public void ChartChanged(int company) => Invalidate(company);
 
+    /// <summary>A voucher's posting lines as held now, or none when the company is not loaded or the voucher posts nothing.</summary>
+    public IReadOnlyList<PostingRecord> PostingsOf(int company, long voucherId)
+    {
+        if (!states.TryGetValue(company, out var s)) return [];
+        lock (s) return s.ByVoucher.TryGetValue(voucherId, out var lines) ? lines : [];
+    }
+
     /// <summary>Drops everything held for the company; the next report reloads it from the database.</summary>
     public void Invalidate(int company)
     {

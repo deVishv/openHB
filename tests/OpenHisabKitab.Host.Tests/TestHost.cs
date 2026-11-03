@@ -18,7 +18,7 @@ public sealed class TestHost : IDisposable
         Hub = new CompanyHub(Data, Time);
         Books = new CompanyBooks(Hub);
         Observer = new RecordingObserver(Books);
-        Reports = new ReportService(Books);
+        Reports = new ReportService(Books, Hub);
         Companies = new CompanyService(Data, Hub, Feed, Sessions, Time);
         Masters = new MasterService(Hub, Feed, Observer, Time);
         Vouchers = new VoucherService(Hub, Feed, Observer, Time);

@@ -27,6 +27,8 @@ public static class DefaultKeybindings
         Bind("ctrl+delete", "line.remove", "gridFocus"),
         Bind("ctrl+b", "voucher.bills"),
         Bind("ctrl+shift+delete", "voucher.cancelVoucher"),
+        Bind("ctrl+e", "report.export"),
+        Bind("ctrl+g", "report.style"),
         .. FKeys.Select((code, i) => Bind($"f{i + 1}", "run." + code)),
     ];
 

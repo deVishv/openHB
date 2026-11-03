@@ -264,6 +264,89 @@ internal static class Wire
 
     static ReportRowMsg Row(ReportRow r) => new() { Ledger = r.Ledger.Value, Amount = r.Amount.Paise };
 
+    public static LayoutStyle Style(string text) => text.Trim() switch
+    {
+        "" => LayoutStyle.ScheduleIII,
+        var t when t.Equals("ScheduleIII", StringComparison.OrdinalIgnoreCase) => LayoutStyle.ScheduleIII,
+        var t when t.Equals("Chart", StringComparison.OrdinalIgnoreCase) => LayoutStyle.Chart,
+        _ => throw Invalid("style must be ScheduleIII or Chart."),
+    };
+
+    public static LayoutMsg ToMsg(StatementLayout s)
+    {
+        var m = new LayoutMsg { Style = s.Style.ToString(), HasPrevious = s.HasPrevious };
+        m.Lines.AddRange(s.Lines.Select(l => new LayoutLineMsg
+        {
+            Side = l.Side.ToString(), Kind = l.Kind.ToString(), Depth = l.Depth, Label = l.Label, Group = l.Group?.Value ?? 0,
+            Ledger = l.Ledger?.Value ?? 0, Current = l.Current.Paise, Previous = l.Previous?.Paise ?? 0,
+        }));
+        return m;
+    }
+
+    public static CashFlowMsg ToMsg(CashFlowStatement c)
+    {
+        var m = new CashFlowMsg
+        {
+            Period = ToMsg(c.Period), Operating = c.Operating.Paise, Investing = c.Investing.Paise, Financing = c.Financing.Paise,
+            NetChange = c.NetChange.Paise, OpeningCash = c.OpeningCash.Paise, ClosingCash = c.ClosingCash.Paise,
+        };
+        m.Lines.AddRange(c.Lines.Select(l => new CashFlowLineMsg
+        {
+            Section = l.Section.ToString(), Item = l.Item.ToString(), Group = l.Group?.Value ?? 0, Amount = l.Amount.Paise,
+        }));
+        return m;
+    }
+
+    public static OutstandingMsg ToMsg(OutstandingReport r)
+    {
+        var m = new OutstandingMsg
+        {
+            AsAt = Text(r.AsAt), Side = r.Side.ToString(), OnAccountTotal = r.OnAccountTotal.Paise, Total = r.Total.Paise,
+        };
+        m.AgeingDays.AddRange(r.Ageing.Days);
+        m.BucketTotals.AddRange(r.BucketTotals.Select(x => x.Paise));
+        m.Parties.AddRange(r.Parties.Select(p =>
+        {
+            var party = new OutstandingPartyMsg { Party = p.Party.Value, OnAccount = p.OnAccount.Paise, Total = p.Total.Paise };
+            party.Buckets.AddRange(p.Buckets.Select(x => x.Paise));
+            party.Bills.AddRange(p.Bills.Select(b => new OutstandingBillMsg
+            {
+                Source = b.Bill.Ref.Source.ToString(), Id = b.Bill.Ref.Id, Number = b.Bill.Number, PartyDocNumber = b.Bill.PartyDocNumber ?? "",
+                Date = Text(b.Bill.Date), Due = Text(b.Due), Amount = b.Bill.Amount.Paise, Open = b.Bill.Open.Paise,
+                DaysOverdue = b.DaysOverdue, Bucket = b.Bucket, VoucherType = b.Bill.Type?.ToString() ?? "",
+            }));
+            return party;
+        }));
+        return m;
+    }
+
+    public static PartySide Side(string text) => text.Trim() switch
+    {
+        "" => PartySide.Receivable,
+        var t when t.Equals("Receivable", StringComparison.OrdinalIgnoreCase) => PartySide.Receivable,
+        var t when t.Equals("Payable", StringComparison.OrdinalIgnoreCase) => PartySide.Payable,
+        _ => throw Invalid("side must be receivable or payable."),
+    };
+
+    public static StatementPageMsg ToMsg(StatementPage p)
+    {
+        var m = new StatementPageMsg
+        {
+            Ledger = p.Ledger.Value, Period = ToMsg(p.Period), Opening = p.Opening.Paise, Closing = p.Closing.Paise, Next = p.Next ?? "",
+        };
+        m.Lines.AddRange(p.Lines.Select(l =>
+        {
+            var line = new StatementLineMsg
+            {
+                Date = Text(l.Row.Date), VoucherId = l.Row.VoucherId, Type = l.Type.ToString(), Number = l.Number, Narration = l.Narration,
+                Amount = l.Row.Amount.Paise, Balance = l.Row.Balance.Paise,
+            };
+            line.CounterLedgers.AddRange(l.Counter.Select(c => c.Value));
+            return line;
+        }));
+        return m;
+    }
+
     // Admin
 
     public static AuditFilter Filter(ListAuditRequest r) => new(

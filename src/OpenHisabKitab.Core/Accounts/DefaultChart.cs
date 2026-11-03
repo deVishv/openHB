@@ -7,9 +7,9 @@ public static class DefaultChart
     {
         var c = ChartOfAccounts.Empty;
 
-        GroupId Root(string name, AccountNature nature)
+        GroupId Root(string name, AccountNature nature, GroupKind kind)
         {
-            (c, var id) = c.AddRootGroup(name, nature);
+            (c, var id) = c.AddRootGroup(name, nature, kind);
             return id;
         }
 
@@ -21,26 +21,26 @@ public static class DefaultChart
 
         void Ledger(string name, GroupId group, RequiredLedger r) => (c, _) = c.AddLedger(name, group, r);
 
-        var equity = Root("Equity", AccountNature.Liability);
+        var equity = Root("Equity", AccountNature.Liability, GroupKind.Equity);
         var capital = Sub("Capital", equity, GroupKind.Capital);
         var reserves = Sub("Reserves and Surplus", equity, GroupKind.ReservesAndSurplus);
 
-        var nonCurrentLiabilities = Root("Non Current Liabilities", AccountNature.Liability);
-        Sub("Long Term Borrowings", nonCurrentLiabilities);
+        var nonCurrentLiabilities = Root("Non Current Liabilities", AccountNature.Liability, GroupKind.NonCurrentLiabilities);
+        Sub("Long Term Borrowings", nonCurrentLiabilities, GroupKind.LongTermBorrowings);
 
-        var currentLiabilities = Root("Current Liabilities", AccountNature.Liability);
-        var shortTermBorrowings = Sub("Short Term Borrowings", currentLiabilities);
+        var currentLiabilities = Root("Current Liabilities", AccountNature.Liability, GroupKind.CurrentLiabilities);
+        var shortTermBorrowings = Sub("Short Term Borrowings", currentLiabilities, GroupKind.ShortTermBorrowings);
         Sub("Bank Overdraft", shortTermBorrowings, GroupKind.BankOverdraft);
         Sub("Trade Payables", currentLiabilities, GroupKind.TradePayables);
         var duties = Sub("Duties and Taxes", currentLiabilities, GroupKind.DutiesAndTaxes);
         Sub("Provisions", currentLiabilities);
         Sub("Other Current Liabilities", currentLiabilities);
 
-        var nonCurrentAssets = Root("Non Current Assets", AccountNature.Asset);
-        Sub("Fixed Assets", nonCurrentAssets);
-        Sub("Investments", nonCurrentAssets);
+        var nonCurrentAssets = Root("Non Current Assets", AccountNature.Asset, GroupKind.NonCurrentAssets);
+        Sub("Fixed Assets", nonCurrentAssets, GroupKind.FixedAssets);
+        Sub("Investments", nonCurrentAssets, GroupKind.Investments);
 
-        var currentAssets = Root("Current Assets", AccountNature.Asset);
+        var currentAssets = Root("Current Assets", AccountNature.Asset, GroupKind.CurrentAssets);
         Sub("Inventories", currentAssets);
         Sub("Trade Receivables", currentAssets, GroupKind.TradeReceivables);
         var cashInHand = Sub("Cash in Hand", currentAssets, GroupKind.CashInHand);
@@ -49,16 +49,16 @@ public static class DefaultChart
         Sub("Loans and Advances", currentAssets);
         Sub("Other Current Assets", currentAssets);
 
-        var income = Root("Income", AccountNature.Income);
+        var income = Root("Income", AccountNature.Income, GroupKind.Income);
         var revenue = Sub("Revenue from Operations", income, GroupKind.RevenueFromOperations);
         Sub("Other Income", income, GroupKind.OtherIncome);
 
-        var expenses = Root("Expenses", AccountNature.Expense);
+        var expenses = Root("Expenses", AccountNature.Expense, GroupKind.Expenses);
         var purchases = Sub("Purchases", expenses, GroupKind.Purchases);
         Sub("Direct Expenses", expenses);
         Sub("Employee Benefits", expenses);
         Sub("Finance Costs", expenses);
-        Sub("Depreciation", expenses);
+        Sub("Depreciation", expenses, GroupKind.Depreciation);
         var otherExpenses = Sub("Other Expenses", expenses, GroupKind.OtherExpenses);
 
         Ledger("Cash", cashInHand, RequiredLedger.Cash);

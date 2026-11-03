@@ -9,6 +9,11 @@ service Reports {
   rpc ProfitAndLoss (PeriodRequest) returns (ProfitAndLossMsg);
   rpc BalanceSheet (AsAtRequest) returns (BalanceSheetMsg);
   rpc LedgerStatement (StatementRequest) returns (StatementMsg);
+  rpc BalanceSheetLayout (LayoutAsAtRequest) returns (LayoutMsg);
+  rpc ProfitAndLossLayout (LayoutPeriodRequest) returns (LayoutMsg);
+  rpc CashFlow (PeriodRequest) returns (CashFlowMsg);
+  rpc LedgerStatementPage (StatementPageRequest) returns (StatementPageMsg);
+  rpc Outstanding (OutstandingRequest) returns (OutstandingMsg);
 }
 
 message PeriodRequest { int32 company = 1; Period period = 2; }
@@ -43,3 +48,29 @@ message BalanceSheetMsg {
 }
 message StatementRowMsg { string date = 1; int64 voucher_id = 2; int64 amount = 3; int64 balance = 4; }
 message StatementMsg { int32 ledger = 1; Period period = 2; int64 opening = 3; repeated StatementRowMsg rows = 4; int64 closing = 5; }
+
+// style: "ScheduleIII" or "Chart"; empty means ScheduleIII. previous is filled only when has_previous is set.
+// group and ledger are 0 when the line has none.
+message LayoutAsAtRequest { int32 company = 1; string as_at = 2; string style = 3; }
+message LayoutPeriodRequest { int32 company = 1; Period period = 2; string style = 3; }
+message LayoutLineMsg { string side = 1; string kind = 2; int32 depth = 3; string label = 4; int32 group = 5; int32 ledger = 6;
+  int64 current = 7; int64 previous = 8; }
+message LayoutMsg { string style = 1; bool has_previous = 2; repeated LayoutLineMsg lines = 3; }
+message CashFlowLineMsg { string section = 1; string item = 2; int32 group = 3; int64 amount = 4; }
+message CashFlowMsg { Period period = 1; repeated CashFlowLineMsg lines = 2; int64 operating = 3; int64 investing = 4;
+  int64 financing = 5; int64 net_change = 6; int64 opening_cash = 7; int64 closing_cash = 8; }
+message StatementPageRequest { int32 company = 1; int32 ledger = 2; Period period = 3; PageMsg page = 4; }
+// counter_ledgers: the voucher's other ledgers, largest amount first.
+message StatementLineMsg { string date = 1; int64 voucher_id = 2; string type = 3; string number = 4; string narration = 5;
+  int64 amount = 6; int64 balance = 7; repeated int32 counter_ledgers = 8; }
+// opening: the balance before this page's first line. closing: the statement's closing, on every page. next is empty on the last page.
+message StatementPageMsg { int32 ledger = 1; Period period = 2; int64 opening = 3; repeated StatementLineMsg lines = 4;
+  int64 closing = 5; string next = 6; }
+
+// side: "Receivable" or "Payable". source: "Voucher" or "Opening"; voucher_type is set for voucher bills, such as "Sale". bucket 0 is not due; buckets has one amount per ageing column.
+message OutstandingRequest { int32 company = 1; string as_at = 2; string side = 3; }
+message OutstandingBillMsg { string source = 1; int64 id = 2; string number = 3; string party_doc_number = 4; string date = 5;
+  string due = 6; int64 amount = 7; int64 open = 8; int32 days_overdue = 9; int32 bucket = 10; string voucher_type = 11; }
+message OutstandingPartyMsg { int32 party = 1; repeated OutstandingBillMsg bills = 2; repeated int64 buckets = 3; int64 on_account = 4; int64 total = 5; }
+message OutstandingMsg { string as_at = 1; string side = 2; repeated int32 ageing_days = 3; repeated OutstandingPartyMsg parties = 4;
+  repeated int64 bucket_totals = 5; int64 on_account_total = 6; int64 total = 7; }

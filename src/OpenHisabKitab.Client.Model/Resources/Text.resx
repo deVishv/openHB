@@ -347,4 +347,105 @@
   <data name="UtgstShort" xml:space="preserve"><value>UTGST</value></data>
   <data name="IgstShort" xml:space="preserve"><value>IGST</value></data>
   <data name="BillAmountInvalid" xml:space="preserve"><value>Bill {0}: enter an amount like 12,345.60.</value></data>
+  <data name="ReportTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="ReportTotalFor" xml:space="preserve"><value>Total for {0}</value></data>
+  <data name="ReportOpeningDifference" xml:space="preserve"><value>Opening difference</value></data>
+  <data name="OpeningColumn" xml:space="preserve"><value>Opening</value></data>
+  <data name="ClosingColumn" xml:space="preserve"><value>Closing</value></data>
+  <data name="TrialBalanceHeading" xml:space="preserve"><value>Trial balance, {0} to {1}</value></data>
+  <data name="TrialBalanceGroupHeading" xml:space="preserve"><value>Trial balance, {0}, {1} to {2}</value></data>
+  <data name="NoGroupNamed" xml:space="preserve"><value>No group named {0}.</value></data>
+  <data name="GroupNameAmbiguous" xml:space="preserve"><value>{0} matches several groups. Type more of the name.</value></data>
+  <data name="PeriodAcrossYears" xml:space="preserve"><value>Choose a period within one financial year.</value></data>
+  <data name="PeriodReversed" xml:space="preserve"><value>The period ends before it starts.</value></data>
+  <data name="ExportButton" xml:space="preserve"><value>E_xport CSV</value></data>
+  <data name="ReportLinesName" xml:space="preserve"><value>Report lines</value></data>
+  <data name="CsvFileFilter" xml:space="preserve"><value>CSV files|*.csv</value></data>
+  <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
+  <data name="DayBookHeading" xml:space="preserve"><value>Day book, {0} to {1}</value></data>
+  <data name="OpeningBalanceLine" xml:space="preserve"><value>Opening balance</value></data>
+  <data name="ClosingBalanceLine" xml:space="preserve"><value>Closing balance</value></data>
+  <data name="ParticularsColumn" xml:space="preserve"><value>Particulars</value></data>
+  <data name="BalanceColumn" xml:space="preserve"><value>Balance</value></data>
+  <data name="PartyOrLedgerColumn" xml:space="preserve"><value>Party or ledger</value></data>
+  <data name="LedgerNameNeeded" xml:space="preserve"><value>Type a ledger name after LEDG.</value></data>
+  <data name="NoLedgerNamed" xml:space="preserve"><value>No ledger named {0}.</value></data>
+  <data name="LedgerNameAmbiguous" xml:space="preserve"><value>{0} matches several ledgers. Type more of the name.</value></data>
+  <data name="ParticularsMore" xml:space="preserve"><value>{0} and {1} more</value></data>
+  <data name="PeriodNotUnderstood" xml:space="preserve"><value>Type a period such as apr, q1, fy, or two dates.</value></data>
+  <data name="BalanceSheetHeading" xml:space="preserve"><value>Balance sheet ({0}), as at {1}</value></data>
+  <data name="ProfitAndLossHeading" xml:space="preserve"><value>Profit and loss ({0}), {1} to {2}</value></data>
+  <data name="StyleScheduleIII" xml:space="preserve"><value>Schedule III</value></data>
+  <data name="StyleChart" xml:space="preserve"><value>chart of accounts</value></data>
+  <data name="SideEquityAndLiabilities" xml:space="preserve"><value>Equity and liabilities</value></data>
+  <data name="SideAssets" xml:space="preserve"><value>Assets</value></data>
+  <data name="SideIncome" xml:space="preserve"><value>Income</value></data>
+  <data name="SideExpenses" xml:space="preserve"><value>Expenses</value></data>
+  <data name="CashAndEquivalentsLine" xml:space="preserve"><value>Cash and cash equivalents</value></data>
+  <data name="ProfitForPeriodLine" xml:space="preserve"><value>Profit for the period</value></data>
+  <data name="NetProfitLine" xml:space="preserve"><value>Net profit</value></data>
+  <data name="NetLossLine" xml:space="preserve"><value>Net loss</value></data>
+  <data name="DateNotUnderstood" xml:space="preserve"><value>Type a date such as 31-03-2027.</value></data>
+  <data name="CashFlowHeading" xml:space="preserve"><value>Cash flow, {0} to {1}</value></data>
+  <data name="OperatingSection" xml:space="preserve"><value>Cash from operating activities</value></data>
+  <data name="InvestingSection" xml:space="preserve"><value>Cash from investing activities</value></data>
+  <data name="FinancingSection" xml:space="preserve"><value>Cash from financing activities</value></data>
+  <data name="AddDepreciationLine" xml:space="preserve"><value>Add: depreciation</value></data>
+  <data name="ChangeInGroupLine" xml:space="preserve"><value>Change in {0}</value></data>
+  <data name="NetChangeInCashLine" xml:space="preserve"><value>Net change in cash</value></data>
+  <data name="OpeningCashLine" xml:space="preserve"><value>Opening cash and cash equivalents</value></data>
+  <data name="ClosingCashLine" xml:space="preserve"><value>Closing cash and cash equivalents</value></data>
+  <data name="ReceivablesHeading" xml:space="preserve"><value>Receivables as at {0}</value></data>
+  <data name="PayablesHeading" xml:space="preserve"><value>Payables as at {0}</value></data>
+  <data name="ReceivablesPartyHeading" xml:space="preserve"><value>Receivables, {0}, as at {1}</value></data>
+  <data name="PayablesPartyHeading" xml:space="preserve"><value>Payables, {0}, as at {1}</value></data>
+  <data name="NotDueColumn" xml:space="preserve"><value>Not due</value></data>
+  <data name="DaysRangeColumn" xml:space="preserve"><value>{0}-{1}</value></data>
+  <data name="OverDaysColumn" xml:space="preserve"><value>Over {0}</value></data>
+  <data name="OnAccountColumn" xml:space="preserve"><value>On account</value></data>
+  <data name="TotalColumn" xml:space="preserve"><value>Total</value></data>
+  <data name="BillColumn" xml:space="preserve"><value>Bill</value></data>
+  <data name="PartyDocumentColumn" xml:space="preserve"><value>Party document</value></data>
+  <data name="DueColumn" xml:space="preserve"><value>Due</value></data>
+  <data name="DaysOverdueColumn" xml:space="preserve"><value>Days overdue</value></data>
+  <data name="OnAccountText" xml:space="preserve"><value>On account</value></data>
+  <data name="NoPartyNamed" xml:space="preserve"><value>No party named {0}.</value></data>
+  <data name="PartyNameAmbiguous" xml:space="preserve"><value>{0} matches several parties. Type more of the name.</value></data>
+  <data name="AuditHeading" xml:space="preserve"><value>Audit trail</value></data>
+  <data name="AuditHostHeading" xml:space="preserve"><value>Audit trail of host.db</value></data>
+  <data name="AuditFromLabel" xml:space="preserve"><value>Fro_m</value></data>
+  <data name="AuditToLabel" xml:space="preserve"><value>_To</value></data>
+  <data name="AuditUserLabel" xml:space="preserve"><value>_User</value></data>
+  <data name="AuditEntityLabel" xml:space="preserve"><value>E_ntity</value></data>
+  <data name="VerifyButton" xml:space="preserve"><value>Ve_rify</value></data>
+  <data name="ChainIntact" xml:space="preserve"><value>Chain intact: {0} records, anchor matches.</value></data>
+  <data name="ChainBroken" xml:space="preserve"><value>Chain broken at record {0}.</value></data>
+  <data name="ChainAnchorMismatch" xml:space="preserve"><value>Newest records are missing or the chain was rebuilt.</value></data>
+  <data name="ChainAnchorMissing" xml:space="preserve"><value>No anchor found.</value></data>
+  <data name="TimeColumn" xml:space="preserve"><value>Time</value></data>
+  <data name="UserColumn" xml:space="preserve"><value>User</value></data>
+  <data name="PcColumn" xml:space="preserve"><value>PC</value></data>
+  <data name="SourceColumn" xml:space="preserve"><value>Source</value></data>
+  <data name="TokenColumn" xml:space="preserve"><value>Token</value></data>
+  <data name="ActionColumn" xml:space="preserve"><value>Action</value></data>
+  <data name="EntityColumn" xml:space="preserve"><value>Entity</value></data>
+  <data name="BeforeLabel" xml:space="preserve"><value>Before</value></data>
+  <data name="AfterLabel" xml:space="preserve"><value>After</value></data>
+  <data name="AuditEntriesName" xml:space="preserve"><value>Audit records</value></data>
+  <data name="BackupHeading" xml:space="preserve"><value>Backups</value></data>
+  <data name="BackupNowButton" xml:space="preserve"><value>_Back up now</value></data>
+  <data name="RestoreButton" xml:space="preserve"><value>_Restore</value></data>
+  <data name="BackedUpTo" xml:space="preserve"><value>Backed up to {0}.</value></data>
+  <data name="RestoreQuestion" xml:space="preserve"><value>Restore {0}? Everyone is logged out and the current file is backed up first.</value></data>
+  <data name="BackupScheduleHeading" xml:space="preserve"><value>Backup schedule</value></data>
+  <data name="IntervalHoursLabel" xml:space="preserve"><value>_Interval between backups, in hours</value></data>
+  <data name="KeepLabel" xml:space="preserve"><value>Backups _kept</value></data>
+  <data name="FolderLabel" xml:space="preserve"><value>Backup f_older</value></data>
+  <data name="BackupScheduleSaved" xml:space="preserve"><value>Backup schedule saved.</value></data>
+  <data name="TakenAtColumn" xml:space="preserve"><value>Taken at</value></data>
+  <data name="FileColumn" xml:space="preserve"><value>File</value></data>
+  <data name="BackupsName" xml:space="preserve"><value>Backup files</value></data>
+  <data name="ChooseBackupFirst" xml:space="preserve"><value>Choose a backup in the list first.</value></data>
+  <data name="NetProfitOrLossLine" xml:space="preserve"><value>Net profit / (loss)</value></data>
+  <data name="AuditPageFull" xml:space="preserve"><value>Showing the newest {0} records. Narrow the dates or user to see older ones.</value></data>
 </root>

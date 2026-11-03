@@ -4,42 +4,21 @@ Major decisions and data checks that need the owner. Smaller decisions are the b
 
 ## Plan 6: Reports, audit trail, and backup
 
-Decided by the owner on 2026-11-02:
-- Plan 6 is split. Plan 6 has the reports, CSV export, `AUDT`, and `BKUP`. Plan 6b has `PRNT`, PDF, and printed invoices.
-- PDF uses PDFsharp 6.2.4, pinned. That is the last MIT version; 6.5.0 and later are AGPL. It is used from Plan 6b.
+### Open decision
 
-### Approve before the build starts (recommended rules, plan Tasks 2 to 4)
+1. **Depreciation credited somewhere other than Fixed Assets** (`CFLO`, `src/OpenHisabKitab.Core/Reports/CashFlow.cs`). The approved rule adds depreciation back in operating and takes the same amount out of the Fixed Assets line in investing. That is right when depreciation is credited to the asset ledgers. If it is credited to a separate ledger instead, such as Accumulated Depreciation or a provision outside Fixed Assets, investing shows an outflow that never happened, and operating is overstated by the same amount. The totals and closing cash stay correct. Options:
+   - **Keep the rule.** Ask users to credit depreciation to the asset ledgers. Cost: nothing now; a misleading split for anyone who does otherwise.
+   - **Take out only the depreciation credited under Fixed Assets** (recommended). Depreciation credited elsewhere is treated as a non cash movement in that ledger's own group, so no false outflow appears. Cost: a small Core change with tests, in any later plan.
 
-1. **`OUTS` ageing** (Task 4):
-   - Bills age from their due date: the bill date plus the party's credit days, or an opening bill's own due date, or else its bill date.
-   - The columns are `Not due`, `1-30`, `31-60`, `61-90`, and `Over 90`, from the company setting `outstanding.ageingDays` (default `30,60,90`).
-   - Receipts and payments not allocated to a bill show as `On account` and are not aged.
-   - "As at" leaves out any bill or allocation dated after that date. Ok
-2. **`CFLO` classification** (Task 3):
-   - Cash means the Cash in Hand and Bank Accounts groups. A bank overdraft is a short term borrowing in financing, not negative cash, so `CFLO` closing cash equals the `BSHT` cash line.
-   - Depreciation is added back in operating and taken out of the Fixed Assets line in investing.
-   - Operating holds current assets and current liabilities other than short term borrowings. Investing holds non current assets. Financing holds equity, non current liabilities, and short term borrowings.
-   - Interest and dividends are **not** moved out of operating. As I read AS 3 (please confirm), a non financial business shows interest paid in financing and interest or dividends received in investing. Doing that needs marked ledgers, so it is left for later. Cost if wrong: one more rule and a group kind. Ok
-3. **`BSHT` and `PNLS` in Schedule III style** (Task 2):
-   - Each group directly under a heading is one line item, except that Cash in Hand and Bank Accounts combine into `Cash and cash equivalents`. GST Input Credit and Duties and Taxes stay as their own lines.
-   - The current year's profit is part of Reserves and Surplus.
-   - The previous year's column is shown from the second year on. As I read Schedule III's General Instructions (please confirm), the first financial statements need no previous year's figures.
-   - An asset ledger in credit, such as a bank account in overdraft under Bank Accounts, stays on its side in brackets. It is not moved to liabilities.
-   - Notes to accounts are not produced. Ok
-   
 ### Data checks before the first public release
 
-4. **Hand worked report figures.** The expected Schedule III, cash flow, and ageing figures in plan Tasks 2, 3, and 4 were worked by hand from the golden company. An accountant should check them once.
+2. **Hand worked report figures.** The expected Schedule III, cash flow, and ageing figures in plan Tasks 2, 3, and 4 were worked by hand from the golden company. An accountant should check them once.
 
 ## Plan 5: Masters, vouchers, and bills
 
 ### Check before the first public release
 
 1. **Export invoice fields** (Task 5): port code of 6 letters or digits, and shipping bill number of 3 to 7 digits. Each is optional at entry. Confirm against the GSTR-1 offline schema when Plan 7 adds the GST files.
-
-### Plan order
-
-2. **`AUDT` and `BKUP` screens** are not in Plan 5. Choose the plan for them when Plan 6 is written. OK: placed in Plan 6 by the owner on 2026-11-02.
 
 ## Plan 1: Foundation and accounting core
 

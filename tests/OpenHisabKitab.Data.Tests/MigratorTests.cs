@@ -1,3 +1,4 @@
+using OpenHisabKitab.Data.CompanyDb;
 using static OpenHisabKitab.Data.Tests.TempDb;
 
 namespace OpenHisabKitab.Data.Tests;
@@ -51,6 +52,43 @@ public class MigratorTests
         Assert.Equal("kept", Scalar(c, "SELECT narration FROM vouchers WHERE number = 1"));
         Assert.Null(Scalar(c, "SELECT request_id FROM vouchers WHERE number = 1") is DBNull ? null : "set");
         Assert.Equal(0L, Scalar(c, "SELECT count(*) FROM allocations"));
+    }
+
+    [Fact]
+    public void Migration_0003_marks_default_groups_and_keeps_renames()
+    {
+        using var db = new TempDb();
+        using var c = db.Open();
+        Migrator.Migrate(c, Schema.Company);
+        var added = new[]
+        {
+            GroupKind.Equity, GroupKind.NonCurrentLiabilities, GroupKind.LongTermBorrowings, GroupKind.CurrentLiabilities,
+            GroupKind.ShortTermBorrowings, GroupKind.NonCurrentAssets, GroupKind.FixedAssets, GroupKind.Investments,
+            GroupKind.CurrentAssets, GroupKind.Income, GroupKind.Expenses, GroupKind.Depreciation,
+        };
+        // A version 2 file: the default groups as Plan 1 wrote them, without the new kinds.
+        using (var tx = c.BeginTransaction())
+        {
+            var chart0 = DefaultChart.Create();
+            foreach (var g in chart0.Groups)
+                ChartRepository.SaveGroup(tx, added.Contains(g.Kind) ? g with { Kind = GroupKind.None } : g);
+            foreach (var l in chart0.Ledgers) ChartRepository.SaveLedger(tx, l);
+            tx.Commit();
+        }
+        Exec(c, """
+            UPDATE groups SET name = 'Plant and Machinery' WHERE id = 14;
+            INSERT INTO groups(id, name, parent_id, nature, kind) VALUES (34, 'Goodwill', 13, 'Asset', 'None');
+            PRAGMA user_version = 2;
+            """);
+
+        Migrator.Migrate(c, Schema.Company);
+
+        Assert.Equal("FixedAssets", Scalar(c, "SELECT kind FROM groups WHERE id = 14"));
+        Assert.Equal("Plant and Machinery", Scalar(c, "SELECT name FROM groups WHERE id = 14"));
+        Assert.Equal("None", Scalar(c, "SELECT kind FROM groups WHERE id = 34"));
+        Assert.Equal("TradeReceivables", Scalar(c, "SELECT kind FROM groups WHERE id = 18"));
+        var chart = ChartRepository.Load(c);
+        foreach (var k in added) Assert.Single(chart.Groups, g => g.Kind == k);
     }
 
     static void Exec(SqliteConnection c, string sql)

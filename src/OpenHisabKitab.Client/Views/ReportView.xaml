@@ -1,0 +1,39 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.ReportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
+             AutomationProperties.Name="{Binding Heading}">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+    </UserControl.Resources>
+    <DockPanel>
+        <DockPanel DockPanel.Dock="Top" Margin="2">
+            <Button x:Name="Export" DockPanel.Dock="Right" Content="{t:Txt ExportButton}" AutomationProperties.Name="{t:Name ExportButton}"
+                    Click="OnExport" Visibility="{Binding CanExport, Converter={StaticResource Bool}}" />
+            <TextBlock Text="{Binding Heading}" FontWeight="Bold" VerticalAlignment="Center" />
+        </DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <Button DockPanel.Dock="Bottom" HorizontalAlignment="Left" Margin="2" Content="{t:Txt MoreButton}" AutomationProperties.Name="{t:Name MoreButton}"
+                Click="OnMore" Visibility="{Binding HasMore, Converter={StaticResource Bool}}" />
+        <ListView x:Name="Lines" ItemsSource="{Binding Lines}" AutomationProperties.Name="{t:Name ReportLinesName}" PreviewKeyDown="OnLinesKeyDown"
+                  MouseDoubleClick="OnDoubleClick" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="AutomationProperties.Name" Value="{Binding Spoken}" />
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Emphasis}" Value="True">
+                            <Setter Property="FontWeight" Value="Bold" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView x:Name="Grid" />
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</UserControl>

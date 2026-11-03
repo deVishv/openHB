@@ -1,0 +1,59 @@
+<UserControl x:Class="OpenHisabKitab.Client.Views.BackupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:t="clr-namespace:OpenHisabKitab.Client"
+             xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
+             AutomationProperties.Name="{t:Name BackupHeading}">
+    <UserControl.Resources>
+        <v:PresentVisibility x:Key="Present" />
+        <BooleanToVisibilityConverter x:Key="Bool" />
+    </UserControl.Resources>
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{t:Txt BackupHeading}" FontWeight="Bold" Margin="2" />
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="2">
+            <Button x:Name="BackupNow" Content="{t:Txt BackupNowButton}" AutomationProperties.Name="{t:Name BackupNowButton}" Click="OnBackupNow"
+                    Visibility="{Binding CanBackup, Converter={StaticResource Bool}}" />
+            <Button Margin="4,0" Content="{t:Txt RestoreButton}" AutomationProperties.Name="{t:Name RestoreButton}" Click="OnRestore"
+                    Visibility="{Binding CanRestore, Converter={StaticResource Bool}}" />
+        </StackPanel>
+        <TextBlock DockPanel.Dock="Top" Text="{Binding Message}" Margin="2" Visibility="{Binding Message, Converter={StaticResource Present}}"
+                   AutomationProperties.LiveSetting="Assertive" />
+        <GroupBox DockPanel.Dock="Bottom" Header="{t:Txt BackupScheduleHeading}" Margin="2" Visibility="{Binding CanSchedule, Converter={StaticResource Bool}}">
+            <Grid Margin="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Label Content="{t:Txt IntervalHoursLabel}" Target="{Binding ElementName=Interval}" />
+                <TextBox x:Name="Interval" Grid.Column="1" Width="80" HorizontalAlignment="Left" Text="{Binding IntervalHours, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{t:Name IntervalHoursLabel}" />
+                <Label Grid.Row="1" Content="{t:Txt KeepLabel}" Target="{Binding ElementName=Keep}" />
+                <TextBox x:Name="Keep" Grid.Row="1" Grid.Column="1" Width="80" HorizontalAlignment="Left" Text="{Binding Keep, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{t:Name KeepLabel}" />
+                <Label Grid.Row="2" Content="{t:Txt FolderLabel}" Target="{Binding ElementName=Folder}" />
+                <TextBox x:Name="Folder" Grid.Row="2" Grid.Column="1" Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="{t:Name FolderLabel}" />
+                <Button Grid.Row="3" Grid.Column="1" HorizontalAlignment="Left" Margin="0,4,0,0" Content="{t:Txt SaveButton}"
+                        AutomationProperties.Name="{t:Name SaveButton}" Click="OnSave" />
+            </Grid>
+        </GroupBox>
+        <ListView x:Name="Files" ItemsSource="{Binding Rows}" SelectedItem="{Binding Selected}" AutomationProperties.Name="{t:Name BackupsName}"
+                  VirtualizingPanel.IsVirtualizing="True">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem"><Setter Property="AutomationProperties.Name" Value="{Binding File}" /></Style>
+            </ListView.ItemContainerStyle>
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="{t:Txt TakenAtColumn}" DisplayMemberBinding="{Binding TakenAt}" Width="150" />
+                    <GridViewColumn Header="{t:Txt FileColumn}" DisplayMemberBinding="{Binding File}" Width="360" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </DockPanel>
+</UserControl>

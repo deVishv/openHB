@@ -17,4 +17,17 @@ public enum GroupKind
     Purchases,
     OtherExpenses,
     BankOverdraft,
+    // Schedule III headings and the line items reports need by role (Plan 6). Appended so stored names keep their meaning.
+    Equity,
+    NonCurrentLiabilities,
+    LongTermBorrowings,
+    CurrentLiabilities,
+    ShortTermBorrowings,
+    NonCurrentAssets,
+    FixedAssets,
+    Investments,
+    CurrentAssets,
+    Income,
+    Expenses,
+    Depreciation,
 }

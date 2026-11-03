@@ -65,6 +65,7 @@
 - Plan 6 owner review items 1 to 3 are approved as recommended: `OUTS` ageing, the `CFLO` classification, and the Schedule III layout.
 - Execution is **native**: one session builds every task with superpowers:executing-plans, then one fresh reviewer on the most capable model checks the whole branch.
 - The plan docs are committed to `main` before the branch.
+- Approved after the build: backups go only to a drive of the host PC (never a network path or a path through a link), and the `PNLS` result line reads `Net profit / (loss)` when this year and last year differ in sign. These were owner review items 4 and 5.
 
 **Roadmap as it now stands.**
 
@@ -954,7 +955,10 @@ These are the builder's calls, kept here for the record. The major ones are in `
 7. **`LEDG` and `DAYB` page at 500 rows.** The statement is cut from the in-memory `Books`. The page cursor is the date and voucher id, as in `Vouchers.List`, so a save between pages never repeats or skips a line. Cost if wrong: none expected.
 8. **Existing raw report routes and MCP tools are unchanged.** The layouts are new routes and tools, so scripts written against Plan 3 keep working. Cost if wrong: two extra routes.
 9. **Group kinds are set by default group id in migration 0003,** so renamed groups keep their role. Cost if wrong: a name-based fallback.
-
+10. **Outstanding bills carry their voucher type** (`OpenBill.Type`, `voucher_type` on the wire), so an `OUTS` bill line opens its voucher. Cost if wrong: one field.
+11. **Screen access keys never use a menu bar letter** (F, E, V, H). Alt and that letter opens the menu, so the screen key could never be reached. The report smoke test checks this. Cost if wrong: labels.
+12. **`TRLB` totals** sum the Debit and Credit columns, which always agree. A group view also totals Opening and Closing. Cost if wrong: two cells.
+13. **The cash line of `BSHT` and `CFLO` drills to `TRLB` of its heading** (Current Assets), because it combines two groups. Cost if wrong: the user also sees other current assets.
 ## Done when
 
 - Every task's tests pass in Release, with 0 warnings.

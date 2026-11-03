@@ -55,6 +55,47 @@ public sealed class BillRepositoryTests : IDisposable
     static OpeningBillRow Opening(long id, string number, string amount, string date = "2026-03-15", string? due = null) =>
         new(id, default, number, DateOnly.Parse(date), due is null ? null : DateOnly.Parse(due), Money.Parse(amount));
 
+    long ReceiptOn(long number, DateOnly date, string amount, params AllocationRow[] allocations) =>
+        Write(tx => VoucherRepository.Insert(tx, new VoucherRow(0, VoucherType.Receipt, "Main", 2026, number, $"RCT/26-27/{number:D5}",
+            date, "", false, 1, 0, [new PostingLine(cash, Money.Parse(amount)), new PostingLine(party, -Money.Parse(amount))], null, allocations)));
+
+    IReadOnlyList<OpenBill> AsAt(DateOnly date) =>
+        BillRepository.AllBillsAsAt(c, date, new Dictionary<LedgerId, (PartySide, int)> { [party] = (PartySide.Receivable, 30) })
+            .GetValueOrDefault(party) ?? [];
+
+    [Fact]
+    public void As_at_leaves_out_later_receipts_and_later_bills()
+    {
+        Write(tx => BillRepository.ReplaceOpeningBills(tx, party, [Opening(0, "OB-1", "2000.00", due: "2026-04-15")]));
+        var first = Sale(1, "10000.00", "2026-06-01");
+        ReceiptOn(1, new DateOnly(2026, 7, 10), "10000.00", new AllocationRow(party, new BillRef(BillSource.Voucher, first), Money.Parse("10000.00")));
+        Sale(2, "500.00", "2026-08-05");
+
+        var june = AsAt(new DateOnly(2026, 6, 30));
+        Assert.Equal(new[] { "OB-1", "INV/26-27/00001" }, june.Select(b => b.Number));
+        Assert.Equal(Money.Parse("10000.00"), june[1].Open);
+        Assert.Equal(new DateOnly(2026, 7, 1), june[1].DueDate);
+        Assert.Equal((null, VoucherType.Sale), (june[0].Type, june[1].Type));
+
+        var july = AsAt(new DateOnly(2026, 7, 31));
+        Assert.Equal(Money.Zero, july.Single(b => b.Number == "INV/26-27/00001").Open);
+        Assert.DoesNotContain(july, b => b.Number == "INV/26-27/00002");
+        Assert.Equal(3, AsAt(new DateOnly(2026, 8, 31)).Count);
+    }
+
+    [Fact]
+    public void Cancelled_bill_and_cancelled_receipt_drop_out()
+    {
+        var first = Sale(1, "10000.00", "2026-06-01");
+        var cancelled = Sale(2, "500.00", "2026-06-02");
+        Write(tx => VoucherRepository.Cancel(tx, cancelled, 1));
+        var receipt = ReceiptOn(1, new DateOnly(2026, 6, 10), "3000.00", new AllocationRow(party, new BillRef(BillSource.Voucher, first), Money.Parse("3000.00")));
+        Write(tx => VoucherRepository.Cancel(tx, receipt, 1));
+
+        var bill = Assert.Single(AsAt(new DateOnly(2026, 6, 30)));
+        Assert.Equal(("INV/26-27/00001", Money.Parse("10000.00")), (bill.Number, bill.Open));
+    }
+
     [Fact]
     public void Bills_lists_open_amounts_and_skips_cancelled_vouchers()
     {

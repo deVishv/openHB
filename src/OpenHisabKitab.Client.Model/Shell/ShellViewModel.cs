@@ -183,7 +183,8 @@ public sealed partial class ShellViewModel : ObservableObject, IAsyncDisposable
             case "nav.back": await Tabs.BackAsync(); break;
             case "nav.forward": await Tabs.ForwardAsync(); break;
             case "palette.open": Palette.Open(); break;
-            case "record.new" or "record.delete" or "line.add" or "line.remove" or "voucher.bills" or "voucher.cancelVoucher":
+            case "record.new" or "record.delete" or "line.add" or "line.remove" or "voucher.bills" or "voucher.cancelVoucher"
+                or "report.export" or "report.style":
                 if (Tabs.Active?.Screen is not Screens.IScreenCommands screen || !screen.CanRun(command)) return false;
                 await screen.RunAsync(command);
                 break;

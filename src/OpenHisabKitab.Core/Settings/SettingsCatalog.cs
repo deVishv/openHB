@@ -22,6 +22,9 @@ public static class SettingsCatalog
         new("reports.autoReload", SettingType.Boolean, "false", "Reload open reports when data changes.", MachineOrUser),
         new("invoice.roundOff", SettingType.Boolean, "true", "Round invoice totals to the rupee.", SettingScope.Company),
         new("invoice.pricesIncludeTax", SettingType.Boolean, "false", "New invoice lines take prices with tax included.", SettingScope.Company),
+        new("outstanding.ageingDays", SettingType.Text, "\"30,60,90\"", "Ageing columns in OUTS, as days overdue.", SettingScope.Company,
+            Rule: text => Bills.AgeingBuckets.TryParse(text, out _),
+            RuleText: "Setting outstanding.ageingDays must be 1 to 5 rising whole numbers of days, such as 30,60,90."),
     ];
 
     public static SettingDefinition? Find(string key) => All.FirstOrDefault(d => d.Key == key);
@@ -53,6 +56,7 @@ public static class SettingsCatalog
             SettingType.Integer when value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var n) || n < d.Min || n > d.Max =>
                 $"Setting {key} must be a whole number from {d.Min} to {d.Max}.",
             SettingType.Text when value.ValueKind != JsonValueKind.String => $"Setting {key} must be text.",
+            SettingType.Text when d.Rule is { } rule && !rule(value.GetString()!) => d.RuleText,
             SettingType.Choice when value.ValueKind != JsonValueKind.String || !d.Choices!.Contains(value.GetString()!) =>
                 $"Setting {key} must be one of: {string.Join(", ", d.Choices!)}.",
             _ => null,

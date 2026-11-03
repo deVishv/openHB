@@ -48,6 +48,22 @@ public sealed class SettingsCatalogTests
     [Fact]
     public void Category_is_the_text_before_the_first_dot() =>
         Assert.Equal("ui", SettingsCatalog.Find("ui.fontSize")!.Category);
+    [Theory]
+    [InlineData("\"60,30\"")]
+    [InlineData("\"10,20,30,40,50,60\"")]
+    public void Ageing_setting_rejects_falling_or_too_many_days(string json) =>
+        Assert.Equal("Setting outstanding.ageingDays must be 1 to 5 rising whole numbers of days, such as 30,60,90.",
+            SettingsCatalog.Validate("outstanding.ageingDays", json, SettingLayer.Company));
+
+    [Fact]
+    public void Ageing_setting_is_a_company_text_with_default_30_60_90()
+    {
+        Assert.Null(SettingsCatalog.Validate("outstanding.ageingDays", "\"45\"", SettingLayer.Company));
+        var d = SettingsCatalog.Find("outstanding.ageingDays")!;
+        Assert.Equal((SettingType.Text, "\"30,60,90\"", SettingScope.Company, "Ageing columns in OUTS, as days overdue."),
+            (d.Type, d.DefaultJson, d.Scope, d.Description));
+    }
+
     [Fact]
     public void PricesIncludeTax_is_a_company_boolean()
     {

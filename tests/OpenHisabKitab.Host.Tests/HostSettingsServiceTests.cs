@@ -19,9 +19,10 @@ public sealed class HostSettingsServiceTests : IDisposable
     public void Defaults_are_listed_with_their_definitions()
     {
         var list = h.HostSettings.List(h.Owner.Context);
-        Assert.Equal(["api.enabled", "api.port", "api.allowLan", "api.allowedOrigins", "mcp.enabled", "mcp.allowWrites"],
+        Assert.Equal(["api.enabled", "api.port", "api.allowLan", "api.allowedOrigins", "mcp.enabled", "mcp.allowWrites",
+                "backup.intervalHours", "backup.keep", "backup.folder"],
             list.Select(s => s.Definition.Key));
-        Assert.Equal(["false", "47251", "false", "[]", "false", "false"], list.Select(s => s.Json));
+        Assert.Equal(["false", "47251", "false", "[]", "false", "false", "24", "30", "\"\""], list.Select(s => s.Json));
         Assert.All(list, s => Assert.Equal(s.Definition.DefaultJson, s.Json));
         Assert.Equal("Turns on the local REST API port.", list[0].Definition.Description);
         Assert.Equal(HostSettings.DefaultApiPort, ApiSettingsFromDb().Port);
@@ -75,6 +76,78 @@ public sealed class HostSettingsServiceTests : IDisposable
     {
         Assert.Equal(message, Fails(ServiceError.Invalid, () => Set(key, json)).Message);
         Assert.Equal(HostSettings.DefaultApiPort, ApiSettingsFromDb().Port);
+    }
+
+    [Theory]
+    [InlineData("backup.keep", "0", "backup.keep must be 1 to 365.")]
+    [InlineData("backup.keep", "366", "backup.keep must be 1 to 365.")]
+    [InlineData("backup.intervalHours", "721", "backup.intervalHours must be 1 to 720.")]
+    [InlineData("backup.intervalHours", "\"24\"", "backup.intervalHours must be 1 to 720.")]
+    [InlineData("backup.folder", "\"Backups\"", "backup.folder must be a full folder path.")]
+    [InlineData("backup.folder", "5", "backup.folder must be a full folder path.")]
+    public void Backup_settings_are_validated(string key, string json, string message) =>
+        Assert.Equal(message, Fails(ServiceError.Invalid, () => Set(key, json)).Message);
+
+    // A network or device path would make the host open it, sending its own credentials to another machine.
+    [Theory]
+    [InlineData(@"\\nas\share\backups")]
+    [InlineData(@"\\?\C:\backups")]
+    [InlineData(@"\\.\pipe\x")]
+    public void Backup_folder_must_be_on_a_drive_of_this_pc(string path) =>
+        Assert.Equal("backup.folder must be a folder on a drive of this PC.",
+            Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(path))).Message);
+
+    // A junction can point a local-looking path anywhere, including a network share, so linked folders are refused.
+    [Fact]
+    public void Backup_folder_through_a_link_is_refused()
+    {
+        var target = Path.Combine(h.Folder, "real");
+        Directory.CreateDirectory(target);
+        var link = Path.Combine(h.Folder, "linked");
+        // A junction, which any user may make, unlike a symbolic link.
+        using (var mklink = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("cmd.exe", ["/c", "mklink", "/J", link, target])
+               { CreateNoWindow = true, UseShellExecute = false })!)
+            mklink.WaitForExit();
+        try
+        {
+            Assert.NotNull(new DirectoryInfo(link).LinkTarget);
+            foreach (var path in new[] { link, Path.Combine(link, "inside") })
+                Assert.Equal("backup.folder must be a folder on a drive of this PC.",
+                    Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(path))).Message);
+            Assert.False(Directory.Exists(Path.Combine(target, "inside")));
+        }
+        finally { Directory.Delete(link); }   // removes the junction itself, not what it points to
+    }
+
+    [Fact]
+    public void Backup_settings_store_and_the_folder_is_made()
+    {
+        Set("backup.keep", "7");
+        Set("backup.intervalHours", "1");
+        var folder = Path.Combine(h.Folder, "elsewhere", "copies");
+        Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(folder));
+        Assert.True(Directory.Exists(folder));
+        Assert.True(new DirectoryInfo(folder).GetAccessControl().AreAccessRulesProtected);
+        Assert.Equal(folder, h.Data.BackupFolder);
+        Set("backup.folder", "\"\"");
+        Assert.Equal(Path.Combine(h.Folder, "Backups"), h.Data.BackupFolder);
+
+        var file = Path.Combine(h.Folder, "a-file.txt");
+        File.WriteAllText(file, "x");
+        var under = Path.Combine(file, "inside");
+        Assert.Equal($"Cannot use folder {under}.",
+            Fails(ServiceError.Invalid, () => Set("backup.folder", System.Text.Json.JsonSerializer.Serialize(under))).Message);
+    }
+
+    [Fact]
+    public async Task Scheduler_reads_the_listed_settings()
+    {
+        var company = h.NewCompany();
+        Set("backup.intervalHours", "1");
+        await h.Scheduler.RunOnceAsync();
+        h.Time.Advance(TimeSpan.FromHours(1));
+        await h.Scheduler.RunOnceAsync();
+        Assert.Equal(2, h.Admin.Backups(h.Owner.Context, company).Count);
     }
 
     [Fact]

@@ -121,12 +121,32 @@ public sealed class ChartOfAccounts
         return new ChartOfAccounts(Groups, [.. Ledgers.Where(x => x.Id != id)]);
     }
 
-    internal (ChartOfAccounts Chart, GroupId Id) AddRootGroup(string name, AccountNature nature)
+    internal (ChartOfAccounts Chart, GroupId Id) AddRootGroup(string name, AccountNature nature, GroupKind kind = GroupKind.None)
     {
         var clean = CheckName(name, Groups.Select(g => g.Name), "group");
         var id = NextGroupId();
-        return (new ChartOfAccounts([.. Groups, new AccountGroup(id, clean, null, nature, GroupKind.None)], Ledgers), id);
+        return (new ChartOfAccounts([.. Groups, new AccountGroup(id, clean, null, nature, kind)], Ledgers), id);
     }
+
+    /// <summary>The root heading the group sits under, or the group itself when it is a root.</summary>
+    public AccountGroup RootOf(GroupId group)
+    {
+        var g = GroupById(group);
+        while (g.Parent is { } parent) g = groupsById[parent];
+        return g;
+    }
+
+    /// <summary>The group's ancestor directly under a root (itself when it is one), or null for a root.</summary>
+    public AccountGroup? LevelOneOf(GroupId group)
+    {
+        var g = GroupById(group);
+        if (g.Parent is null) return null;
+        while (groupsById[g.Parent!.Value].Parent is not null) g = groupsById[g.Parent.Value];
+        return g;
+    }
+
+    AccountGroup GroupById(GroupId id) =>
+        groupsById.TryGetValue(id, out var g) ? g : throw new ChartException($"Unknown group {id.Value}.");
 
     internal (ChartOfAccounts Chart, GroupId Id) AddGroup(string name, GroupId parent, GroupKind kind)
     {

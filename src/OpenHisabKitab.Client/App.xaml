@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:s="clr-namespace:OpenHisabKitab.Client.Model.Screens;assembly=OpenHisabKitab.Client.Model"
              xmlns:e="clr-namespace:OpenHisabKitab.Client.Model.Screens.Entry;assembly=OpenHisabKitab.Client.Model"
+             xmlns:r="clr-namespace:OpenHisabKitab.Client.Model.Screens.Reports;assembly=OpenHisabKitab.Client.Model"
              xmlns:v="clr-namespace:OpenHisabKitab.Client.Views"
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
@@ -22,9 +23,12 @@
             <DataTemplate DataType="{x:Type s:PartiesViewModel}"><v:PartiesView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:FindViewModel}"><v:FindView /></DataTemplate>
             <DataTemplate DataType="{x:Type s:LockViewModel}"><v:LockView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:AuditViewModel}"><v:AuditView /></DataTemplate>
+            <DataTemplate DataType="{x:Type s:BackupViewModel}"><v:BackupView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:JournalEntryViewModel}"><v:JournalEntryView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:InvoiceEntryViewModel}"><v:InvoiceEntryView /></DataTemplate>
             <DataTemplate DataType="{x:Type e:BillsPanelViewModel}"><v:BillsPanelView /></DataTemplate>
+            <DataTemplate DataType="{x:Type r:ReportScreen}"><v:ReportView /></DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

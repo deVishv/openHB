@@ -81,6 +81,33 @@ public sealed class ReadTools(
         return ApiMap.ToDto(reports.ProfitAndLoss(ctx, company, ApiParse.Range(from, to)), masters.Chart(ctx, company));
     });
 
+    [McpServerTool(Name = "balance_sheet_layout", ReadOnly = true),
+     Description("The balance sheet as at a date, laid out by heading: style scheduleIII (one line per Schedule III item) or chart (every group and ledger), with the previous year's figures from the second year." + Amounts + Dates)]
+    public Task<CallToolResult> BalanceSheetLayout(int company, string asAt, string style = "scheduleIII") => McpResults.Run(log, "balance_sheet_layout", () =>
+        ApiMap.ToDto(reports.BalanceSheetLayout(Caller, company, ApiParse.Date(asAt, "asAt"), RestRoutes.Style(style))));
+
+    [McpServerTool(Name = "profit_and_loss_layout", ReadOnly = true),
+     Description("The profit and loss account for a period within one financial year, laid out by heading: style scheduleIII or chart, with the previous year's figures from the second year." + Amounts + Dates)]
+    public Task<CallToolResult> ProfitAndLossLayout(int company, string from, string to, string style = "scheduleIII") =>
+        McpResults.Run(log, "profit_and_loss_layout", () =>
+            ApiMap.ToDto(reports.ProfitAndLossLayout(Caller, company, ApiParse.Range(from, to), RestRoutes.Style(style))));
+
+    [McpServerTool(Name = "cash_flow", ReadOnly = true),
+     Description("The cash flow statement by the indirect method for a period within one financial year: operating, investing, and financing, with opening and closing cash." + Amounts + Dates)]
+    public Task<CallToolResult> CashFlow(int company, string from, string to) => McpResults.Run(log, "cash_flow", () =>
+    {
+        var ctx = Caller;
+        return ApiMap.ToDto(reports.CashFlow(ctx, company, ApiParse.Range(from, to)), masters.Chart(ctx, company));
+    });
+
+    [McpServerTool(Name = "outstanding", ReadOnly = true),
+     Description("Receivables or payables as at a date, party by party and bill by bill, aged by days overdue. side is receivable or payable. Amounts not settled against a bill are on account." + Amounts + Dates)]
+    public Task<CallToolResult> Outstanding(int company, string asAt, string side = "receivable") => McpResults.Run(log, "outstanding", () =>
+    {
+        var ctx = Caller;
+        return ApiMap.ToDto(reports.Outstanding(ctx, company, ApiParse.Date(asAt, "asAt"), RestRoutes.Side(side)), masters.Chart(ctx, company));
+    });
+
     [McpServerTool(Name = "balance_sheet", ReadOnly = true), Description("The balance sheet as at a date." + Amounts + Dates)]
     public Task<CallToolResult> BalanceSheet(int company, string asAt) => McpResults.Run(log, "balance_sheet", () =>
     {

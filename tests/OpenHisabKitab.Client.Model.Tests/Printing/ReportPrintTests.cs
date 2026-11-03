@@ -95,6 +95,25 @@ public sealed class ReportPrintTests
         AssertLaidOut(doc);
     }
 
+    [Fact]
+    public void Tight_columns_keep_short_text_columns_at_their_natural_width()
+    {
+        IReadOnlyList<ReportColumn> columns =
+        [
+            Num("#"), Text("Description"), Text("HSN/SAC"), Num("Qty"), Text("Unit"), Num("Rate"), Num("Discount"), Num("Taxable value"),
+            Num("CGST %"), Num("CGST"), Num("SGST %"), Num("SGST"),
+        ];
+        IReadOnlyList<IReadOnlyList<string>> cells =
+            [["1", "Fabrication and fitting at site, with a long description", "998314", "1", "", "15,000.00", "0.00", "15,000.00", "9%", "1,350.00", "9%", "1,350.00"]];
+        var fit = PrintTable.Fit(columns, cells, 523.28, 8.5, M)!;
+        var unit = fit.Single(c => c.Header == "Unit").Width;
+        var hsn = fit.Single(c => c.Header == "HSN/SAC").Width;
+        Assert.Equal(M.Width("Unit", new PrintFont(PrintFace.Text, 8.5, Bold: true)) + 2 * PrintTable.Pad, unit, 0.01);
+        Assert.Equal(M.Width("HSN/SAC", new PrintFont(PrintFace.Text, 8.5, Bold: true)) + 2 * PrintTable.Pad, hsn, 0.01);
+        Assert.Equal(523.28, fit.Sum(c => c.Width), 0.01);
+        Assert.True(fit.Single(c => c.Header == "Description").Width > unit + hsn);
+    }
+
     /// <summary>Every text box lies inside the margins, fits its box, and no two boxes on a page intersect.</summary>
     internal static void AssertLaidOut(PrintDocument doc)
     {

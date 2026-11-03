@@ -20,6 +20,7 @@ public static class PrintTable
     public const double IndentPerLevel = 8;
 
     const double MinTextWidth = 40;
+    const double ShortTextWidth = 60;
 
     /// <summary>
     /// Widths for the columns across the given width. Number columns take their widest cell; text columns share the rest,
@@ -33,35 +34,32 @@ public static class PrintTable
         var numbers = columns.Select((c, i) => (c, i)).Where(x => x.c.Align == CellAlign.Right).Sum(x => natural[x.i]);
         var texts = columns.Select((c, i) => (c, i)).Where(x => x.c.Align == CellAlign.Left).Select(x => x.i).ToList();
         var available = width - numbers;
-        if (available < texts.Count * MinTextWidth - 0.001) return null;
-
         var widths = natural.ToArray();
-        var wanted = texts.Sum(i => natural[i]);
-        if (texts.Count > 0)
+        if (texts.Count == 0) return Columns(columns, widths);
+        var rest = texts.Skip(1).ToList();
+        // The other text columns shrink no further than 60 points, and a short one (an HSN code, a unit) not at all.
+        double Floor(int i) => Math.Min(natural[i], ShortTextWidth);
+        if (available < MinTextWidth + rest.Sum(Floor) - 0.001) return null;
+
+        // The other text columns keep their natural width; the first takes the rest, and wraps when that is less than it needs.
+        var first = available - rest.Sum(i => natural[i]);
+        var wantedFirst = Math.Min(natural[texts[0]], Math.Max(0.3 * width, MinTextWidth));
+        if (first < wantedFirst)
         {
-            if (wanted <= available)
-            {
-                widths[texts[0]] += available - wanted;
-            }
-            else
-            {
-                // Too wide: the first text column keeps at least 30% of the width (or what it needs), the rest share what is left.
-                var first = Math.Min(natural[texts[0]], Math.Max(0.3 * width, MinTextWidth));
-                first = Math.Min(first, available - (texts.Count - 1) * MinTextWidth);
-                widths[texts[0]] = first;
-                var rest = texts.Skip(1).ToList();
-                var restWanted = rest.Sum(i => natural[i]);
-                var restAvailable = available - first;
-                foreach (var i in rest) widths[i] = Math.Max(MinTextWidth, natural[i] * restAvailable / restWanted);
-                // Rounding up to the minimum may overshoot; take it back from the first column.
-                var over = texts.Sum(i => widths[i]) - available;
-                if (over > 0) widths[texts[0]] -= over;
-                if (widths[texts[0]] < MinTextWidth - 0.001) return null;
-            }
+            // Shrink the others toward their floors, in proportion to what each can give, until the first has its share.
+            var give = rest.Sum(i => natural[i] - Floor(i));
+            var take = Math.Min(wantedFirst - first, give);
+            foreach (var i in rest) widths[i] = natural[i] - (give > 0 ? (natural[i] - Floor(i)) * take / give : 0);
+            first += take;
         }
-        return [.. columns.Select((c, i) => new TableColumn(c.Header, widths[i],
-            c.Align == CellAlign.Right ? PrintAlign.Right : PrintAlign.Left, c.Align == CellAlign.Right ? PrintFace.Number : PrintFace.Text))];
+        widths[texts[0]] = first;
+        if (first < MinTextWidth - 0.001) return null;
+        return Columns(columns, widths);
     }
+
+    static IReadOnlyList<TableColumn> Columns(IReadOnlyList<ReportColumn> columns, double[] widths) =>
+        [.. columns.Select((c, i) => new TableColumn(c.Header, widths[i],
+            c.Align == CellAlign.Right ? PrintAlign.Right : PrintAlign.Left, c.Align == CellAlign.Right ? PrintFace.Number : PrintFace.Text))];
 
     /// <summary>The width of the number columns at their widest cell: what a layout must leave for them.</summary>
     public static double NumberWidth(IReadOnlyList<ReportColumn> columns, IEnumerable<IReadOnlyList<string>> cells, double fontSize, ITextMeasure m)

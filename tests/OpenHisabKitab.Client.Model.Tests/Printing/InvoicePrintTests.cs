@@ -112,8 +112,10 @@ public sealed class InvoicePrintTests : IDisposable
     {
         var shell = await Shell();
         var party = await Party(shell, "Blr Mart", "29", "29AABCB1234C1ZA", "MG Road, Bengaluru");
-        await Save(shell, party, "29", Line(shell, 1000_00));
+        var saved = await Save(shell, party, "29", Line(shell, 1000_00));
         var texts = Texts(await Print(shell, "SALE INV/26-27/00001"));
+        Assert.Equal(1180_00, await PartyPosting(shell, saved.Id, party));
+        Assert.Contains("1,180.00", texts);
         Assert.Contains("Place of supply Karnataka (29)", texts);
         Assert.Contains("IGST %", texts);
         Assert.Contains("18%", texts);
@@ -229,12 +231,15 @@ public sealed class InvoicePrintTests : IDisposable
         var shell = await Shell();
         var party = await Party(shell, "Ravi Stores", "27", "27AAACR5055K1Z7", "Pune");
         await Save(shell, party, "27", Line(shell, 1000_00));
-        await Save(shell, new InvoiceMsg
+        var note = await Save(shell, new InvoiceMsg
         {
             Type = "CreditNote", Date = "2026-06-05", Party = party, Direction = "Outward", Kind = "Regular", PlaceOfSupply = "27",
             OriginalNumber = "INV/26-27/00001", OriginalDate = "2026-06-01", Lines = { Line(shell, 100_00) },
         });
         var texts = Texts(await Print(shell, "CRNT CN/26-27/00001"));
+        // A credit note lowers what the buyer owes: the printed total is the credit to the party.
+        Assert.Equal(-118_00, await PartyPosting(shell, note.Id, party));
+        Assert.Contains("118.00", texts);
         Assert.Contains("Credit note", texts);
         Assert.Contains("Note no. CN/26-27/00001", texts);
         Assert.Contains("Original invoice INV/26-27/00001, 01-06-2026", texts);

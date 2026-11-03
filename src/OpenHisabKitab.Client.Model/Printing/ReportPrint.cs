@@ -28,7 +28,14 @@ public static class ReportPrint
             : (PaperSize.A4Landscape, SmallSize);
 
         var page = new PageBuilder(paper, m.LineHeight(Footer) + 4);
-        var columns = PrintTable.Fit(input.Columns, cells, page.Width, size, m) ?? Even(input.Columns, page.Width);
+        var columns = PrintTable.Fit(input.Columns, cells, page.Width, size, m);
+        // Still too wide in landscape: smaller type until the number columns fit, since numbers never wrap.
+        foreach (var smaller in new[] { 6.0, 5.0, 4.0 })
+        {
+            if (columns is not null) break;
+            (size, columns) = (smaller, PrintTable.Fit(input.Columns, cells, page.Width, smaller, m));
+        }
+        columns ??= Even(input.Columns, page.Width);
 
         Lines(page, [input.Company], new PrintFont(PrintFace.Text, 12, Bold: true), m);
         Lines(page, [input.Heading], new PrintFont(PrintFace.Text, 11, Bold: true), m);

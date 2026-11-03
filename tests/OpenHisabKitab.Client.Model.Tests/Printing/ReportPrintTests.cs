@@ -96,6 +96,24 @@ public sealed class ReportPrintTests
     }
 
     [Fact]
+    public void Fit_refuses_number_columns_that_overflow_even_without_text_columns()
+    {
+        IReadOnlyList<ReportColumn> numbers = [.. Enumerable.Range(1, 12).Select(i => Num($"Amount {i}"))];
+        IReadOnlyList<IReadOnlyList<string>> cells = [[.. Enumerable.Repeat("99,99,99,999.99", 12)]];
+        Assert.Null(PrintTable.Fit(numbers, cells, 523.28, 8.5, M));
+        Assert.NotNull(PrintTable.Fit(numbers.Take(3).ToList(), [[.. cells[0].Take(3)]], 523.28, 8.5, M));
+    }
+
+    [Fact]
+    public void Too_wide_for_any_fit_still_never_overlaps()
+    {
+        // Twelve crore sized number columns cannot fit landscape even at 7 points: the fallback must still keep boxes apart.
+        IReadOnlyList<ReportColumn> columns = [Text("Party"), .. Enumerable.Range(1, 12).Select(i => Num($"Amount {i}"))];
+        var line = new ReportLine(0, [new("Ravi Stores"), .. Enumerable.Repeat(new ReportCell("99,99,99,999.99"), 12)], null, false);
+        AssertLaidOut(ReportPrint.Build(new ReportPrintInput("A", "Wide", "x", columns, [line]), M));
+    }
+
+    [Fact]
     public void Tight_columns_keep_short_text_columns_at_their_natural_width()
     {
         IReadOnlyList<ReportColumn> columns =

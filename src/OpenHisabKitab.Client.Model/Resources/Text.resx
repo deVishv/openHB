@@ -141,6 +141,7 @@
   <data name="PrintedOn" xml:space="preserve"><value>Printed {0}</value></data>
   <data name="PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
   <data name="PrintNeedsExport" xml:space="preserve"><value>Printing reports needs the export right.</value></data>
+  <data name="PrintIncomplete" xml:space="preserve"><value>The report did not finish loading. Press F5, then print again.</value></data>
   <data name="NothingToPrint" xml:space="preserve"><value>Nothing to print in this tab.</value></data>
   <data name="PrintSaveFirst" xml:space="preserve"><value>Save the voucher before printing.</value></data>
   <data name="PrintReload" xml:space="preserve"><value>This voucher was changed. Reload it with RFSH, then print.</value></data>

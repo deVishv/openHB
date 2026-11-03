@@ -89,6 +89,18 @@ public sealed class PrintCommandTests : IDisposable
     }
 
     [Fact]
+    public async Task Ctrl_shift_e_keeps_a_half_typed_prompt()
+    {
+        var shell = await Shell();
+        var seen = Capture(shell);
+        await shell.RunAsync("TRLB", newTab: true);
+        shell.Prompt.Text = "LEDG ca";
+        Assert.True(await shell.HandleKeyAsync(Chord("ctrl+shift+e"), NoContext));
+        Assert.Equal(PrintTarget.Pdf, Assert.Single(seen).Target);
+        Assert.Equal("LEDG ca", shell.Prompt.Text);
+    }
+
+    [Fact]
     public async Task Prnt_adds_no_tab_and_no_back_step()
     {
         var shell = await Shell();

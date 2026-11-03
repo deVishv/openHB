@@ -9,6 +9,7 @@ namespace OpenHisabKitab.Core.Formatting;
 public static class LogoImage
 {
     public const int MaxBytes = 204_800;
+    public const string TooLarge = "Logo must be at most 200 KB.";
     const int MaxPixels = 4000;
 
     static ReadOnlySpan<byte> Signature => [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
@@ -18,7 +19,7 @@ public static class LogoImage
     {
         if (bytes.Length < 24 || !bytes[..8].SequenceEqual(Signature) || !bytes.Slice(12, 4).SequenceEqual("IHDR"u8))
             return "Logo must be a PNG file.";
-        if (bytes.Length > MaxBytes) return "Logo must be at most 200 KB.";
+        if (bytes.Length > MaxBytes) return TooLarge;
         var width = BinaryPrimitives.ReadInt32BigEndian(bytes.Slice(16, 4));
         var height = BinaryPrimitives.ReadInt32BigEndian(bytes.Slice(20, 4));
         if (width is < 1 or > MaxPixels || height is < 1 or > MaxPixels) return "Logo must be at most 4000 by 4000 pixels.";

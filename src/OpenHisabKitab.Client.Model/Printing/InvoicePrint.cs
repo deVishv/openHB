@@ -147,7 +147,7 @@ public static class InvoicePrint
         var footerWidth = page.Width * 0.6 - 6;
         var signX = page.Left + page.Width * 0.6;
         var lh = m.LineHeight(Body);
-        var need = 4 + totals.Count * lh + 4 + Height(words, page.Width, Body, m) + 8
+        var need = 4 + totals.Count * lh + 4 + Height(words, page.Width, BodyBold, m) + 8
             + Math.Max(leftFooter.Sum(x => Height(x.Item1, footerWidth, x.Item2, m)), 2 * lh + 36);
         if (!page.Fits(need))
         {
@@ -217,7 +217,7 @@ public static class InvoicePrint
         foreach (var (shown, name) in new[] { (tax.Cgst, T.PrintTaxCgst), (tax.Sgst, T.PrintTaxSgst), (tax.Utgst, T.PrintTaxUtgst), (tax.Igst, T.PrintTaxIgst), (tax.Cess, T.PrintTaxCess) })
             if (shown) columns.AddRange([new(F(T.PrintColTaxRate, name), CellAlign.Right), new(name, CellAlign.Right)]);
         var cells = input.Voucher.Invoice.Lines.Select((l, i) => Cells(input, l, i, tax)).ToList();
-        foreach (var size in new[] { Size, 7.5, 6.5 })
+        foreach (var size in new[] { Size, 7.5, 6.5, 5.5, 4.5 })
             if (PrintTable.Fit(columns, cells, width, size, m) is { } fit) return (fit, size);
         return ([.. columns.Select(c => new TableColumn(c.Header, width / columns.Count,
             c.Align == CellAlign.Right ? PrintAlign.Right : PrintAlign.Left, c.Align == CellAlign.Right ? PrintFace.Number : PrintFace.Text))], 6.5);

@@ -72,6 +72,12 @@ public sealed class PdfExportTests
         Assert.Null(PdfText.FirstUnsupported(One("Total ₹ 1,00,000.00 é – “quoted”\tTab\nLine")));
         Assert.Equal("राम Traders", PdfText.FirstUnsupported(One("राम Traders")));
         Assert.Equal("ગુજરાત", PdfText.FirstUnsupported(One("ગુજરાત")));
+        // Invisible and control characters, and currency signs newer than the fonts, would also print wrongly.
+        Assert.Equal("Ravi​Stores", PdfText.FirstUnsupported(One("Ravi​Stores")));
+        Assert.Equal("A‮Traders", PdfText.FirstUnsupported(One("A‮Traders")));
+        Assert.Equal("Bad\u0085", PdfText.FirstUnsupported(One("Bad\u0085")));
+        Assert.Equal("Som ⃀", PdfText.FirstUnsupported(One("Som ⃀")));
+        Assert.Null(PdfText.FirstUnsupported(One("€ £ ¥ ₹ – — “ ” …")));
     }
 
     [Fact]

@@ -136,6 +136,34 @@ public sealed class VoucherSlipTests : IDisposable
     }
 
     [Fact]
+    public async Task Cancelled_slip_says_cancelled_without_a_zero_total()
+    {
+        var shell = await Shell();
+        var saved = await t.OtherOwnerClient().Vouchers.SaveJournalAsync(new JournalRequest
+        {
+            Company = shell.Context.Company!.Id,
+            Journal = new JournalMsg
+            {
+                Type = "Receipt", Date = "2026-05-10", Narration = "counter sale",
+                Lines =
+                {
+                    new PostingLineMsg { Ledger = Required(shell, "Cash"), Paise = 500_00 },
+                    new PostingLineMsg { Ledger = Required(shell, "Sales"), Paise = -500_00 },
+                },
+            },
+        }, t.Headers());
+        await t.OtherOwnerClient().Vouchers.CancelAsync(new CancelRequest
+        {
+            Company = shell.Context.Company!.Id, Id = saved.Id, RowVersion = saved.RowVersion, Reason = "typed twice",
+        }, t.Headers());
+        var texts = Texts(await Print(shell, "RCPT RCT/26-27/00001"));
+        Assert.Contains("CANCELLED", texts);
+        Assert.Contains("Narration: counter sale", texts);
+        Assert.DoesNotContain("Total", texts);
+        Assert.DoesNotContain(texts, x => x.StartsWith("Amount in words", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Slip_amount_in_words_is_the_debit_total()
     {
         var shell = await Shell();

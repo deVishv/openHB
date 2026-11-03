@@ -86,6 +86,16 @@ public sealed class InvoiceShipToTests : IDisposable
     }
 
     [Fact]
+    public async Task Export_ship_to_state_when_given_must_be_known()
+    {
+        Assert.Equal("Choose the ship to state.", await Refused(
+            Sale(new ShipTo("Gulf LLC", "Jebel Ali", new StateCode("98"), "United Arab Emirates"), InvoiceKind.ExportUnderLut, "96")));
+        var saved = await host.Vouchers.SaveInvoiceAsync(owner, company,
+            Sale(new ShipTo("Gulf LLC", "Jebel Ali", new StateCode("96"), "United Arab Emirates"), InvoiceKind.ExportUnderLut, "96"));
+        Assert.Equal(new StateCode("96"), host.Vouchers.Get(owner, company, saved.Id).Invoice!.ShipTo!.State);
+    }
+
+    [Fact]
     public async Task Invoice_keeps_party_and_company_details_as_saved()
     {
         var saved = await host.Vouchers.SaveInvoiceAsync(owner, company, Sale(null));

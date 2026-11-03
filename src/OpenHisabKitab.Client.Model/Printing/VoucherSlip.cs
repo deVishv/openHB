@@ -52,14 +52,19 @@ public static class VoucherSlip
             new(T.PrintColDebit, amountWidth, PrintAlign.Right, PrintFace.Number),
             new(T.PrintColCredit, amountWidth, PrintAlign.Right, PrintFace.Number),
         ];
-        var rows = input.Lines.Select(l => new TableRow([l.Ledger, Amount(l.Debit), Amount(l.Credit)]))
-            .Append(new TableRow([T.PrintTotal, Amount(debit), Amount(credit)], Bold: true));
-        PrintTable.Write(page, columns, rows, Size, m);
+        // A cancelled voucher posts nothing: it shows CANCELLED and its narration, never a total of 0.00.
+        var posted = input.Lines.Count > 0;
+        if (posted)
+        {
+            var rows = input.Lines.Select(l => new TableRow([l.Ledger, Amount(l.Debit), Amount(l.Credit)]))
+                .Append(new TableRow([T.PrintTotal, Amount(debit), Amount(credit)], Bold: true));
+            PrintTable.Write(page, columns, rows, Size, m);
+        }
 
         page.Advance(6);
         List<(string, PrintFont)> after = [];
         if (v.Narration.Trim().Length > 0) after.Add((F(T.PrintNarration, v.Narration.Trim()), Body));
-        after.Add((F(T.PrintAmountInWords, AmountInWords.Rupees(debit)), BodyBold));
+        if (posted) after.Add((F(T.PrintAmountInWords, AmountInWords.Rupees(debit)), BodyBold));
         var height = after.Sum(a => TextWrap.Lines(a.Item1, page.Width, a.Item2, m).Count * m.LineHeight(a.Item2)) + 12 + SignatureRoom + m.LineHeight(Body);
         if (!page.Fits(height)) page.NewPage();
         foreach (var (text, font) in after) ReportPrint.Lines(page, [text], font, m);

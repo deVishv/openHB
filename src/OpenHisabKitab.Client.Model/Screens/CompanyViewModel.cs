@@ -147,7 +147,16 @@ public sealed partial class CompanyViewModel : ScreenViewModel, IScreenCommands
     {
         if (!CanSetLogo) return Task.CompletedTask;
         byte[] png;
-        try { png = File.ReadAllBytes(path); }
+        try
+        {
+            // A large file picked by mistake is refused before it is read.
+            if (new FileInfo(path).Length > LogoImage.MaxBytes)
+            {
+                Message = LogoImage.TooLarge;
+                return Task.CompletedTask;
+            }
+            png = File.ReadAllBytes(path);
+        }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         {
             Message = Format(Text.CannotReadFile, path);

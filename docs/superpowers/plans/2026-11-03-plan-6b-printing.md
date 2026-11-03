@@ -824,6 +824,8 @@ These are the builder's calls, kept here for the record. The major ones are in `
 16. **The F11 smoke test finds the print dialog through Win32,** because Windows 11 shows a modern print dialog in another process. Cost if wrong: one test helper.
 17. **CMPY's Edit button keeps the access key E,** which opens the Edit menu instead (from Plan 4). The logo smoke test invokes the button directly. Cost if wrong: Edit is reached by Tab and Space only.
 
+18. **Two review minors stay as they are.** A voucher slip falls back to state 27 when the company profile has no state; slips never print the state, and PRNT runs only with a company open. Changing orientation inside the print dialog leaves the pages in the document's own orientation, which the print ticket already requests. Cost if wrong: cosmetic.
+
 ## Done when
 
 - Every task's tests pass in Release, with 0 warnings.

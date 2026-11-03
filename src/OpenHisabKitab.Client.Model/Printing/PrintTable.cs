@@ -35,7 +35,7 @@ public static class PrintTable
         var texts = columns.Select((c, i) => (c, i)).Where(x => x.c.Align == CellAlign.Left).Select(x => x.i).ToList();
         var available = width - numbers;
         var widths = natural.ToArray();
-        if (texts.Count == 0) return Columns(columns, widths);
+        if (texts.Count == 0) return available < -0.001 ? null : Columns(columns, widths);
         var rest = texts.Skip(1).ToList();
         // The other text columns shrink no further than 60 points, and a short one (an HSN code, a unit) not at all.
         double Floor(int i) => Math.Min(natural[i], ShortTextWidth);

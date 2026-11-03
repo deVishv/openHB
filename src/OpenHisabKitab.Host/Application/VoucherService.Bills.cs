@@ -145,7 +145,7 @@ public sealed partial class VoucherService
             throw new ServiceException(ServiceError.Invalid, "Ship to cannot contain control characters.");
         var export = kind is InvoiceKind.ExportWithTax or InvoiceKind.ExportUnderLut;
         if (country is not null && !export) throw new ServiceException(ServiceError.Invalid, "Country of destination is only for exports.");
-        if (!export && (shipTo.State is not { } state || !Gst.States.Any(s => s.Code == state)))
+        if ((!export && shipTo.State is null) || (shipTo.State is { } state && !Gst.States.Any(s => s.Code == state)))
             throw new ServiceException(ServiceError.Invalid, "Choose the ship to state.");
         return new ShipTo(name, address, shipTo.State, country);
     }

@@ -63,7 +63,7 @@ public abstract partial class ReportScreen(ShellContext ctx) : ScreenViewModel(c
     public async Task<PrintResult> PrintAsync(PrintTarget target)
     {
         if (!CanExport) return PrintResult.Refused(Text.PrintNeedsExport);
-        if (!await LoadAllAsync()) return PrintResult.Refused(Message ?? "");
+        if (!await LoadAllAsync()) return PrintResult.Refused(Message ?? Text.PrintIncomplete);
         var now = Ctx.Time.GetLocalNow();
         var printedOn = Show(DateOnly.FromDateTime(now.DateTime)) + " " + now.ToString("HH:mm", CultureInfo.InvariantCulture);
         var doc = ReportPrint.Build(new ReportPrintInput(Ctx.Company?.Name ?? "", Heading, printedOn, Columns, [.. Lines]), PdfMeasure.Instance);

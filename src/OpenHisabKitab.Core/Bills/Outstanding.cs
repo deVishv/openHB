@@ -20,7 +20,7 @@ public sealed record OutstandingReport(DateOnly AsAt, PartySide Side, AgeingBuck
 public sealed record PartyPosition(LedgerId Party, Money Closing, IReadOnlyList<OpenBill> Bills);
 
 /// <summary>
-/// OUTS (spec 6.3) with the rules the owner approved on 2026-11-02 (owner review, Plan 6 item 1): bills age from their
+/// OUTS (spec 6.3) with the rules the owner approved on 2026-11-02 (Plan 6 Task 4 rules): bills age from their
 /// due date, or their date when they have none; what no bill explains is on account and not aged. The closing comes
 /// from the books (spec 5.1), so open bills plus on account always equal the ledger.
 /// </summary>

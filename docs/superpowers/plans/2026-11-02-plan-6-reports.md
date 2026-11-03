@@ -65,6 +65,7 @@
 - Plan 6 owner review items 1 to 3 are approved as recommended: `OUTS` ageing, the `CFLO` classification, and the Schedule III layout.
 - Execution is **native**: one session builds every task with superpowers:executing-plans, then one fresh reviewer on the most capable model checks the whole branch.
 - The plan docs are committed to `main` before the branch.
+- Approved after the build: backups go only to a drive of the host PC (never a network path or a path through a link), and the `PNLS` result line reads `Net profit / (loss)` when this year and last year differ in sign. These were owner review items 4 and 5.
 
 **Roadmap as it now stands.**
 

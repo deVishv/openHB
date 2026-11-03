@@ -16,7 +16,7 @@ public sealed record CashFlowStatement(DateRange Period, IReadOnlyList<CashFlowL
 
 /// <summary>
 /// The cash flow statement by the indirect method (spec 6.3, CFLO), with the classification the owner approved on
-/// 2026-11-02 (owner review, Plan 6 item 2). Cash is the Cash in Hand and Bank Accounts groups; a bank overdraft is a
+/// 2026-11-02 (Plan 6 Task 3 rules). Cash is the Cash in Hand and Bank Accounts groups; a bank overdraft is a
 /// short term borrowing. Every figure comes from <see cref="Books"/> (spec 5.1).
 /// </summary>
 static class CashFlowBuilder

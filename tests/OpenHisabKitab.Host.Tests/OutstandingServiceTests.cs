@@ -1,6 +1,6 @@
 namespace OpenHisabKitab.Host.Tests;
 
-/// <summary>OUTS in the host: bills as at a date against the books (spec 5.1; owner review Plan 6 item 1).</summary>
+/// <summary>OUTS in the host: bills as at a date against the books (spec 5.1; Plan 6 Task 4 rules).</summary>
 public sealed class OutstandingServiceTests : IDisposable
 {
     readonly TestHost host = new();

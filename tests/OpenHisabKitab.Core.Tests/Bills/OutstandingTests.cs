@@ -2,7 +2,7 @@ using OpenHisabKitab.Core.Bills;
 
 namespace OpenHisabKitab.Core.Tests.Bills;
 
-/// <summary>Outstanding bills with ageing (spec 6.3, OUTS; owner review Plan 6 item 1). Figures worked by hand.</summary>
+/// <summary>Outstanding bills with ageing (spec 6.3, OUTS; Plan 6 Task 4 rules). Figures worked by hand.</summary>
 public class OutstandingTests
 {
     static Money R(decimal rupees) => new((long)(rupees * 100));

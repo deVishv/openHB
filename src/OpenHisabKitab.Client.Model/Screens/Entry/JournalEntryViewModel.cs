@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Lookups;
 using OpenHisabKitab.Client.Model.Resources;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
 using OpenHisabKitab.Core.Amounts;
@@ -280,6 +281,10 @@ public sealed class JournalEntryViewModel : VoucherEntryViewModel
         }
         return msg;
     }
+
+    /// <summary>Receipts, payments, journals, and contras print as a voucher slip (Task 7).</summary>
+    protected override Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target) =>
+        Task.FromResult(PrintResult.Refused(Text.NothingToPrint));
 
     protected override async Task FillAsync(VoucherMsg v)
     {

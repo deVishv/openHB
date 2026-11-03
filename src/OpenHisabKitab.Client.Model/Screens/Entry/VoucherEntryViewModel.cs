@@ -2,6 +2,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Formatting;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
@@ -14,7 +15,7 @@ namespace OpenHisabKitab.Client.Model.Screens.Entry;
 /// second voucher, editing by number with its row version, cancelling, Esc asking once before discarding, and the sub
 /// screens for a new party and for bills. A failed save keeps everything typed.
 /// </summary>
-public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCommands, IEntryLines
+public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCommands, IEntryLines, IPrintable
 {
     readonly string code;
     bool loading;
@@ -252,6 +253,27 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
                 break;
         }
     }
+
+    /// <summary>
+    /// PRNT prints the voucher as stored, read again from the host, never the screen's fields: an unsaved or edited
+    /// voucher, or one someone else changed since it was shown, prints nothing and says why.
+    /// </summary>
+    public async Task<PrintResult> PrintAsync(PrintTarget target)
+    {
+        if (Existing is not { } shown || HasUnsavedEdits) return PrintResult.Refused(Text.PrintSaveFirst);
+        VoucherMsg stored;
+        try { stored = await Ctx.Host.CallAsync((h, o) => h.Vouchers.GetAsync(new VoucherRef { Company = Ctx.Company!.Id, Id = shown.Id }, o)); }
+        catch (HostException e) { return PrintResult.Refused(e.Message); }
+        if (stored.RowVersion != shown.RowVersion) return PrintResult.Refused(Text.PrintReload);
+        return await BuildPrintAsync(stored, target);
+    }
+
+    /// <summary>The stored voucher laid out for printing.</summary>
+    protected abstract Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target);
+
+    /// <summary>"SALE INV-26-27-00001.pdf": the code and number, with characters Windows refuses in a file name made "-".</summary>
+    protected string PdfName(VoucherMsg v) =>
+        new string([.. $"{Code} {v.DisplayNumber}".Select(c => c < ' ' || @"\/:*?""<>|".Contains(c) ? '-' : c)]) + ".pdf";
 
     protected string ShowDate(DateOnly d) => DateText.Format(d, Ctx.Settings.Current.Text("ui.dateFormat"));
 

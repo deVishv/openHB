@@ -3,6 +3,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using OpenHisabKitab.Client.Model.Connection;
 using OpenHisabKitab.Client.Model.Lookups;
+using OpenHisabKitab.Client.Model.Printing;
 using OpenHisabKitab.Client.Model.Resources;
 using OpenHisabKitab.Client.Model.Shell;
 using OpenHisabKitab.Contracts.V1;
@@ -420,6 +421,20 @@ public sealed partial class InvoiceEntryViewModel : VoucherEntryViewModel
             msg.Lines.Add(m);
         }
         return msg;
+    }
+
+    static readonly GstData Gst = GstData.LoadEmbedded();
+
+    /// <summary>Documents this business issues print as GST documents; received ones print as a slip.</summary>
+    protected override async Task<PrintResult> BuildPrintAsync(VoucherMsg stored, PrintTarget target)
+    {
+        if (stored.Invoice.Direction != nameof(TradeDirection.Outward)) return PrintResult.Refused(Text.NothingToPrint);
+        var settings = Ctx.Settings.Current;
+        var input = InvoicePrintInput.From(stored, Ctx.Lookups, settings, await Ctx.Lookups.LogoAsync());
+        if (InvoicePrint.Check(input, Gst) is { } missing) return PrintResult.Refused(missing);
+        IReadOnlyList<string> copies = target == PrintTarget.Pdf ? [InvoicePrint.OriginalOnly]
+            : InvoiceWording.CopyLabels(InvoicePrint.AnyGoods(stored), settings.Text("invoice.copies"));
+        return new PrintResult(InvoicePrint.Build(input, copies, Gst, PdfMeasure.Instance), PdfName(stored), null);
     }
 
     protected override async Task FillAsync(VoucherMsg v)

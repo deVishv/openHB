@@ -141,6 +141,44 @@
   <data name="PrintedOn" xml:space="preserve"><value>Printed {0}</value></data>
   <data name="PageOf" xml:space="preserve"><value>Page {0} of {1}</value></data>
   <data name="PrintNeedsExport" xml:space="preserve"><value>Printing reports needs the export right.</value></data>
+  <data name="NothingToPrint" xml:space="preserve"><value>Nothing to print in this tab.</value></data>
+  <data name="PrintSaveFirst" xml:space="preserve"><value>Save the voucher before printing.</value></data>
+  <data name="PrintReload" xml:space="preserve"><value>This voucher was changed. Reload it with RFSH, then print.</value></data>
+  <data name="PrintInvoiceNo" xml:space="preserve"><value>Invoice no. {0}</value></data>
+  <data name="PrintNoteNo" xml:space="preserve"><value>Note no. {0}</value></data>
+  <data name="PrintDate" xml:space="preserve"><value>Date {0}</value></data>
+  <data name="PrintPlaceOfSupply" xml:space="preserve"><value>Place of supply {0}</value></data>
+  <data name="PrintReverseChargeNo" xml:space="preserve"><value>Reverse charge No</value></data>
+  <data name="PrintOriginalInvoice" xml:space="preserve"><value>Original invoice {0}, {1}</value></data>
+  <data name="PrintPortCode" xml:space="preserve"><value>Port code {0}</value></data>
+  <data name="PrintShippingBill" xml:space="preserve"><value>Shipping bill {0}, {1}</value></data>
+  <data name="PrintBillTo" xml:space="preserve"><value>Bill to</value></data>
+  <data name="PrintShipTo" xml:space="preserve"><value>Ship to</value></data>
+  <data name="PrintGstin" xml:space="preserve"><value>GSTIN {0}</value></data>
+  <data name="PrintState" xml:space="preserve"><value>State {0}</value></data>
+  <data name="PrintCountry" xml:space="preserve"><value>Country {0}</value></data>
+  <data name="PrintCancelled" xml:space="preserve"><value>CANCELLED</value></data>
+  <data name="PrintContinued" xml:space="preserve"><value>{0} {1}, {2} (continued)</value></data>
+  <data name="PrintColNo" xml:space="preserve"><value>#</value></data>
+  <data name="PrintColDescription" xml:space="preserve"><value>Description</value></data>
+  <data name="PrintColHsn" xml:space="preserve"><value>HSN/SAC</value></data>
+  <data name="PrintColQty" xml:space="preserve"><value>Qty</value></data>
+  <data name="PrintColUnit" xml:space="preserve"><value>Unit</value></data>
+  <data name="PrintColRate" xml:space="preserve"><value>Rate</value></data>
+  <data name="PrintColDiscount" xml:space="preserve"><value>Discount</value></data>
+  <data name="PrintColTaxable" xml:space="preserve"><value>Taxable value</value></data>
+  <data name="PrintColTaxRate" xml:space="preserve"><value>{0} %</value></data>
+  <data name="PrintTaxCgst" xml:space="preserve"><value>CGST</value></data>
+  <data name="PrintTaxSgst" xml:space="preserve"><value>SGST</value></data>
+  <data name="PrintTaxUtgst" xml:space="preserve"><value>UTGST</value></data>
+  <data name="PrintTaxIgst" xml:space="preserve"><value>IGST</value></data>
+  <data name="PrintTaxCess" xml:space="preserve"><value>Cess</value></data>
+  <data name="PrintRoundOff" xml:space="preserve"><value>Round off</value></data>
+  <data name="PrintTotal" xml:space="preserve"><value>Total</value></data>
+  <data name="PrintAmountInWords" xml:space="preserve"><value>Amount in words: {0}</value></data>
+  <data name="PrintBankDetails" xml:space="preserve"><value>Bank details</value></data>
+  <data name="PrintTerms" xml:space="preserve"><value>Terms</value></data>
+  <data name="PrintFor" xml:space="preserve"><value>For {0}</value></data>
   <data name="LogoNone" xml:space="preserve"><value>No logo</value></data>
   <data name="LogoKb" xml:space="preserve"><value>Logo: {0} KB</value></data>
   <data name="LogoSaved" xml:space="preserve"><value>Logo saved.</value></data>

@@ -8,7 +8,7 @@ Settled on 2026-11-03: voucher slips are in scope; issued invoices get an option
 
 ### Data checks before the first public release
 
-1. **Printed wording** in `src/OpenHisabKitab.Core/Gst/InvoiceWording.cs` and plan Task 1: the titles (including `Bill of supply` for a Regular sale where every line is at 0%), the four export and SEZ endorsements, the composition line, the Rule 48 copy marks, and `Reverse charge No` on every issued document. A tax professional should confirm them.
+1. **Printed wording** in `src/OpenHisabKitab.Core/Gst/InvoiceWording.cs` and plan Task 1: the titles (including `Bill of supply` for a Regular sale where every line is at 0%), the four export and SEZ endorsements, the composition line, the Rule 48 copy marks, `Reverse charge No` on every issued document, and an export or SEZ supply without tax showing the line's rate (such as 18%) with 0.00 IGST. A tax professional should confirm them.
 2. **Sample printouts.** An accountant should check one printed tax invoice, export invoice, credit note, and bill of supply against Rules 46, 49, and 53 (plan Task 9, step 5).
 
 ## Plan 6: Reports, audit trail, and backup

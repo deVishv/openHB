@@ -819,6 +819,11 @@ These are the builder's calls, kept here for the record. The major ones are in `
 12. **Paper text is clipped to its measured box.** Indic text on paper takes WPF's fallback font, whose widths PDFsharp cannot measure. A long Indic name may be cut at its box edge, but it never overlaps. Cost if wrong: a wider column for such names.
 13. **`System.Security.Cryptography.Pkcs` 10.0.14 is referenced directly** to clear the audit failure on PDFsharp's 8.0.1. Cost if wrong: none; remove it when PDFsharp updates.
 
+14. **Printed tables keep short text columns** (HSN, unit) at their natural width and give the rest to the first text column, shrinking others to no less than 60 points. Reading the sample PDFs showed the first rule squeezed descriptions. Cost if wrong: one fitting rule.
+15. **The ledger options are published before the parties** in `LookupCache`, closing a window where a new party was visible without its ledger. A full suite run exposed it. Cost if wrong: none expected.
+16. **The F11 smoke test finds the print dialog through Win32,** because Windows 11 shows a modern print dialog in another process. Cost if wrong: one test helper.
+17. **CMPY's Edit button keeps the access key E,** which opens the Edit menu instead (from Plan 4). The logo smoke test invokes the button directly. Cost if wrong: Edit is reached by Tab and Space only.
+
 ## Done when
 
 - Every task's tests pass in Release, with 0 warnings.

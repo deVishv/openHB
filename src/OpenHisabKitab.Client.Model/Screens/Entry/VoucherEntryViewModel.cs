@@ -102,8 +102,13 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
     /// <summary>Screens call this when the user changes anything.</summary>
     protected void Edited()
     {
-        if (!loading) Dirty = true;
+        if (loading) return;
+        Dirty = true;
+        justSaved = null;
     }
+
+    // The voucher this screen saved last, while the form stands blank for the next one: PRNT straight after Ctrl+S prints it.
+    long? justSaved;
 
     partial void OnDateChanged(string value) => Edited();
 
@@ -163,7 +168,11 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
             }
             Ctx.Report(Format(Text.SavedVoucher, reply.DisplayNumber));
             if (existing is not null) await LoadNumberAsync(reply.DisplayNumber);
-            else StartAgain();
+            else
+            {
+                StartAgain();
+                justSaved = reply.Id;
+            }
         }
         catch (HostException e) when (e.Kind == HostErrorKind.Conflict)
         {
@@ -260,12 +269,17 @@ public abstract partial class VoucherEntryViewModel : ScreenViewModel, IScreenCo
     /// </summary>
     public async Task<PrintResult> PrintAsync(PrintTarget target)
     {
-        if (Existing is not { } shown || HasUnsavedEdits) return PrintResult.Refused(Text.PrintSaveFirst);
-        VoucherMsg stored;
-        try { stored = await Ctx.Host.CallAsync((h, o) => h.Vouchers.GetAsync(new VoucherRef { Company = Ctx.Company!.Id, Id = shown.Id }, o)); }
+        if (HasUnsavedEdits) return PrintResult.Refused(Text.PrintSaveFirst);
+        // A shown voucher must still be as shown; the one just saved is not on screen, so it prints as stored.
+        var (id, shownVersion) = Existing is { } shown ? (shown.Id, (long?)shown.RowVersion) : (justSaved ?? 0, null);
+        if (id == 0) return PrintResult.Refused(Text.PrintSaveFirst);
+        try
+        {
+            var stored = await Ctx.Host.CallAsync((h, o) => h.Vouchers.GetAsync(new VoucherRef { Company = Ctx.Company!.Id, Id = id }, o));
+            if (shownVersion is { } version && stored.RowVersion != version) return PrintResult.Refused(Text.PrintReload);
+            return await BuildPrintAsync(stored, target);
+        }
         catch (HostException e) { return PrintResult.Refused(e.Message); }
-        if (stored.RowVersion != shown.RowVersion) return PrintResult.Refused(Text.PrintReload);
-        return await BuildPrintAsync(stored, target);
     }
 
     /// <summary>The stored voucher laid out for printing.</summary>

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Printing;
+using System.Windows.Documents;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -75,17 +76,24 @@ public partial class MainWindow : Window
                 using (var file = File.Create(save.FileName)) PdfExport.Write(doc, file);
                 shell.Printed(Say(Model.Resources.Text.PdfSaved, Path.GetFileName(save.FileName)));
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
             {
                 shell.Printed(Say(Model.Resources.Text.CannotSaveFile, save.FileName));
             }
             return;
         }
-        var print = new PrintDialog();
-        if (doc.Paper.IsLandscape) print.PrintTicket.PageOrientation = PageOrientation.Landscape;
+        var print = new PrintDialog { PrintTicket = PrintPaginator.Ticket(doc) };
         if (print.ShowDialog() != true) return;
-        print.PrintDocument(new PrintPaginator(doc), doc.Title);
-        shell.Printed(Say(Model.Resources.Text.PrintSent, print.PrintQueue.Name));
+        try
+        {
+            print.PrintDocument(new PrintPaginator(doc), doc.Title);
+            shell.Printed(Say(Model.Resources.Text.PrintSent, print.PrintQueue.Name));
+        }
+        // An offline printer, a driver fault, or a cancelled Print to PDF file prompt: one line, never a crash.
+        catch (Exception e) when (e is PrintingCanceledException or PrintQueueException or PrintSystemException or InvalidOperationException or IOException)
+        {
+            shell.Printed(Say(Model.Resources.Text.PrintFailed, e.Message));
+        }
     }
 
     async void OnPreviewKeyDown(object sender, KeyEventArgs e)

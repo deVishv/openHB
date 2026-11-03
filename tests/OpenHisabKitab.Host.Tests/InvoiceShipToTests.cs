@@ -46,6 +46,14 @@ public sealed class InvoiceShipToTests : IDisposable
     }
 
     [Fact]
+    public async Task Ship_to_address_typed_with_enter_is_saved_with_line_feeds()
+    {
+        // A WPF text box inserts CRLF for Enter; a bare CR is normalised too.
+        var saved = await host.Vouchers.SaveInvoiceAsync(owner, company, Sale(new ShipTo("Godown", "Plot 9\r\nMIDC\rChakan", new StateCode("27"), null)));
+        Assert.Equal("Plot 9\nMIDC\nChakan", host.Vouchers.Get(owner, company, saved.Id).Invoice!.ShipTo!.Address);
+    }
+
+    [Fact]
     public async Task Ship_to_is_refused_on_purchases()
     {
         var purchase = new InvoiceInput(VoucherType.Purchase, June1, "", supplier, TradeDirection.Inward, InvoiceKind.Regular,

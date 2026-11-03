@@ -418,6 +418,42 @@ public sealed class InvoicePrintTests : IDisposable
     }
 
     [Fact]
+    public async Task Sale_prints_right_after_saving()
+    {
+        var shell = await Shell();
+        var party = await Party(shell, "Ravi Stores", "27", "27AAACR5055K1Z7", "Pune");
+        await shell.RunAsync("SALE", newTab: true);
+        var s = Assert.IsType<InvoiceEntryViewModel>(shell.Tabs.Active!.Screen);
+        s.Party.Set(shell.Context.Lookups.Ledgers(Model.Lookups.LedgerUse.Party).Single(l => l.Id == party));
+        var line = s.Lines[0];
+        line.Ledger.Set(shell.Context.Lookups.Ledgers(Model.Lookups.LedgerUse.Any).Single(l => l.Required == "Sales"));
+        (line.Description, line.Quantity, line.Price, line.Rate) = ("Steel rod", "1", "1000", "18");
+        await s.SaveAsync();
+        Assert.Null(s.Message);
+        Assert.False(s.IsEditing);
+        var result = await s.PrintAsync(PrintTarget.Pdf);
+        Assert.Null(result.Refusal);
+        Assert.Contains("Invoice no. INV/26-27/00001", Texts(result.Document!));
+        Assert.Equal("SALE INV-26-27-00001.pdf", result.FileName);
+        // Once the user starts the next voucher, PRNT asks for that one to be saved.
+        s.Narration = "next";
+        Assert.Equal("Save the voucher before printing.", (await s.PrintAsync(PrintTarget.Pdf)).Refusal);
+    }
+
+    [Fact]
+    public async Task Logo_fetch_failure_is_a_refusal_not_a_crash()
+    {
+        var shell = await Shell();
+        var party = await Party(shell, "Ravi Stores", "27", "27AAACR5055K1Z7", "Pune");
+        await Save(shell, party, "27", Line(shell, 1000_00));
+        var s = await Open(shell, "SALE INV/26-27/00001");
+        t.FailRequest = ("GetLogo", 1);
+        var result = await s.PrintAsync(PrintTarget.Paper);
+        Assert.Null(result.Document);
+        Assert.False(string.IsNullOrEmpty(result.Refusal));
+    }
+
+    [Fact]
     public async Task Invoice_changed_elsewhere_says_reload()
     {
         var shell = await Shell();

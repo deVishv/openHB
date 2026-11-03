@@ -6,10 +6,16 @@ Major decisions and data checks that need the owner. Smaller decisions are the b
 
 Settled on 2026-11-03: voucher slips are in scope; issued invoices get an optional Ship to; each invoice keeps the buyer's and company's details as saved; and open decisions 1 to 5 were approved as recommended (recorded in the plan).
 
+### Open decision
+
+1. **A Ship to address standing in for the buyer's address** (`src/OpenHisabKitab.Core/Gst/InvoiceParticulars.cs`, found in the final review). Where a rule asks for the buyer's address, a Ship to address is accepted instead, as plan Task 1 said. Rule 46(d) and 53(e) ask for the recipient's address, and 46(e) for the recipient's address **and** the delivery address; a Ship to may name another place or party. Options:
+   - **Require the buyer's own address** wherever an address is required (recommended). The Ship to is then extra, never a substitute. Cost: a buyer with only a delivery address must have it entered in `PRTY` as well.
+   - **Keep the rule as built.** Cost: an invoice can print with an empty Bill to address.
+
 ### Data checks before the first public release
 
-1. **Printed wording** in `src/OpenHisabKitab.Core/Gst/InvoiceWording.cs` and plan Task 1: the titles (including `Bill of supply` for a Regular sale where every line is at 0%), the four export and SEZ endorsements, the composition line, the Rule 48 copy marks, `Reverse charge No` on every issued document, and an export or SEZ supply without tax showing the line's rate (such as 18%) with 0.00 IGST. A tax professional should confirm them.
-2. **Sample printouts.** An accountant should check one printed tax invoice, export invoice, credit note, and bill of supply against Rules 46, 49, and 53 (plan Task 9, step 5).
+2. **Printed wording** in `src/OpenHisabKitab.Core/Gst/InvoiceWording.cs` and plan Task 1: the titles (including `Bill of supply` for a Regular sale where every line is at 0%), the four export and SEZ endorsements, the composition line, the Rule 48 copy marks, `Reverse charge No` on every issued document, and an export or SEZ supply without tax showing the line's rate (such as 18%) with 0.00 IGST. A tax professional should confirm them.
+3. **Sample printouts.** An accountant should check one printed tax invoice, export invoice, credit note, and bill of supply against Rules 46, 49, and 53 (plan Task 9, step 5).
 
 ## Plan 6: Reports, audit trail, and backup
 

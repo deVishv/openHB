@@ -438,6 +438,7 @@
   <data name="PdfSaved" xml:space="preserve"><value>Saved {0}.</value></data>
   <data name="PrintSent" xml:space="preserve"><value>Sent to {0}.</value></data>
   <data name="CannotSaveFile" xml:space="preserve"><value>Cannot save {0}.</value></data>
+  <data name="PrintFailed" xml:space="preserve"><value>Printing failed: {0}</value></data>
   <data name="LedgerHeading" xml:space="preserve"><value>{0}, {1} to {2}</value></data>
   <data name="DayBookHeading" xml:space="preserve"><value>Day book, {0} to {1}</value></data>
   <data name="OpeningBalanceLine" xml:space="preserve"><value>Opening balance</value></data>

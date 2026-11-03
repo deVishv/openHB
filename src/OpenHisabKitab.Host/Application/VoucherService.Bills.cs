@@ -131,7 +131,8 @@ public sealed partial class VoucherService
     {
         if (shipTo is null) return null;
         var name = shipTo.Name.Trim();
-        var address = shipTo.Address.Trim();
+        // A text box inserts CRLF for Enter; lines are kept with LF alone.
+        var address = shipTo.Address.ReplaceLineEndings("\n").Trim();
         var country = string.IsNullOrWhiteSpace(shipTo.Country) ? null : shipTo.Country.Trim();
         if (name.Length == 0 && address.Length == 0 && country is null && shipTo.State is null) return null;
         if (direction != TradeDirection.Outward)
